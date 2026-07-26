@@ -1,0 +1,91 @@
+# ==========================================
+# Environments & Variables (Crucial Security)
+# ==========================================
+.env
+.env.*
+!.env.example
+!.env.template
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ==========================================
+# Python Bytecode & Cache
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# Testing & Coverage (pytest, coverage, etc.)
+# ==========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.nox/
+.tox/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# ==========================================
+# Formatting, Linting & Type Checking
+# ==========================================
+.mypy_cache/
+.ruff_cache/
+.flake8
+.dmypy.json
+dmypy.json
+.pyre/
+
+# ==========================================
+# Database & Local Uploads
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+# Local media / file uploads directory (adjust to your project structure)
+uploads/
+storage/
+
+# ==========================================
+# IDEs & OS Files
+# ==========================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Thumbs.db
+/carelens-progress-tracker.xlsx
+/walkthrough.md
+/.claude/

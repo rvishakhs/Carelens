@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run mypy app synthdata workers
+      - run: uv run bandit -r app synthdata workers -q
+      - run: uv run detect-secrets scan --baseline .secrets.baseline
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/unit tests/rbac -v
+        # Integration/e2e tests need testcontainers (Docker-in-Docker) -- wired up
+        # once migrations exist; see tests/integration/conftest.py.
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --all-extras --dev
+      - run: uv run pip-audit
+      - name: Build image
+        run: docker build -t carelens:ci .
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: carelens:ci
+          severity: CRITICAL,HIGH
+          exit-code: "1"
