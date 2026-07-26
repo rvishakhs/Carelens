@@ -33,7 +33,7 @@ CREATE TABLE residents (
     room_number         TEXT,
     admission_date      DATE NOT NULL,
     discharge_date      DATE,
-    status              TEXT NOT NULL DEFAULT 'active', -- active | discharged | deceased
+    status              TEXT NOT NULL DEFAULT 'active' , -- active | discharged | deceased
     gp_practice_name    TEXT,
     gp_phone            TEXT,
     photo_url           TEXT,                   -- for staff recognition, not public
