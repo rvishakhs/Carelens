@@ -12,7 +12,7 @@ import uuid
 from collections import defaultdict
 from datetime import date, timedelta
 
-from sqlalchemy import update, text
+from sqlalchemy import text, update
 
 from synthdata.daily_records import ResidentContext, ResidentDailyState, generate_daily_rows
 from synthdata.db import Schema, build_engine, insert_many, tenant_transaction
@@ -77,12 +77,13 @@ def generate(
             {"name": care_home_name},
         ).scalar_one_or_none()
 
+    care_home_id: uuid.UUID
     if existing:
         care_home_id = existing
         create_care_home = False
     else:
         care_home = build_care_home(rng, care_home_name)
-        care_home_id: uuid.UUID = care_home["id"]
+        care_home_id = care_home["id"]
         create_care_home = True
 
     with tenant_transaction(engine, care_home_id, _SYSTEM_ACTOR) as conn:

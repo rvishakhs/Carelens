@@ -14,15 +14,16 @@ config = context.config
 
 # DATABASE_URL always comes from the environment — never hardcode credentials
 
-sync_url = settings.database_url.replace(
+database_url = os.getenv("DATABASE_URL", settings.database_url)
+
+sync_url = database_url.replace(
     "postgresql+asyncpg://",
     "postgresql+psycopg://",
 )
+
+print(sync_url)
+
 config.set_main_option("sqlalchemy.url", sync_url)
-print(settings.database_url)
-print(config.get_main_option("sqlalchemy.url"))
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
 
 # No SQLAlchemy ORM models yet in Phase 1 — migrations are raw SQL (op.execute),
 # so target_metadata stays None and `--autogenerate` is not used.

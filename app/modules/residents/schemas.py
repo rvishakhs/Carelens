@@ -10,7 +10,7 @@ class ResidentCreate(BaseModel):
     first_name: str
     last_name: str
     date_of_birth: date
-    room: str
+    room_number: str
     data_processing_consent: bool = True
     photo_consent: bool = False
 
@@ -20,7 +20,7 @@ class ResidentRead(BaseModel):
     first_name: str
     last_name: str
     date_of_birth: date
-    room: str
+    room_number: str | None
     status: ResidentStatus
     data_processing_consent: bool
     photo_consent: bool
@@ -34,7 +34,7 @@ class ResidentSummary(BaseModel):
 
     id: uuid.UUID
     display_name: str
-    room: str
+    room_number: str | None
     status: ResidentStatus
 
     model_config = {"from_attributes": True}

@@ -23,7 +23,7 @@ class ResidentRepository(ResidentReader):
         return ResidentSummary(
             id=resident.id,
             display_name=f"{resident.first_name} {resident.last_name}",
-            room=resident.room,
+            room_number=resident.room_number,
             status=resident.status,
         )
 
@@ -32,7 +32,9 @@ class ResidentRepository(ResidentReader):
             select(Resident).where(Resident.status == ResidentStatus.ACTIVE, Resident.deleted_at.is_(None))
         )
         return [
-            ResidentSummary(id=r.id, display_name=f"{r.first_name} {r.last_name}", room=r.room, status=r.status)
+            ResidentSummary(
+                id=r.id, display_name=f"{r.first_name} {r.last_name}", room_number=r.room_number, status=r.status
+            )
             for r in result.scalars().all()
         ]
 

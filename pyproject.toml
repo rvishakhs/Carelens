@@ -46,6 +46,12 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# tests/conftest.py's `postgres` fixture is session-scoped (one testcontainers
+# Postgres + one async engine/pool for the whole run) -- the event loop needs to
+# match that scope, or the pool ends up bound to a stale loop after the first test
+# and crashes on teardown with "Event loop is closed".
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 
 [tool.ruff]
