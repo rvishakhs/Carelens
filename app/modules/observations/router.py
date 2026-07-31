@@ -17,7 +17,7 @@ router = APIRouter(prefix="/observations", tags=["observations"])
 async def get_observation_repository(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> AsyncIterator[ObservationRepository]:
-    async with rls_session(current_user.care_home_id, current_user.id) as session:
+    async with rls_session(current_user.care_home_id, current_user.id, current_user.floor_ids) as session:
         yield ObservationRepository(session)
 
 

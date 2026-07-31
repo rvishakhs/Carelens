@@ -21,7 +21,10 @@ ModuleRegistrar = Callable[[FastAPI, Container], None]
 
 def _load_module_registry() -> dict[str, ModuleRegistrar]:
     from app.modules.ai_gateway.module import register as register_ai_gateway
+    from app.modules.ai_insights.module import register as register_ai_insights
     from app.modules.audit.module import register as register_audit
+    from app.modules.care_recording.module import register as register_care_recording
+    from app.modules.floors.module import register as register_floors
     from app.modules.handover.module import register as register_handover
     from app.modules.identity.module import register as register_identity
     from app.modules.medications.module import register as register_medications
@@ -32,11 +35,14 @@ def _load_module_registry() -> dict[str, ModuleRegistrar]:
     return {
         "identity": register_identity,
         "residents": register_residents,
+        "floors": register_floors,
         "observations": register_observations,
         "medications": register_medications,
+        "care_recording": register_care_recording,
         "audit": register_audit,
         "ai_gateway": register_ai_gateway,
         "summaries": register_summaries,
+        "ai_insights": register_ai_insights,
         "handover": register_handover,
     }
 

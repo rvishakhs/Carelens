@@ -18,7 +18,7 @@ router = APIRouter(prefix="/residents", tags=["residents"])
 async def get_resident_repository(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> AsyncIterator[ResidentRepository]:
-    async with rls_session(current_user.care_home_id, current_user.id) as session:
+    async with rls_session(current_user.care_home_id, current_user.id, current_user.floor_ids) as session:
         yield ResidentRepository(session)
 
 

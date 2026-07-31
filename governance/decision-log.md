@@ -79,3 +79,53 @@ swapping providers is a `container.py` change, not a refactor.
 
 **Status**: Port + Fake/Local adapters implemented. Real adapter is a stub pending
 Phase 2 decision (see `governance/dpia-draft.md` section 9).
+
+## 2026-07-31 -- Floor authorisation lives in the DB, not in Keycloak claims
+
+**Decision**: `user_floor_links` (migration 0013) is the source of truth for which
+floors a user may ever see; it's resolved fresh from the DB on every login
+(`app/modules/identity/dependencies.py`), not carried as a JWT claim. The session GUC
+`app.floor_ids` (set via `rls_session()`) is populated from this DB lookup, currently
+"every floor the user is authorised for" -- there's no floor-picker UI yet, so a
+session requests everything it's allowed to see by default.
+
+**Why**: Keycloak is good at "who is this and what's their role", not at "which of
+this home's floors can they see today" -- that's operational, home-specific data that
+changes independently of identity (a manager grants/revokes it via `floors`' own
+endpoints, `POST/DELETE /floors/access`). Putting it in a token would mean revoking
+access doesn't take effect until the token expires; reading it fresh from the DB means
+it's immediate.
+
+**Status**: Implemented. `KeycloakTokenVerifier` deliberately does not look for a
+floor claim.
+
+## 2026-07-31 -- Expected Keycloak realm setup (for when that work starts)
+
+Recorded here so the realm config and this code agree on contract, without either
+having been built yet in lockstep:
+
+- **Custom claim, required**: `care_home_id` (string, UUID) on the access token --
+  there's no generic OIDC/Keycloak concept for "which tenant", so this needs a
+  protocol mapper (e.g. a user attribute `care_home_id` mapped to a token claim of the
+  same name). `KeycloakTokenVerifier.verify()` raises `UnauthenticatedError` if it's
+  missing -- there is no fallback.
+- **Role, one of two shapes**: either a custom `role` claim (single string, exactly
+  one of `app.modules.identity.models.Role`'s values: `carer`, `nurse`, `manager`,
+  `family`, `emergency`, `system_admin`, `admin`, `headoffice`) -- simplest, one
+  protocol mapper, one attribute per user. Or, without any custom mapper, assign the
+  matching realm role (same value strings) to the user and rely on Keycloak's default
+  `realm_access.roles` claim -- `KeycloakTokenVerifier._extract_role()` intersects
+  that array against known Role values and requires exactly one match, erroring
+  clearly if zero or more than one are present. Don't do both (custom claim wins
+  silently if present) and don't assign more than one of this app's realm roles to a
+  single user.
+- **MFA**: enforced by Keycloak's own authentication flow/policy for staff roles
+  (carer/nurse/manager/admin/headoffice/system_admin), not by this app -- there is
+  nothing in `KeycloakTokenVerifier` that checks an MFA claim; if MFA needs to be
+  provable per-session later (e.g. for `emergency_access` audit entries), that's a new
+  claim + a new check, not implemented yet.
+- **Floor access**: intentionally NOT a Keycloak concern -- see the decision above.
+- **Realm export**: once the realm is built, commit its export alongside
+  `docker-compose.yml` (the `keycloak` service already has a commented-out volume
+  mount pointing at `./identity/keycloak-realm-export.json`, waiting for this file to
+  exist) so `docker compose up` reproduces the same realm for anyone cloning the repo.

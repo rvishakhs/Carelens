@@ -21,36 +21,22 @@ def upgrade() -> None:
 -- 3. RESIDENTS: CORE RECORD, CONTACTS, CONSENT
 -- =====================================================================
 
-CREATE TYPE resident_status AS ENUM (
-    'active',
-    'discharged',
-    'hospitalized',
-    'archived'
-);
-
 CREATE TABLE residents (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     care_home_id        UUID NOT NULL REFERENCES care_homes(id),
-
     first_name          TEXT NOT NULL,
     last_name           TEXT NOT NULL,
-    preferred_name      TEXT,
-
+    preferred_name      TEXT,                  -- what they like to be called
     date_of_birth       DATE NOT NULL,
-    nhs_number          TEXT,
+    nhs_number          TEXT,                   -- encrypt at application layer
     gender              TEXT,
-
     room_number         TEXT,
-
     admission_date      DATE NOT NULL,
     discharge_date      DATE,
-
-    status              resident_status NOT NULL DEFAULT 'active',
-
+    status              TEXT NOT NULL DEFAULT 'active', -- active | discharged | deceased
     gp_practice_name    TEXT,
     gp_phone            TEXT,
-    photo_url           TEXT,
-
+    photo_url           TEXT,                   -- for staff recognition, not public
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at          TIMESTAMPTZ

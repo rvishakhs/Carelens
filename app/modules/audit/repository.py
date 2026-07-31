@@ -21,16 +21,16 @@ class AuditRepository:
         self,
         *,
         entity_type: str | None = None,
-        actor_user_id: uuid.UUID | None = None,
+        actor_id: uuid.UUID | None = None,
         since: datetime | None = None,
         limit: int = 200,
     ) -> list[AuditEvent]:
-        stmt = select(AuditEvent).order_by(AuditEvent.created_at.desc()).limit(limit)
+        stmt = select(AuditEvent).order_by(AuditEvent.occurred_at.desc()).limit(limit)
         if entity_type is not None:
             stmt = stmt.where(AuditEvent.entity_type == entity_type)
-        if actor_user_id is not None:
-            stmt = stmt.where(AuditEvent.actor_user_id == actor_user_id)
+        if actor_id is not None:
+            stmt = stmt.where(AuditEvent.actor_id == actor_id)
         if since is not None:
-            stmt = stmt.where(AuditEvent.created_at >= since)
+            stmt = stmt.where(AuditEvent.occurred_at >= since)
         result = await self._session.execute(stmt)
         return list(result.scalars().all())

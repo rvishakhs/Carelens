@@ -12,9 +12,15 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
     debug: bool = Field(default=False)
 
+
+
+    # --- Key cloak ---
+    KEYCLOAK_SERVER: str
+    KEYCLOAK_REALM: str
+    KEYCLOAK_CLIENT_ID: str
     # --- Modules (comma-separated; controls what main.py registers) ---
     enabled_modules: str = Field(
-        default="identity,residents,observations,audit,ai_gateway,summaries,handover"
+        default="identity,residents,floors,observations,care_recording,audit,ai_gateway,summaries,ai_insights,handover"
     )
 
     # --- Feature flags (for incomplete features within an enabled module; whole-module

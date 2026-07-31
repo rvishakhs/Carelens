@@ -18,6 +18,6 @@ async def get_ai_gateway_service(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> AsyncIterator[AIGatewayService]:
     container = request.app.state.container
-    async with rls_session(current_user.care_home_id, current_user.id) as session:
+    async with rls_session(current_user.care_home_id, current_user.id, current_user.floor_ids) as session:
         mapping_repository = PseudonymMappingRepository(session, container.settings.secret_key)
         yield AIGatewayService(container.llm_provider, Pseudonymiser(mapping_repository))

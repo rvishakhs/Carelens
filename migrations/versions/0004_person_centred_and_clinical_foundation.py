@@ -125,6 +125,7 @@ CREATE TABLE advance_care_directives (
 
 
 def downgrade() -> None:
+
     op.execute("DROP TABLE IF EXISTS advance_care_directives CASCADE;")
     op.execute("DROP TABLE IF EXISTS resident_diagnoses CASCADE;")
     op.execute("DROP TABLE IF EXISTS resident_allergies CASCADE;")

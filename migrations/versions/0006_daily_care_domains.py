@@ -19,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.execute("""\
 -- 7. NUTRITION & HYDRATION
--- ===================================================================== 
+-- =====================================================================
 
 CREATE TABLE food_intake_records (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

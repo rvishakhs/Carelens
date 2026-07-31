@@ -10,7 +10,7 @@ rows. There is no code path that bypasses this by accident.
 
 import contextlib
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from datetime import datetime
 
 from sqlalchemy import DateTime, text
@@ -59,8 +59,20 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 @contextlib.asynccontextmanager
-async def rls_session(care_home_id: uuid.UUID | str, user_id: uuid.UUID | str) -> AsyncIterator[AsyncSession]:
-    """Yield a session scoped to a tenant + actor via Postgres session-local GUCs.
+async def rls_session(
+    care_home_id: uuid.UUID | str,
+    user_id: uuid.UUID | str,
+    floor_ids: Sequence[uuid.UUID | str] | None = None,
+) -> AsyncIterator[AsyncSession]:
+    """Yield a session scoped to a tenant + actor (+ authorised floors) via Postgres
+    session-local GUCs.
+
+    `floor_ids` should be the caller's *authorised* floors (migrations/versions/0013's
+    user_floor_links), not necessarily "every floor in the home" -- floor-scoped tables
+    (most resident-linked ones, as of migration 0013) filter on `app.floor_ids` and see
+    zero rows for any floor not in this list. Omitting it entirely (the default) is
+    only safe for tables that aren't floor-scoped (users, floors, user_floor_links,
+    audit_events, ...) -- everything else will silently return nothing.
 
     Use for every request-scoped unit of work. Values set via set_config(..., true)
     are cleared when the surrounding transaction ends, so nothing leaks across pooled
@@ -73,6 +85,8 @@ async def rls_session(care_home_id: uuid.UUID | str, user_id: uuid.UUID | str) -
         # with untrusted input, and scoped to the transaction via is_local=true.
         await session.execute(text("SELECT set_config('app.care_home_id', :chi, true)"), {"chi": str(care_home_id)})
         await session.execute(text("SELECT set_config('app.user_id', :uid, true)"), {"uid": str(user_id)})
+        floor_ids_csv = ",".join(str(f) for f in floor_ids) if floor_ids else ""
+        await session.execute(text("SELECT set_config('app.floor_ids', :fids, true)"), {"fids": floor_ids_csv})
         yield session
 
 

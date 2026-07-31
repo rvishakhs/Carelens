@@ -20,6 +20,7 @@ def upgrade() -> None:
     op.execute("""\
 -- 2. TENANCY, IDENTITY & ACCESS
 -- =====================================================================
+
 CREATE TABLE care_homes (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name            TEXT NOT NULL,
@@ -64,11 +65,13 @@ CREATE TABLE user_resident_links (
     deleted_at    TIMESTAMPTZ
 );
 
+
 -- =====================================================================
 """)
 
 
 def downgrade() -> None:
+
     op.execute("DROP TABLE IF EXISTS user_resident_links CASCADE;")
     op.execute("DROP TABLE IF EXISTS users CASCADE;")
     op.execute("DROP TABLE IF EXISTS care_homes CASCADE;")

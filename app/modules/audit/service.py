@@ -1,6 +1,6 @@
 import uuid
 
-from app.modules.audit.models import AuditEvent
+from app.modules.audit.models import AuditAction, AuditEvent
 from app.modules.audit.repository import AuditRepository
 
 
@@ -17,20 +17,22 @@ class AuditService:
         self,
         *,
         care_home_id: uuid.UUID,
-        actor_user_id: uuid.UUID | None,
-        action: str,
+        actor_id: uuid.UUID | None,
+        action: AuditAction,
         entity_type: str,
         entity_id: uuid.UUID | None = None,
         justification: str | None = None,
-        metadata: dict | None = None,
+        ip_address: str | None = None,
+        device_info: str | None = None,
     ) -> AuditEvent:
         entry = AuditEvent(
             care_home_id=care_home_id,
-            actor_user_id=actor_user_id,
+            actor_id=actor_id,
             action=action,
             entity_type=entity_type,
             entity_id=entity_id,
             justification=justification,
-            event_metadata=metadata or {},
+            ip_address=ip_address,
+            device_info=device_info,
         )
         return await self._repository.append(entry)

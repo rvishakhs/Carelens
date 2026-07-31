@@ -19,6 +19,7 @@ from app.container import Container
 from app.modules.ai_gateway.pseudonymiser import Pseudonymiser
 from app.modules.ai_gateway.repository import PseudonymMappingRepository
 from app.modules.ai_gateway.service import AIGatewayService
+from app.modules.floors.repository import FloorRepository
 from app.modules.observations.repository import ObservationRepository
 from app.modules.residents.repository import ResidentRepository
 from app.modules.summaries.repository import SummaryRepository
@@ -34,12 +35,17 @@ _SYSTEM_ACTOR = uuid.UUID(int=0)
 
 async def run_summary_job(container: Container, care_home_ids: list[uuid.UUID]) -> None:
     for care_home_id in care_home_ids:
+        # A scheduled job has no user_floor_links of its own -- it operates across
+        # every floor in the home, the same way an admin/headoffice session would.
         async with rls_session(care_home_id, _SYSTEM_ACTOR) as session:
+            floor_ids = [f.id for f in await FloorRepository(session).list_active()]
+
+        async with rls_session(care_home_id, _SYSTEM_ACTOR, floor_ids) as session:
             residents = await ResidentRepository(session).list_active_residents()
 
         for resident in residents:
             try:
-                async with rls_session(care_home_id, _SYSTEM_ACTOR) as session:
+                async with rls_session(care_home_id, _SYSTEM_ACTOR, floor_ids) as session:
                     mapping_repository = PseudonymMappingRepository(session, container.settings.secret_key)
                     ai_gateway = AIGatewayService(container.llm_provider, Pseudonymiser(mapping_repository))
                     service = SummaryService(

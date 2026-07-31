@@ -6,6 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.modules.audit.models import AuditAction
 from app.modules.audit.repository import AuditRepository
 from app.modules.audit.schemas import AuditEventRead
 from app.modules.audit.service import AuditService
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 async def get_audit_repository(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> AsyncIterator[AuditRepository]:
-    async with rls_session(current_user.care_home_id, current_user.id) as session:
+    async with rls_session(current_user.care_home_id, current_user.id, current_user.floor_ids) as session:
         yield AuditRepository(session)
 
 
@@ -46,17 +47,17 @@ async def export_audit_events(
 
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["id", "created_at", "actor_user_id", "action", "entity_type", "entity_id", "justification"])
+    writer.writerow(["id", "occurred_at", "actor_id", "action", "entity_type", "entity_id", "justification"])
     for e in events:
         writer.writerow(
-            [e.id, e.created_at.isoformat(), e.actor_user_id, e.action, e.entity_type, e.entity_id, e.justification]
+            [e.id, e.occurred_at.isoformat(), e.actor_id, e.action.value, e.entity_type, e.entity_id, e.justification]
         )
     buffer.seek(0)
 
     await AuditService(repository).log(
         care_home_id=current_user.care_home_id,
-        actor_user_id=current_user.id,
-        action="audit.exported",
+        actor_id=current_user.id,
+        action=AuditAction.EXPORT,
         entity_type="audit_log",
     )
 

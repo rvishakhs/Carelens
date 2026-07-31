@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from app.config import Settings
 from app.modules.ai_gateway.ports import LLMProvider
 from app.modules.handover.ports import AttentionRanker
+from app.modules.identity.permission_registry import PermissionRegistry
 from app.modules.identity.ports import TokenVerifier
 from app.modules.observations.ports import NoteStructurer
 from app.shared.events import EventBus, InMemoryEventBus
@@ -21,7 +22,11 @@ class Container:
     receive an RLS-scoped DB session per-request via FastAPI dependencies, not via
     the container -- the container only holds process-lifetime singletons. Services
     are constructed per-request from these ports (see each module's router.py), not
-    stored here, so the container stays adapters-only."""
+    stored here, so the container stays adapters-only.
+
+    permission_registry is the one exception that isn't a port/adapter pair -- it's a
+    process-lifetime cache in front of the role_permissions table (see
+    permission_registry.py's docstring), not a swappable implementation."""
 
     settings: Settings
     event_bus: EventBus
@@ -29,6 +34,7 @@ class Container:
     token_verifier: TokenVerifier
     note_structurer: NoteStructurer
     attention_ranker: AttentionRanker
+    permission_registry: PermissionRegistry
 
 
 def build_container(settings: Settings) -> Container:
@@ -39,6 +45,7 @@ def build_container(settings: Settings) -> Container:
         token_verifier=_build_token_verifier(settings),
         note_structurer=_build_note_structurer(settings),
         attention_ranker=_build_attention_ranker(),
+        permission_registry=PermissionRegistry(),
     )
 
 
