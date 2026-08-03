@@ -18,9 +18,16 @@ class Settings(BaseSettings):
     # Defaulted like every other env-driven setting below (oidc_client_secret,
     # llm_api_key, ...) so tests/migrations/scripts that call get_settings() without
     # these set (they don't need Keycloak) don't crash on Settings() construction.
+    #
+    # These four back the *admin* client (KEYCLOAK_CLIENT_ID, e.g. "carelens-api") --
+    # a confidential client with its service account granted realm-management's
+    # "manage-users" role, used only by identity/adapters/keycloak_admin.py to
+    # provision staff accounts. Distinct from oidc_client_id/oidc_client_secret below,
+    # which are the public SPA client end users authenticate through.
     KEYCLOAK_SERVER: str = Field(default="")
     KEYCLOAK_REALM: str = Field(default="")
     KEYCLOAK_CLIENT_ID: str = Field(default="")
+    keycloak_admin_client_secret: str = Field(default="")
     # --- Modules (comma-separated; controls what main.py registers) ---
     enabled_modules: str = Field(
         default="identity,residents,floors,observations,care_recording,audit,ai_gateway,summaries,ai_insights,handover"
@@ -41,10 +48,10 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0")
 
     # --- Identity / OIDC (Keycloak) ---
-    oidc_issuer: str = Field(default="http://localhost:8080/realms/carelens")
-    oidc_client_id: str = Field(default="carelens-app")
+    oidc_issuer: str = Field(default="http://localhost:8080/realms/CareLens")
+    oidc_client_id: str = Field(default="carelens-web")
     oidc_client_secret: str = Field(default="")
-    oidc_audience: str = Field(default="carelens-app")
+    oidc_audience: str = Field(default="carelens-web")
 
     # --- AI gateway ---
     llm_provider: str = Field(default="fake")  # fake | local | <real provider>
@@ -56,7 +63,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
 
     # --- Security ---
-    cors_allowed_origins: str = Field(default="http://localhost:5173")
+    cors_allowed_origins: str = Field(default="http://localhost:5174")
     secret_key: str = Field(default="change-me-in-env")
 
     @property

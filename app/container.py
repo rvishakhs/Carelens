@@ -11,7 +11,7 @@ from app.config import Settings
 from app.modules.ai_gateway.ports import LLMProvider
 from app.modules.handover.ports import AttentionRanker
 from app.modules.identity.permission_registry import PermissionRegistry
-from app.modules.identity.ports import TokenVerifier
+from app.modules.identity.ports import IdentityProviderAdmin, TokenVerifier
 from app.modules.observations.ports import NoteStructurer
 from app.shared.events import EventBus, InMemoryEventBus
 
@@ -32,6 +32,7 @@ class Container:
     event_bus: EventBus
     llm_provider: LLMProvider
     token_verifier: TokenVerifier
+    identity_provider_admin: IdentityProviderAdmin
     note_structurer: NoteStructurer
     attention_ranker: AttentionRanker
     permission_registry: PermissionRegistry
@@ -43,6 +44,7 @@ def build_container(settings: Settings) -> Container:
         event_bus=InMemoryEventBus(),
         llm_provider=_build_llm_provider(settings),
         token_verifier=_build_token_verifier(settings),
+        identity_provider_admin=_build_identity_provider_admin(settings),
         note_structurer=_build_note_structurer(settings),
         attention_ranker=_build_attention_ranker(),
         permission_registry=PermissionRegistry(),
@@ -65,6 +67,17 @@ def _build_token_verifier(settings: Settings) -> TokenVerifier:
     from app.modules.identity.adapters.oidc_verifier import KeycloakTokenVerifier
 
     return KeycloakTokenVerifier(issuer=settings.oidc_issuer, audience=settings.oidc_audience)
+
+
+def _build_identity_provider_admin(settings: Settings) -> IdentityProviderAdmin:
+    from app.modules.identity.adapters.keycloak_admin import KeycloakAdminClient
+
+    return KeycloakAdminClient(
+        server_url=settings.KEYCLOAK_SERVER,
+        realm_name=settings.KEYCLOAK_REALM,
+        client_id=settings.KEYCLOAK_CLIENT_ID,
+        client_secret=settings.keycloak_admin_client_secret,
+    )
 
 
 def _build_llm_provider(settings: Settings) -> LLMProvider:

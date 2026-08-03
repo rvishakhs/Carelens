@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from app.modules.identity.models import Role
 
@@ -30,3 +30,24 @@ class UserRead(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class StaffCreate(BaseModel):
+    """A manager provisioning a nurse/carer -- restricted to those two roles; anything
+    higher-privilege (manager, admin, headoffice, system_admin) isn't something this
+    dashboard flow hands out. See identity/service.py's create_staff_member."""
+
+    email: EmailStr
+    display_name: str
+    role: Role
+
+
+class StaffCreated(BaseModel):
+    """temporary_password is shown exactly once -- it's never stored (Keycloak forces
+    a reset on first login) and never returned by any other endpoint."""
+
+    id: uuid.UUID
+    email: str
+    display_name: str
+    role: Role
+    temporary_password: str

@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "@/App";
 import "@/index.css";
 import keycloak from "@/lib/keycloak.ts";
+import {useAuthStore} from "@/store/authStore.ts";
 
 async function bootstrap() {
     await keycloak.init({
@@ -12,7 +13,12 @@ async function bootstrap() {
         pkceMethod: "S256",
         checkLoginIframe: false,
     });
-    
+
+    console.log(keycloak.token)
+    await useAuthStore
+    .getState()
+    .loadCurrentUser();
+
     createRoot(
         document.getElementById("root")!
     ).render(

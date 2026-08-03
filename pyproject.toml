@@ -21,6 +21,7 @@ dependencies = [
     "alembic>=1.18.5",
     "psycopg>=3.3.4",
     "python-keycloak>=7.1.1",
+    "email-validator>=2.2.0",
 ]
 
 [project.scripts]

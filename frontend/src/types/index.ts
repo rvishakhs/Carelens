@@ -120,3 +120,12 @@ export interface Medication {
   time: string;
   status: MedicationStatus;
 }
+
+export interface CurrentUser {
+    id: string;
+    care_home_id: string;
+    role: string;
+    email: string;
+    display_name: string;
+    floor_ids: string[];
+}

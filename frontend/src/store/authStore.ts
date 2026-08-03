@@ -1,29 +1,42 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
-import type { AuthUser } from "@/types";
-import keycloak from "@/lib/keycloak.ts";
+import api from "@/lib/api";
+import type { CurrentUser } from "@/types";
 
 interface AuthState {
-  isAuthenticated: boolean;
-  user: AuthUser | null;
+  user: CurrentUser | null;
   isLoading: boolean;
+
+  loadCurrentUser: () => Promise<void>;
+  clearUser: () => void;
 }
 
-/**
- * Stub auth for the design pass -- accepts any non-empty credentials and signs in
- * as a fixed demo user. Replaced by real Keycloak OIDC (see
- * governance/decision-log.md) once the design is settled; the shape of this store
- * (isAuthenticated / user / login / logout) is deliberately what a Keycloak-backed
- * version will look like too, so pages built against it don't need to change.
- */
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      isAuthenticated: false,
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isLoading: false,
+
+  loadCurrentUser: async () => {
+    try {
+      set({ isLoading: true });
+
+      const { data } = await api.get<CurrentUser>("/identity/me");
+
+      set({
+        user: data,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({
+        user: null,
+        isLoading: false,
+      });
+
+      throw error;
+    }
+  },
+
+  clearUser: () =>
+    set({
       user: null,
-      isLoading: false,
     }),
-    { name: "carelens-auth" },
-  ),
-);
+}));

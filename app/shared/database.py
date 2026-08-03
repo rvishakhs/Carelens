@@ -98,3 +98,23 @@ async def system_session() -> AsyncIterator[AsyncSession]:
     session_factory = get_session_factory()
     async with session_factory() as session:
         yield session
+
+
+@contextlib.asynccontextmanager
+async def bootstrap_session() -> AsyncIterator[AsyncSession]:
+    """Session for the one legitimate query that has to run *before* a tenant is known:
+    resolving which care_home_id a freshly-verified token's `sub` belongs to
+    (identity/dependencies.py's get_current_user). Ordinary tenant tables stay
+    invisible (same as system_session()) -- this only additionally satisfies `users`'
+    identity_bootstrap_select policy (migrations/versions/0019), which permits SELECT
+    when `app.bootstrap` is set, regardless of care_home_id.
+
+    That policy widens SELECT visibility on `users` to every care home, so only ever
+    query it here with a WHERE clause that pins down a single row by oidc_subject (or
+    equivalent) -- never list/browse users through this session. Once the tenant is
+    known, immediately switch to a normal rls_session() for everything else,
+    including writing back to the row this found."""
+    session_factory = get_session_factory()
+    async with session_factory() as session, session.begin():
+        await session.execute(text("SELECT set_config('app.bootstrap', 'true', true)"))
+        yield session

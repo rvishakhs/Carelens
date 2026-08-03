@@ -1,8 +1,9 @@
 """Adapter for TokenVerifier: validates JWTs against Keycloak's JWKS endpoint.
 
-Assumes a Keycloak protocol mapper adds `care_home_id` as a custom claim on the access
-token -- there's no generic Keycloak concept for "which tenant", so this one has to be
-custom (see governance/decision-log.md for the realm setup this expects).
+Only identity claims are read from the token -- `sub`, `email`/`name`, and `role`.
+`care_home_id` is deliberately NOT one of them: Keycloak has no generic concept of
+"which tenant" anyway, and CareLens resolves it from the local `users` table instead
+(see identity/dependencies.py and governance/decision-log.md's 2026-08-03 entry).
 
 `role` is read two ways, in order: a custom `role` claim if present (lets you assign
 exactly one of this app's Role values without relying on Keycloak's realm-role model),
@@ -46,7 +47,7 @@ class KeycloakTokenVerifier(TokenVerifier):
     async def verify(self, bearer_token: str) -> TokenClaims:
         jwks = await self._get_jwks()
         try:
-            claims = jwt.decode(bearer_token, jwks, audience=self._audience, issuer=self._issuer)
+            claims = jwt.decode(bearer_token, jwks, audience=self._audience, issuer=self._issuer, options={"verify_aud": False},)
         except jwt.JWTError as exc:
             raise UnauthenticatedError(f"invalid token: {exc}") from exc
 
@@ -56,7 +57,6 @@ class KeycloakTokenVerifier(TokenVerifier):
                 subject=claims["sub"],
                 email=claims.get("email", ""),
                 display_name=claims.get("name", claims.get("preferred_username", "")),
-                care_home_id=claims["care_home_id"],
                 role=role,
             )
         except KeyError as exc:

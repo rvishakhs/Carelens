@@ -99,16 +99,45 @@ it's immediate.
 **Status**: Implemented. `KeycloakTokenVerifier` deliberately does not look for a
 floor claim.
 
+## 2026-08-03 -- care_home_id resolved from the local `users` table, not the JWT
+
+**Decision**: `TokenClaims` (identity/ports.py) no longer carries `care_home_id`.
+`KeycloakTokenVerifier` reads only identity claims (`sub`, `email`/`name`, `role`).
+`get_current_user` (identity/dependencies.py) resolves the tenant itself: a
+`bootstrap_session()` (app/shared/database.py) looks up `care_home_id` from `users`
+by `oidc_subject`, then opens the normal tenant-scoped `rls_session()` for everything
+else. `UserRepository.sync_from_claims` no longer JIT-creates a user from a bare
+token -- it 401s if no local row exists yet. A local row is created ahead of time
+instead, by a manager's "add staff" flow (`POST /identity/staff`,
+`IdentityService.create_staff_member`), which provisions the Keycloak account via
+the new `IdentityProviderAdmin` port (`adapters/keycloak_admin.py`, backed by
+`python-keycloak`'s async admin client) and the local mirror row together, atomically
+enough for a single-care-home deployment.
+
+**Why**: Keycloak is good at "who is this" (identity), not at "which of our tenants
+do they belong to and what can they do inside it" (application/tenant data) -- that's
+CareLens's own concern, and folding it into a JWT claim meant moving someone between
+care homes (or fixing a mis-provisioned one) wouldn't take effect until their token
+expired. This mirrors the same reasoning already applied to floor authorisation (see
+the entry below) -- `care_home_id` is just a coarser-grained version of the same
+problem. The tradeoff is a genuine bootstrap problem: `users` is tenant-scoped RLS
+like everything else, so a session that doesn't know `care_home_id` yet can't read
+the very row that would tell it. `bootstrap_session()` / the `identity_bootstrap_select`
+policy (migration 0019) is the narrow, explicit fix -- not a bypass-RLS DB role, kept
+in one place, and the calling code only ever uses it for a single-row lookup by
+`oidc_subject`.
+
+**Status**: Implemented. `identity/router.py` exposes `POST/GET /identity/staff`
+(manager-only, `MANAGE_USERS`) restricted to provisioning `carer`/`nurse` roles --
+higher-privilege roles aren't handed out through this flow yet.
+
 ## 2026-07-31 -- Expected Keycloak realm setup (for when that work starts)
 
 Recorded here so the realm config and this code agree on contract, without either
 having been built yet in lockstep:
 
-- **Custom claim, required**: `care_home_id` (string, UUID) on the access token --
-  there's no generic OIDC/Keycloak concept for "which tenant", so this needs a
-  protocol mapper (e.g. a user attribute `care_home_id` mapped to a token claim of the
-  same name). `KeycloakTokenVerifier.verify()` raises `UnauthenticatedError` if it's
-  missing -- there is no fallback.
+- **Not a claim**: `care_home_id` -- see the 2026-08-03 entry above. Resolved from
+  the local `users` table instead; no protocol mapper needed for it.
 - **Role, one of two shapes**: either a custom `role` claim (single string, exactly
   one of `app.modules.identity.models.Role`'s values: `carer`, `nurse`, `manager`,
   `family`, `emergency`, `system_admin`, `admin`, `headoffice`) -- simplest, one

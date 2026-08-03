@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.identity.dependencies import get_current_user
+from app.modules.identity.dependencies import get_current_user, get_floor_scope
 from app.modules.identity.permissions import Permission, require
 from app.modules.identity.schemas import CurrentUser
 from app.modules.residents.repository import ResidentRepository
@@ -18,7 +18,22 @@ router = APIRouter(prefix="/residents", tags=["residents"])
 async def get_resident_repository(
     current_user: CurrentUser = Depends(get_current_user),
 ) -> AsyncIterator[ResidentRepository]:
+    """Full-authorisation session -- for writes. A create must stay scoped to every
+    floor the user is authorised for (not whatever they've narrowed *viewing* to via
+    get_floor_scope), or the ORM's INSERT...RETURNING can't see the row it just
+    created on a floor outside that narrower scope (see ResidentCreate's
+    docstring)."""
     async with rls_session(current_user.care_home_id, current_user.id, current_user.floor_ids) as session:
+        yield ResidentRepository(session)
+
+
+async def get_resident_repository_scoped(
+    current_user: CurrentUser = Depends(get_current_user),
+    floor_ids: list[uuid.UUID] = Depends(get_floor_scope),
+) -> AsyncIterator[ResidentRepository]:
+    """View session -- honours the caller's optional ?floor_id= (get_floor_scope),
+    defaulting to every authorised floor. For reads only."""
+    async with rls_session(current_user.care_home_id, current_user.id, floor_ids) as session:
         yield ResidentRepository(session)
 
 
@@ -41,7 +56,7 @@ async def create_resident(
 @router.get("", response_model=list[ResidentRead])
 async def list_residents(
     _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
-    repository: ResidentRepository = Depends(get_resident_repository),
+    repository: ResidentRepository = Depends(get_resident_repository_scoped),
 ) -> list[ResidentRead]:
     residents = await repository.list_active()
     return [ResidentRead.model_validate(r) for r in residents]
@@ -51,7 +66,7 @@ async def list_residents(
 async def get_resident(
     resident_id: uuid.UUID,
     _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
-    repository: ResidentRepository = Depends(get_resident_repository),
+    repository: ResidentRepository = Depends(get_resident_repository_scoped),
 ) -> ResidentRead:
     resident = await repository.get_by_id(resident_id)
     if resident is None:
