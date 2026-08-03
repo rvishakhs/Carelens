@@ -10,6 +10,7 @@ from datetime import date
 import pytest
 from sqlalchemy import text
 
+from app.modules.floors.models import Floor
 from app.modules.identity.models import CareHome
 from app.modules.residents.models import Resident, ResidentStatus
 from app.modules.residents.repository import ResidentRepository
@@ -20,9 +21,21 @@ from synthdata.home_setup import build_care_home
 
 ######## Move This to Helper Functions (Must do) ###############
 
-async def seed_resident(session, home_id, first_name):
+async def seed_floor(session, home_id, name="Ground Floor") -> uuid.UUID:
+    floor = Floor(care_home_id=home_id, name=name)
+    session.add(floor)
+    await session.flush()
+    return floor.id
+
+
+async def seed_resident(session, home_id, first_name, floor_id):
+    # floor_id is required, not just permitted -- see ResidentCreate's docstring
+    # (app/modules/residents/schemas.py): the floor-scoped SELECT policy has no
+    # floor_id IS NULL exception, so a NULL-floor resident could never be read back,
+    # including by this very insert's RETURNING clause.
     resident = Resident(
         care_home_id=home_id,
+        floor_id=floor_id,
         first_name=first_name,
         last_name="Smith",
         date_of_birth=date(1945, 5, 10),
@@ -62,11 +75,17 @@ async def test_session_without_rls_context_sees_zero_rows():
 
     async with rls_session(home_a_id, user_a_id) as session:
         await seed_care_home(session, rng, "Home A", home_a_id)
-        await seed_resident(session, home_a_id, "John" )
+        floor_a_id = await seed_floor(session, home_a_id)
+
+    async with rls_session(home_a_id, user_a_id, [floor_a_id]) as session:
+        await seed_resident(session, home_a_id, "John", floor_a_id)
 
     async with rls_session(home_b_id, user_b_id) as session:
         await seed_care_home(session, rng, "Home B", home_b_id)
-        await seed_resident(session, home_b_id, "Marry")
+        floor_b_id = await seed_floor(session, home_b_id)
+
+    async with rls_session(home_b_id, user_b_id, [floor_b_id]) as session:
+        await seed_resident(session, home_b_id, "Marry", floor_b_id)
 
     # Act
     async with system_session() as session:

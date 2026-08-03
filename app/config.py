@@ -15,9 +15,12 @@ class Settings(BaseSettings):
 
 
     # --- Key cloak ---
-    KEYCLOAK_SERVER: str
-    KEYCLOAK_REALM: str
-    KEYCLOAK_CLIENT_ID: str
+    # Defaulted like every other env-driven setting below (oidc_client_secret,
+    # llm_api_key, ...) so tests/migrations/scripts that call get_settings() without
+    # these set (they don't need Keycloak) don't crash on Settings() construction.
+    KEYCLOAK_SERVER: str = Field(default="")
+    KEYCLOAK_REALM: str = Field(default="")
+    KEYCLOAK_CLIENT_ID: str = Field(default="")
     # --- Modules (comma-separated; controls what main.py registers) ---
     enabled_modules: str = Field(
         default="identity,residents,floors,observations,care_recording,audit,ai_gateway,summaries,ai_insights,handover"
