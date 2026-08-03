@@ -19,8 +19,7 @@ import {LoginPagekeyCloak} from "@/pages/LoginPageKeycloak.tsx";
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPagekeyCloak />} />
-
+      {/*<Route path="/login" element={<LoginPagekeyCloak />} />*/}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />

@@ -8,8 +8,6 @@ interface AuthState {
   isAuthenticated: boolean;
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
 }
 
 /**
@@ -25,10 +23,6 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       user: null,
       isLoading: false,
-      login: async () => {
-            await keycloak.login();
-        },
-      logout: () => set({ isAuthenticated: false, user: null }),
     }),
     { name: "carelens-auth" },
   ),

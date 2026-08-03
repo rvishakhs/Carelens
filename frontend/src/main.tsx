@@ -7,16 +7,12 @@ import "@/index.css";
 import keycloak from "@/lib/keycloak.ts";
 
 async function bootstrap() {
-    const authenticated = await keycloak.init({
-        onLoad: "check-sso",
+    await keycloak.init({
+        onLoad: "login-required",
         pkceMethod: "S256",
+        checkLoginIframe: false,
     });
-
-    if (!authenticated) {
-        await keycloak.login();
-        return; // Browser is redirecting
-    }
-
+    
     createRoot(
         document.getElementById("root")!
     ).render(
@@ -29,3 +25,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+
