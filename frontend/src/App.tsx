@@ -7,19 +7,20 @@ import { CalendarPage } from "@/pages/CalendarPage";
 import { CarePlansPage } from "@/pages/CarePlansPage";
 import { CareRecordsPage } from "@/pages/CareRecordsPage";
 import { DashboardPage } from "@/pages/DashboardPage";
-import { LoginPage } from "@/pages/LoginPage";
 import { MedicationsPage } from "@/pages/MedicationsPage";
 import { ReportsPage } from "@/pages/ReportsPage";
 import { ResidentDetailPage } from "@/pages/ResidentDetailPage";
 import { ResidentsPage } from "@/pages/ResidentsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { StaffPage } from "@/pages/StaffPage";
-import {LoginPagekeyCloak} from "@/pages/LoginPageKeycloak.tsx";
 
+// No /login route: main.tsx's keycloak.init({ onLoad: "login-required" }) redirects
+// to Keycloak's hosted login before React ever renders, and ProtectedRoute below
+// blocks rendering until /identity/me resolves -- there's nothing for a local login
+// page to do.
 function App() {
   return (
     <Routes>
-      {/*<Route path="/login" element={<LoginPagekeyCloak />} />*/}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />

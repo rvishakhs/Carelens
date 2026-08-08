@@ -16,6 +16,8 @@ import {
 import { NavLink } from "react-router-dom";
 
 import { Avatar } from "@/components/ui/Avatar";
+import { getInitials } from "@/lib/format";
+import { ROLE_LABELS, canManageUsers } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 
 const NAV_ITEMS = [
@@ -27,13 +29,14 @@ const NAV_ITEMS = [
   { to: "/ai-insights", label: "AI Insights", icon: Sparkles },
   { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/calendar", label: "Calendar", icon: Calendar },
-  { to: "/staff", label: "Staff", icon: UsersRound },
+  { to: "/staff", label: "Staff", icon: UsersRound, requiresManageUsers: true },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const navItems = NAV_ITEMS.filter((item) => !item.requiresManageUsers || canManageUsers(user?.role));
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col bg-brand-900">
@@ -45,7 +48,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 scrollbar-none">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -64,10 +67,10 @@ export function Sidebar() {
 
       <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <Avatar initials={user?.initials ?? "?"} colorClass="bg-brand-400 text-brand-950" size="sm" />
+          <Avatar initials={getInitials(user?.display_name)} colorClass="bg-brand-400 text-brand-950" size="sm" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">{user?.name}</p>
-            <p className="truncate text-xs text-brand-200">{user?.role}</p>
+            <p className="truncate text-sm font-medium text-white">{user?.display_name}</p>
+            <p className="truncate text-xs text-brand-200">{user && ROLE_LABELS[user.role]}</p>
           </div>
           <button
             onClick={logout}

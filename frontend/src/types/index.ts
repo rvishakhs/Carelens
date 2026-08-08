@@ -89,12 +89,6 @@ export interface CalendarEvent {
   category: CalendarEventCategory;
 }
 
-export interface AuthUser {
-  name: string;
-  role: string;
-  initials: string;
-}
-
 export interface ActivityItem {
   id: string;
   title: string;
@@ -121,11 +115,44 @@ export interface Medication {
   status: MedicationStatus;
 }
 
+// Mirrors app/modules/identity/models.py's Role enum.
+export type UserRole = "carer" | "nurse" | "manager" | "family" | "emergency" | "system_admin" | "admin" | "headoffice";
+
+// The subset a manager's "add staff" flow is allowed to hand out --
+// app/modules/identity/service.py's _STAFF_CREATABLE_ROLES.
+export type StaffRole = "carer" | "nurse";
+
 export interface CurrentUser {
     id: string;
     care_home_id: string;
-    role: string;
+    role: UserRole;
     email: string;
     display_name: string;
     floor_ids: string[];
+}
+
+// GET /identity/staff -- mirrors app/modules/identity/schemas.py's UserRead.
+export interface Staff {
+    id: string;
+    email: string;
+    display_name: string;
+    role: UserRole;
+    is_active: boolean;
+}
+
+// POST /identity/staff request body -- mirrors StaffCreate.
+export interface StaffCreateInput {
+    email: string;
+    display_name: string;
+    role: StaffRole;
+}
+
+// POST /identity/staff response -- mirrors StaffCreated. temporary_password is only
+// ever present here, right after creation; it's never returned by any other endpoint.
+export interface StaffCreated {
+    id: string;
+    email: string;
+    display_name: string;
+    role: StaffRole;
+    temporary_password: string;
 }

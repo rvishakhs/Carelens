@@ -1,10 +1,11 @@
 import { useState } from "react";
 
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { getInitials } from "@/lib/format";
+import { ROLE_LABELS } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { useUiStore } from "@/store/uiStore";
 import { CARE_HOMES } from "@/lib/mockData";
@@ -38,15 +39,15 @@ export function SettingsPage() {
         <Card>
           <CardHeader title="Profile" subtitle="Your account details" />
           <div className="flex items-center gap-4">
-            <Avatar initials={user?.initials ?? "?"} size="lg" />
+            <Avatar initials={getInitials(user?.display_name)} size="lg" />
             <div>
-              <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
-              <p className="text-sm text-slate-500">{user?.role}</p>
+              <p className="text-sm font-semibold text-slate-900">{user?.display_name}</p>
+              <p className="text-sm text-slate-500">{user?.email}</p>
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5">
             <span className="text-sm text-slate-600">Access role</span>
-            <Pill tone="indigo">{user?.role}</Pill>
+            <Pill tone="indigo">{user && ROLE_LABELS[user.role]}</Pill>
           </div>
         </Card>
 
@@ -91,11 +92,11 @@ export function SettingsPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5">
               <span className="text-sm text-slate-600">Single sign-on</span>
-              <Pill tone="slate">Keycloak (coming soon)</Pill>
+              <Pill tone="emerald">Keycloak</Pill>
             </div>
-            <Button variant="secondary" className="w-full justify-center">
-              Change password
-            </Button>
+            <p className="text-xs text-slate-400">
+              Password changes and MFA are handled by Keycloak, not CareLens directly.
+            </p>
           </div>
         </Card>
       </div>

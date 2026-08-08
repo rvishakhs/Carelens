@@ -26,10 +26,6 @@ async def get_current_user(
     container = request.app.state.container
     claims = await container.token_verifier.verify(credentials.credentials)
 
-    # care_home_id isn't on the token (see ports.py's TokenClaims docstring) -- look
-    # it up first, via the one session allowed to read `users` without already
-    # knowing the tenant. See bootstrap_session()'s docstring for why this can't just
-    # be system_session().
     async with bootstrap_session() as session:
         care_home_id = await UserRepository(session).find_care_home_id_by_oidc_subject(claims.subject)
     if care_home_id is None:
@@ -49,7 +45,6 @@ async def get_current_user(
             display_name=user.display_name,
             floor_ids=floor_ids,
         )
-
 
 async def get_floor_scope(
     floor_id: uuid.UUID | None = Query(

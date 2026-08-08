@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import api from "@/lib/api";
+import keycloak from "@/lib/keycloak";
 import type { CurrentUser } from "@/types";
 
 interface AuthState {
@@ -9,6 +10,7 @@ interface AuthState {
 
   loadCurrentUser: () => Promise<void>;
   clearUser: () => void;
+  logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,4 +41,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       user: null,
     }),
+
+  logout: () => {
+    set({ user: null });
+    // Keycloak owns the session; this clears its cookie and bounces back to the SPA
+    // root, where main.tsx's login-required init redirects to the hosted login page.
+    void keycloak.logout({ redirectUri: window.location.origin });
+  },
 }));

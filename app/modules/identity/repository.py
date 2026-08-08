@@ -43,6 +43,7 @@ class UserRepository:
         await self._session.flush()
         return user
 
+
     async def create_provisioned(
         self, *, care_home_id: uuid.UUID, oidc_subject: str, email: str, display_name: str, role: Role
     ) -> User:
