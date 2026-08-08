@@ -1,0 +1,53 @@
+{
+  "realm": "CareLens",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      { "name": "carer" },
+      { "name": "nurse" },
+      { "name": "manager" },
+      { "name": "family" },
+      { "name": "emergency" },
+      { "name": "system_admin" },
+      { "name": "admin" },
+      { "name": "headoffice" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "carelens-web",
+      "name": "CareLens frontend (SPA)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"]
+    },
+    {
+      "clientId": "carelens-api",
+      "name": "CareLens backend admin client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "r6cSs3nFdzi4XFXK-tAGuzELFXyd2GUoR6FcAOvwHIU",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-carelens-api",
+      "enabled": true,
+      "serviceAccountClientId": "carelens-api",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users", "view-realm", "manage-realm"]
+      }
+    }
+  ]
+}

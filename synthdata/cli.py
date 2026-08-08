@@ -29,20 +29,49 @@ def generate_command(
         "Meadowbrook House (Synthetic)", "--care-home-name", help="Name for the synthetic care home created by this run"
     ),
     staff_count: int = typer.Option(12, "--staff-count", help="Number of staff user accounts to create"),
+    admin_email: str = typer.Option(
+        "admin@example-carehome.test", "--admin-email", help="Login email for the sign-in-able bootstrap admin account"
+    ),
+    admin_password: str | None = typer.Option(
+        None,
+        "--admin-password",
+        help="Temporary password for the bootstrap admin account. Random if not given.",
+    ),
+    skip_keycloak_admin: bool = typer.Option(
+        False,
+        "--skip-keycloak-admin",
+        help="Only write the admin's local users row -- skip provisioning it in Keycloak (e.g. Keycloak isn't running).",
+    ),
 ) -> None:
     settings = get_settings()
     typer.echo(f"Generating {residents} residents x {days} days for '{care_home_name}' (seed={seed})")
 
-    care_home_id = generate(
+    result = generate(
         database_url=settings.database_url,
         care_home_name=care_home_name,
         residents=residents,
         days=days,
         seed=seed,
         staff_count=staff_count,
+        admin_email=admin_email,
+        admin_password=admin_password,
+        keycloak_server="" if skip_keycloak_admin else settings.KEYCLOAK_SERVER,
+        keycloak_realm=settings.KEYCLOAK_REALM,
+        keycloak_client_id=settings.KEYCLOAK_CLIENT_ID,
+        keycloak_client_secret=settings.keycloak_admin_client_secret,
     )
 
-    typer.echo(f"Done. care_home_id={care_home_id}")
+    typer.echo(f"Done. care_home_id={result.care_home_id}")
+    if result.admin_provisioned:
+        typer.echo(
+            f"Admin login -- email: {result.admin_email}  password: {result.admin_temporary_password}  "
+            "(temporary; you'll be prompted to change it on first sign-in)"
+        )
+    else:
+        typer.echo(
+            f"Admin row created locally as {result.admin_email} but NOT provisioned in Keycloak "
+            "(no KEYCLOAK_SERVER configured or --skip-keycloak-admin was passed) -- it can't sign in yet."
+        )
 
 
 if __name__ == "__main__":

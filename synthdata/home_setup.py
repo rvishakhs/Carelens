@@ -68,6 +68,24 @@ def build_staff_users(rng: random.Random, care_home_id: uuid.UUID, count: int) -
     return users
 
 
+def build_admin_user(rng: random.Random, care_home_id: uuid.UUID, email: str) -> dict:
+    """The one staff row every synthetic care home gets that's actually sign-in-able:
+    generator.py provisions a real Keycloak account for it and fills in oidc_subject
+    before this is inserted, unlike build_staff_users' rows (local-only, no login)."""
+    first = rng.choice(STAFF_FIRST_NAMES)
+    last = rng.choice(STAFF_LAST_NAMES)
+    return {
+        "id": seeded_uuid(rng),
+        "care_home_id": care_home_id,
+        "oidc_subject": None,
+        "email": email,
+        "display_name": f"{first} {last}",
+        "role": "admin",
+        "mfa_enrolled": True,
+        "is_active": True,
+    }
+
+
 def build_family_user(rng: random.Random, care_home_id: uuid.UUID, resident_last_name: str, suffix: str) -> dict:
     first = rng.choice(STAFF_FIRST_NAMES)  # reuse a generic modern first-name pool for family members
     return {

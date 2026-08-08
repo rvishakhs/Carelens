@@ -8,6 +8,7 @@ from fastapi import Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.modules.floors.dependencies import get_floor_reader_for
+from app.modules.identity.models import CareHome
 from app.modules.identity.repository import UserRepository
 from app.modules.identity.schemas import CurrentUser
 from app.shared.database import bootstrap_session, rls_session
@@ -34,12 +35,18 @@ async def get_current_user(
     async with rls_session(care_home_id, claims.subject) as session:
         user = await UserRepository(session).sync_from_claims(claims)
 
+        # care_homes' own self_care_home_select RLS policy (migration 0010) already
+        # permits this -- a session scoped to a tenant can always read that tenant's
+        # own care_homes row, matched on id rather than care_home_id.
+        care_home = await session.get(CareHome, user.care_home_id)
+
         async with get_floor_reader_for(user.care_home_id, user.id) as floor_reader:
             floor_ids = await floor_reader.get_authorized_floor_ids(user.id)
 
         return CurrentUser(
             id=user.id,
             care_home_id=user.care_home_id,
+            care_home_name=care_home.name if care_home else "",
             role=user.role,
             email=user.email,
             display_name=user.display_name,

@@ -41,3 +41,9 @@ class KeycloakAdminClient(IdentityProviderAdmin):
         realm_role = await self._admin.a_get_realm_role(role)
         await self._admin.a_assign_realm_roles(user_id, [realm_role])
         return user_id
+
+    async def set_temporary_password(self, oidc_subject: str, temporary_password: str) -> None:
+        await self._admin.a_set_user_password(oidc_subject, temporary_password, temporary=True)
+
+    async def set_enabled(self, oidc_subject: str, enabled: bool) -> None:
+        await self._admin.a_update_user(oidc_subject, {"enabled": enabled})

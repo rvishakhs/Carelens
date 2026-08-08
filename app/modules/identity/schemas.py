@@ -16,6 +16,7 @@ class CurrentUser(BaseModel):
 
     id: uuid.UUID
     care_home_id: uuid.UUID
+    care_home_name: str
     role: Role
     email: str
     display_name: str
@@ -50,4 +51,24 @@ class StaffCreated(BaseModel):
     email: str
     display_name: str
     role: Role
+    temporary_password: str
+
+
+class StaffUpdate(BaseModel):
+    """PATCH /identity/staff/{id} -- both fields optional, only the ones provided
+    change. role stays restricted to the same carer/nurse set as creation (see
+    identity/service.py's _STAFF_CREATABLE_ROLES): promoting someone to
+    manager/admin/headoffice/system_admin isn't something this dashboard automates."""
+
+    role: Role | None = None
+    is_active: bool | None = None
+
+
+class StaffCredentials(BaseModel):
+    """POST /identity/staff/{id}/reset-password response -- temporary_password is
+    shown exactly once, same rule as StaffCreated."""
+
+    id: uuid.UUID
+    email: str
+    display_name: str
     temporary_password: str

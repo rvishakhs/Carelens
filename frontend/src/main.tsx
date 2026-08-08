@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "@/App";
 import "@/index.css";
+import { extractErrorMessage } from "@/lib/errors";
 import keycloak from "@/lib/keycloak";
 import { useAuthStore } from "@/store/authStore";
 
@@ -17,30 +18,28 @@ function renderApp() {
   );
 }
 
-/** Shown when Keycloak successfully authenticates someone with no matching CareLens
- * `users` row -- expected for a Keycloak account that hasn't gone through a manager's
- * Staff -> Add Staff flow yet (app/modules/identity/service.py's create_staff_member
- * is what creates that row; see governance/decision-log.md's 2026-08-03 entry for why
- * login itself deliberately never does). Without this, loadCurrentUser()'s 401
- * propagated out of bootstrap() uncaught and the page just stayed blank.
- * Rendered standalone (no Router/App) since bootstrap() never got that far. */
-function renderNotProvisioned() {
+/** Shown when Keycloak successfully authenticates someone but /identity/me 401s --
+ * either no matching CareLens `users` row (never provisioned via a manager's Staff ->
+ * Add Staff flow) or an existing one with is_active=False (deactivated). Both raise
+ * UnauthenticatedError with a distinct message server-side (identity/repository.py's
+ * sync_from_claims) -- `reason` is that message, so this reads correctly for either
+ * case without guessing which one happened. Without this, loadCurrentUser()'s 401
+ * propagated out of bootstrap() uncaught and the page just stayed blank. Rendered
+ * standalone (no Router/App) since bootstrap() never got that far. */
+function renderSignInBlocked(reason: string) {
   const email = keycloak.tokenParsed?.email as string | undefined;
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <div className="flex min-h-screen items-center justify-center bg-brand-900 px-4">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
-          <h1 className="text-lg font-semibold text-slate-900">No CareLens account yet</h1>
+          <h1 className="text-lg font-semibold text-slate-900">Can't sign in</h1>
           <p className="mt-2 text-sm text-slate-500">
-            {email ? (
+            {email && (
               <>
-                <span className="font-medium text-slate-700">{email}</span> is signed in, but
+                <span className="font-medium text-slate-700">{email}</span> —{" "}
               </>
-            ) : (
-              "You're signed in, but"
-            )}{" "}
-            there's no CareLens staff record linked to this identity yet. Ask a manager to add you under Staff → Add
-            Staff, then sign in again.
+            )}
+            {reason}
           </p>
           <button
             onClick={() => void keycloak.logout({ redirectUri: window.location.origin })}
@@ -63,8 +62,13 @@ async function bootstrap() {
 
   try {
     await useAuthStore.getState().loadCurrentUser();
-  } catch {
-    renderNotProvisioned();
+  } catch (error) {
+    renderSignInBlocked(
+      extractErrorMessage(
+        error,
+        "There's no CareLens staff record linked to this identity yet. Ask a manager to add you under Staff → Add Staff.",
+      ),
+    );
     return;
   }
 

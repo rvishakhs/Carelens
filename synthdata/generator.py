@@ -10,14 +10,17 @@ half-written, which also makes re-running with the same --seed idempotent-by-ret
 import random
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from sqlalchemy import text, update
 
+from app.shared.security import generate_opaque_token
 from synthdata.daily_records import ResidentContext, ResidentDailyState, generate_daily_rows
 from synthdata.db import Schema, build_engine, insert_many, tenant_transaction
-from synthdata.home_setup import build_activity_occurrences, build_care_home, build_staff_users
+from synthdata.home_setup import build_activity_occurrences, build_admin_user, build_care_home, build_staff_users
 from synthdata.ids import seeded_uuid
+from synthdata.keycloak_sync import create_admin_account
 from synthdata.personas import generate_persona
 from synthdata.setup_records import build_resident_row, build_resident_setup
 from synthdata.trajectories import TRAJECTORIES
@@ -45,6 +48,16 @@ _DAILY_TABLE_ORDER = [
 ]
 
 
+@dataclass(frozen=True)
+class GenerateResult:
+    care_home_id: uuid.UUID
+    admin_email: str
+    admin_temporary_password: str
+    # False when no keycloak_server was given -- the admin row still exists locally,
+    # same as every other build_staff_users row, it just can't sign in yet.
+    admin_provisioned: bool
+
+
 def generate(
     *,
     database_url: str,
@@ -53,11 +66,21 @@ def generate(
     days: int,
     seed: int,
     staff_count: int = 12,
-) -> uuid.UUID:
+    admin_email: str = "admin@example-carehome.test",
+    admin_password: str | None = None,
+    keycloak_server: str = "",
+    keycloak_realm: str = "",
+    keycloak_client_id: str = "",
+    keycloak_client_secret: str = "",
+) -> GenerateResult:
     """Generates a full synthetic dataset and returns the care_home_id it was written
-    under. Deterministic via `seed`: same seed + args always produces the same
-    dataset (same names, trajectories, values -- timestamps are relative to "today"
-    minus `days`, so absolute dates shift with the run date, everything else doesn't).
+    under, plus the bootstrap admin's login. Deterministic via `seed`: same seed +
+    args always produces the same dataset (same names, trajectories, values --
+    timestamps are relative to "today" minus `days`, so absolute dates shift with the
+    run date, everything else doesn't). The admin account is the exception: its
+    Keycloak password is regenerated (and re-set on the existing Keycloak account, if
+    one from a prior run is still there) every call unless `admin_password` is pinned,
+    since a stable secret can't be derived from `seed` alone.
     """
     rng = random.Random(seed)
     window_start = date.today() - timedelta(days=days)
@@ -95,6 +118,22 @@ def generate(
         staff_user_ids = [u["id"] for u in staff_users]
         manager_user_id = next(u["id"] for u in staff_users if u["role"] == "manager")
         nurse_user_ids = [u["id"] for u in staff_users if u["role"] == "nurse"]
+
+        admin_temporary_password = admin_password or generate_opaque_token(9)
+        admin_user = build_admin_user(rng, care_home_id, admin_email)
+        admin_provisioned = bool(keycloak_server)
+        if admin_provisioned:
+            admin_user["oidc_subject"] = create_admin_account(
+                server_url=keycloak_server,
+                realm_name=keycloak_realm,
+                client_id=keycloak_client_id,
+                client_secret=keycloak_client_secret,
+                email=admin_user["email"],
+                display_name=admin_user["display_name"],
+                role=admin_user["role"],
+                temporary_password=admin_temporary_password,
+            )
+        insert_many(conn, schema, {"users": [admin_user]})
 
         activity_occurrences = build_activity_occurrences(rng, care_home_id, window_start, days)
         insert_many(conn, schema, {"activities": activity_occurrences})
@@ -157,7 +196,12 @@ def generate(
         insert_many(conn, schema, daily_rows)
         _apply_wound_updates(conn, schema, resident_contexts)
 
-    return care_home_id
+    return GenerateResult(
+        care_home_id=care_home_id,
+        admin_email=admin_user["email"],
+        admin_temporary_password=admin_temporary_password,
+        admin_provisioned=admin_provisioned,
+    )
 
 
 def _apply_wound_updates(conn, schema: Schema, resident_contexts: list[ResidentContext]) -> None:

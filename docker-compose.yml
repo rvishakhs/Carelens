@@ -43,10 +43,16 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
-    # TODO: mount a committed realm export once the identity module's Keycloak setup
-    # (Week 2-3 per the roadmap) lands, e.g.:
-    # volumes:
-    #   - ./identity/keycloak-realm-export.json:/opt/keycloak/data/import/realm.json:ro
+    volumes:
+      # Persists the dev-mode embedded H2 database (realm/clients/roles/users) across
+      # container restarts -- without this, `start-dev` loses all Keycloak config every
+      # time the container is recreated.
+      - keycloak_data:/opt/keycloak/data
+      # Committed realm export (--import-realm above): creates the CareLens realm,
+      # roles, and the carelens-web/carelens-api clients on first boot. Only applies
+      # while the realm doesn't already exist in keycloak_data, so edits made later
+      # via the admin console aren't clobbered on restart.
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json:ro
 
   app:
     build: .
@@ -88,3 +94,4 @@ services:
 
 volumes:
   postgres_data:
+  keycloak_data:

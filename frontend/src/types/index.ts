@@ -125,6 +125,7 @@ export type StaffRole = "carer" | "nurse";
 export interface CurrentUser {
     id: string;
     care_home_id: string;
+    care_home_name: string;
     role: UserRole;
     email: string;
     display_name: string;
@@ -154,5 +155,21 @@ export interface StaffCreated {
     email: string;
     display_name: string;
     role: StaffRole;
+    temporary_password: string;
+}
+
+// PATCH /identity/staff/{id} request body -- mirrors StaffUpdate. Both optional; only
+// the fields provided change. role stays restricted to carer/nurse, same as creation.
+export interface StaffUpdateInput {
+    role?: StaffRole;
+    is_active?: boolean;
+}
+
+// POST /identity/staff/{id}/reset-password response -- mirrors StaffCredentials.
+// temporary_password is only ever present here, same one-time rule as StaffCreated.
+export interface StaffCredentials {
+    id: string;
+    email: string;
+    display_name: string;
     temporary_password: string;
 }

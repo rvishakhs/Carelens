@@ -1,4 +1,4 @@
-import { Check, Copy, Plus, ShieldOff } from "lucide-react";
+import { Check, Copy, KeyRound, Plus, ShieldOff } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,13 +11,15 @@ import { getInitials } from "@/lib/format";
 import { ROLE_LABELS, STAFF_CREATABLE_ROLES, canManageUsers } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { useStaffStore } from "@/store/staffStore";
-import type { StaffRole } from "@/types";
+import type { Staff, StaffRole } from "@/types";
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100";
+const disabledInputClass =
+  "w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500";
 const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
-function AddStaffForm({ onDone }: { onDone: () => void }) {
+function AddStaffForm({ careHomeName, onDone }: { careHomeName: string; onDone: () => void }) {
   const createStaff = useStaffStore((s) => s.createStaff);
   const isCreating = useStaffStore((s) => s.isCreating);
 
@@ -73,6 +75,11 @@ function AddStaffForm({ onDone }: { onDone: () => void }) {
           ))}
         </select>
       </div>
+      <div>
+        <label className={labelClass}>Care home</label>
+        <input value={careHomeName} disabled className={disabledInputClass} />
+        <p className="mt-1 text-xs text-slate-400">Staff are added to your care home.</p>
+      </div>
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
 
@@ -88,7 +95,15 @@ function AddStaffForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function CredentialsModal({ password, onClose }: { password: string; onClose: () => void }) {
+function CredentialsModal({
+  displayName,
+  password,
+  onClose,
+}: {
+  displayName: string;
+  password: string;
+  onClose: () => void;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -98,7 +113,7 @@ function CredentialsModal({ password, onClose }: { password: string; onClose: ()
   }
 
   return (
-    <Modal title="Staff Member Created" onClose={onClose}>
+    <Modal title={`Temporary Password — ${displayName}`} onClose={onClose}>
       <p className="text-sm text-slate-600">
         Share this temporary password with them directly -- it won't be shown again. Keycloak will ask them to set a
         new password the first time they sign in.
@@ -119,9 +134,87 @@ function CredentialsModal({ password, onClose }: { password: string; onClose: ()
   );
 }
 
+function StaffCard({ member, isOwnAccount }: { member: Staff; isOwnAccount: boolean }) {
+  const updateStaff = useStaffStore((s) => s.updateStaff);
+  const resetPassword = useStaffStore((s) => s.resetPassword);
+  const mutatingId = useStaffStore((s) => s.mutatingId);
+  const isMutating = mutatingId === member.id;
+
+  function handleRoleChange(role: StaffRole) {
+    if (role !== member.role) void updateStaff(member.id, { role });
+  }
+
+  function handleToggleActive() {
+    const next = !member.is_active;
+    const verb = next ? "Reactivate" : "Deactivate";
+    if (window.confirm(`${verb} ${member.display_name}? ${next ? "They'll" : "They will no longer"} be able to sign in.`)) {
+      void updateStaff(member.id, { is_active: next });
+    }
+  }
+
+  function handleResetPassword() {
+    if (window.confirm(`Generate a new temporary password for ${member.display_name}? Their current password stops working immediately.`)) {
+      void resetPassword(member.id);
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-center gap-4">
+        <Avatar initials={getInitials(member.display_name)} size="lg" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-slate-900">{member.display_name}</p>
+          <p className="truncate text-xs text-slate-500">{member.email}</p>
+        </div>
+        <Pill tone={member.is_active ? "emerald" : "slate"}>{member.is_active ? "Active" : "Inactive"}</Pill>
+      </div>
+
+      {isOwnAccount ? (
+        <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-400">
+          This is your account -- role and active status are managed elsewhere.
+        </p>
+      ) : (
+        <div className="flex items-center gap-2">
+          <select
+            value={member.role}
+            disabled={isMutating}
+            onChange={(e) => handleRoleChange(e.target.value as StaffRole)}
+            className="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:opacity-50"
+          >
+            {STAFF_CREATABLE_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleResetPassword}
+            disabled={isMutating}
+            title="Reset password"
+            className="px-2.5"
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant={member.is_active ? "danger" : "secondary"}
+            onClick={handleToggleActive}
+            disabled={isMutating}
+            className="px-2.5 text-xs"
+          >
+            {member.is_active ? "Deactivate" : "Reactivate"}
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function StaffPage() {
   const currentUser = useAuthStore((s) => s.user);
-  const { staff, isLoading, error, lastCreated, fetchStaff, dismissLastCreated } = useStaffStore();
+  const { staff, isLoading, error, lastCredentials, fetchStaff, dismissCredentials } = useStaffStore();
   const [showAddModal, setShowAddModal] = useState(false);
 
   const allowed = canManageUsers(currentUser?.role);
@@ -148,7 +241,7 @@ export function StaffPage() {
     <div>
       <PageHeader
         title="Staff"
-        subtitle={`${staff.length} staff member${staff.length === 1 ? "" : "s"} at your care home`}
+        subtitle={`${staff.length} staff member${staff.length === 1 ? "" : "s"} at ${currentUser!.care_home_name}`}
         actions={
           <Button onClick={() => setShowAddModal(true)}>
             <Plus className="h-4 w-4" />
@@ -166,17 +259,7 @@ export function StaffPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {staff.map((member) => (
-            <Card key={member.id} className="flex items-center gap-4">
-              <Avatar initials={getInitials(member.display_name)} size="lg" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">{member.display_name}</p>
-                <p className="truncate text-xs text-slate-500">{member.email}</p>
-                <Pill tone="indigo" className="mt-1.5">
-                  {ROLE_LABELS[member.role]}
-                </Pill>
-              </div>
-              <Pill tone={member.is_active ? "emerald" : "slate"}>{member.is_active ? "Active" : "Inactive"}</Pill>
-            </Card>
+            <StaffCard key={member.id} member={member} isOwnAccount={member.id === currentUser?.id} />
           ))}
 
           {staff.length === 0 && (
@@ -189,11 +272,17 @@ export function StaffPage() {
 
       {showAddModal && (
         <Modal title="Add Staff Member" onClose={() => setShowAddModal(false)}>
-          <AddStaffForm onDone={() => setShowAddModal(false)} />
+          <AddStaffForm careHomeName={currentUser!.care_home_name} onDone={() => setShowAddModal(false)} />
         </Modal>
       )}
 
-      {lastCreated && <CredentialsModal password={lastCreated.temporary_password} onClose={dismissLastCreated} />}
+      {lastCredentials && (
+        <CredentialsModal
+          displayName={lastCredentials.displayName}
+          password={lastCredentials.temporaryPassword}
+          onClose={dismissCredentials}
+        />
+      )}
     </div>
   );
 }

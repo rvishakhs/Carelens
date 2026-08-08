@@ -87,6 +87,34 @@ async def test_sync_from_claims_rejects_a_subject_with_no_local_row():
             pass
 
 
+async def test_sync_from_claims_rejects_a_deactivated_user():
+    """The other half of a "deactivate staff" action actually working: is_active=False
+    must block login server-side too, not just rely on the Keycloak-side disable
+    (identity/service.py's update_staff_member calls both)."""
+    home_id = uuid.uuid4()
+    rng = random.Random(104)
+
+    async with rls_session(home_id, uuid.uuid4()) as session:
+        await _seed_care_home(session, rng, "Deactivated Home", home_id)
+        user = await UserRepository(session).create_provisioned(
+            care_home_id=home_id,
+            oidc_subject="kc-subject-4",
+            email="deactivated@example.com",
+            display_name="Deactivated User",
+            role=Role.CARER,
+        )
+        user.is_active = False
+        await session.flush()
+
+    claims = TokenClaims(subject="kc-subject-4", email="deactivated@example.com", display_name="X", role="carer")
+    async with rls_session(home_id, uuid.uuid4()) as session:
+        try:
+            await UserRepository(session).sync_from_claims(claims)
+            raise AssertionError("expected UnauthenticatedError")
+        except UnauthenticatedError:
+            pass
+
+
 async def test_sync_from_claims_resyncs_identity_fields_for_an_existing_row():
     home_id = uuid.uuid4()
     rng = random.Random(103)

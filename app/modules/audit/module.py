@@ -23,7 +23,13 @@ from app.modules.audit.service import AuditService
 from app.modules.care_recording.events import CareEventRecorded
 from app.modules.floors.events import FloorCreated, UserFloorAccessGranted, UserFloorAccessRevoked
 from app.modules.handover.events import RecordViewed
-from app.modules.identity.events import MfaChallengeFailed, StaffMemberCreated, UserLoggedIn
+from app.modules.identity.events import (
+    MfaChallengeFailed,
+    StaffMemberCreated,
+    StaffMemberUpdated,
+    StaffPasswordReset,
+    UserLoggedIn,
+)
 from app.modules.observations.events import ObservationRecorded
 from app.modules.residents.events import ResidentCreated
 from app.modules.summaries.events import SummaryGenerated, SummaryReviewed
@@ -56,6 +62,14 @@ async def _on_mfa_challenge_failed(event: MfaChallengeFailed) -> None:
 
 async def _on_staff_member_created(event: StaffMemberCreated) -> None:
     await _log(event, action=AuditAction.CREATE, entity_type="user", entity_id=event.user_id)
+
+
+async def _on_staff_member_updated(event: StaffMemberUpdated) -> None:
+    await _log(event, action=AuditAction.UPDATE, entity_type="user", entity_id=event.user_id)
+
+
+async def _on_staff_password_reset(event: StaffPasswordReset) -> None:
+    await _log(event, action=AuditAction.UPDATE, entity_type="user", entity_id=event.user_id)
 
 
 async def _on_resident_created(event: ResidentCreated) -> None:
@@ -108,6 +122,8 @@ def register(app: FastAPI, container: Container) -> None:
     container.event_bus.subscribe(UserLoggedIn, _on_user_logged_in)
     container.event_bus.subscribe(MfaChallengeFailed, _on_mfa_challenge_failed)
     container.event_bus.subscribe(StaffMemberCreated, _on_staff_member_created)
+    container.event_bus.subscribe(StaffMemberUpdated, _on_staff_member_updated)
+    container.event_bus.subscribe(StaffPasswordReset, _on_staff_password_reset)
     container.event_bus.subscribe(ResidentCreated, _on_resident_created)
     container.event_bus.subscribe(ObservationRecorded, _on_observation_recorded)
     container.event_bus.subscribe(SummaryGenerated, _on_summary_generated)

@@ -37,6 +37,8 @@ class UserRepository:
             raise UnauthenticatedError(
                 "no CareLens account found for this identity; ask a manager to add you as staff"
             )
+        if not user.is_active:
+            raise UnauthenticatedError("this CareLens account has been deactivated")
         user.email = claims.email
         user.display_name = claims.display_name
         user.role = Role(claims.role)
@@ -64,3 +66,18 @@ class UserRepository:
     async def list_active(self) -> list[User]:
         result = await self._session.execute(select(User).where(User.is_active, User.deleted_at.is_(None)))
         return list(result.scalars().all())
+
+    async def list_all(self) -> list[User]:
+        """Includes deactivated staff -- unlike list_active(), this is what the staff
+        management screen lists, since a manager needs to see (and reactivate)
+        deactivated accounts, not just active ones."""
+        result = await self._session.execute(select(User).where(User.deleted_at.is_(None)))
+        return list(result.scalars().all())
+
+    async def get_by_id(self, user_id: uuid.UUID) -> User | None:
+        result = await self._session.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
+        return result.scalar_one_or_none()
+
+    async def save(self, user: User) -> User:
+        await self._session.flush()
+        return user

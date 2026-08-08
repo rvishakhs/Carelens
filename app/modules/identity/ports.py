@@ -45,3 +45,16 @@ class IdentityProviderAdmin(abc.ABC):
         login with no extra protocol-mapper setup. Returns the provider's subject
         (`sub`) id, which becomes the new local user row's oidc_subject."""
         ...
+
+    @abc.abstractmethod
+    async def set_temporary_password(self, oidc_subject: str, temporary_password: str) -> None:
+        """A manager's "reset password" action -- forces a reset on next login, same as
+        create_user's initial password. Never called from the login path."""
+        ...
+
+    @abc.abstractmethod
+    async def set_enabled(self, oidc_subject: str, enabled: bool) -> None:
+        """The deactivate/reactivate counterpart to the local `users.is_active` flag --
+        disabling here means the account can't obtain a new token at all, not just fail
+        CareLens's own is_active check (identity/repository.py's sync_from_claims)."""
+        ...
