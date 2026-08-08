@@ -1,5 +1,5 @@
 import { AlertTriangle, Cookie, HeartPulse, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Avatar } from "@/components/ui/Avatar";
@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/Pill";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RESIDENTS } from "@/lib/mockData";
+import {fetchResidents} from "@/utils/helper.ts";
+import {Resident} from "@/types";
+
 
 const UNITS = ["All Units", "Dementia Unit", "Residential", "Nursing"];
 
@@ -14,17 +17,41 @@ export function ResidentsPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [unit, setUnit] = useState("All Units");
+  const [residents, setResidents] = useState<Resident[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    return RESIDENTS.filter((r) => {
-      const matchesUnit = unit === "All Units" || r.unit === unit;
-      const matchesQuery =
-        !query.trim() ||
-        r.name.toLowerCase().includes(query.toLowerCase()) ||
-        r.room.toLowerCase().includes(query.toLowerCase());
-      return matchesUnit && matchesQuery;
-    });
-  }, [query, unit]);
+useEffect(() => {
+  const loadResidents = async () => {
+    try {
+      setLoading(true);
+
+      const data = await fetchResidents();
+      setResidents(data);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load residents");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadResidents();
+}, []);
+
+const filtered = useMemo(() => {
+  return residents.filter((r) => {
+    const matchesUnit =
+      unit === "All Units" || r.unit === unit;
+
+    const matchesQuery =
+      !query.trim() ||
+      r.first_name.toLowerCase().includes(query.toLowerCase()) ||
+      r.room_number.toLowerCase().includes(query.toLowerCase());
+
+    return matchesUnit && matchesQuery;
+  });
+}, [residents, query, unit]);
 
   return (
     <div>
@@ -63,18 +90,18 @@ export function ResidentsPage() {
             onClick={() => navigate(`/residents/${resident.id}`)}
           >
             <div className="flex items-start gap-3">
-              <Avatar initials={resident.initials} colorClass={resident.avatarColor} size="lg" />
+              <Avatar initials={resident.first_name.substring(0,2)} colorClass={resident.avatarColor} size="lg" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="truncate font-semibold text-slate-900">{resident.name}</h3>
+                  <h3 className="truncate font-semibold text-slate-900">{resident.first_name}</h3>
                   <StatusPill status={resident.careStatus} />
                 </div>
                 <p className="text-sm text-slate-500">
-                  {resident.room} · {resident.age} yrs · {resident.unit}
+                  {resident.room_number} · {resident.age} yrs · {resident.unit}
                 </p>
 
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {resident.primaryNeeds.map((need) => (
+                  {(resident.primaryNeeds ?? []).map((need) => (
                     <span key={need} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {need}
                     </span>

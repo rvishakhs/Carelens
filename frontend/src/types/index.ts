@@ -8,9 +8,9 @@ export interface ResidentFlags {
 
 export interface Resident {
   id: string;
-  name: string;
+  first_name: string;
   preferredName?: string;
-  room: string;
+  room_number: string;
   age: number;
   dob: string;
   gender: "Male" | "Female";
