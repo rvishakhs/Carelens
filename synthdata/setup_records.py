@@ -12,13 +12,19 @@ from synthdata.ids import seeded_uuid
 from synthdata.personas import Persona
 from synthdata.reference_data import (
     ALLERGENS,
+    CULTURAL_BACKGROUNDS,
     DIAGNOSES,
+    DIRECTIVE_TYPES,
     FAITHS,
+    FAMILY_BACKGROUND_SNIPPETS,
     HOBBIES,
+    IMPORTANT_RELATIONSHIPS_SNIPPETS,
     OCCUPATIONS,
+    PERSONAL_ASPIRATIONS,
     PREFERENCE_ITEMS,
     PRN_MEDICATIONS,
     REGULAR_MEDICATIONS,
+    SIGNIFICANT_EVENTS_SNIPPETS,
 )
 
 _CARE_PLAN_GOALS: dict[str, str] = {
@@ -34,6 +40,71 @@ _CARE_PLAN_GOALS: dict[str, str] = {
     "social_activities": "Support engagement in meaningful social and recreational activity in line with preferences.",
     "end_of_life": "Provide comfort-focused, dignified care in line with the resident's advance wishes.",
 }
+
+
+# baseline/target/measurement per domain, for the structured care_plan_goals row
+# underneath each care_plans row (migration 0020) -- care_plans.goal stays the
+# free-text "what are we doing"; this is the "what outcome, tracked how" layer.
+def _goal_fields_for_domain(domain: str, persona: Persona) -> dict:
+    return {
+        "nutrition_hydration": {
+            "baseline": "Appetite variable; sometimes leaves meals unfinished.",
+            "target": "Consistently eat at least 75% of meals and meet the daily fluid target.",
+            "measurement": "Percentage of meals eaten; daily fluid intake total.",
+        },
+        "mobility": {
+            "baseline": f"Currently mobilises at '{persona.mobility_level.replace('_', ' ')}' level.",
+            "target": "Maintain comfortable positioning and prevent contractures."
+            if persona.mobility_level == "bed_bound"
+            else "Maintain or improve current level of independence in mobilising.",
+            "measurement": "Mobility level at reassessment; falls frequency.",
+        },
+        "continence": {
+            "baseline": f"Uses {persona.continence_product.replace('_', ' ')} for continence support.",
+            "target": "Maintain skin integrity and dignity; minimise incontinence-associated skin damage.",
+            "measurement": "Continence event frequency; skin condition at each change.",
+        },
+        "communication": {
+            "baseline": f"Primary communication method: {persona.communication_method.replace('_', ' ')}.",
+            "target": "Maintain effective two-way communication with staff and family.",
+            "measurement": "Frequency and quality of recorded communication interactions.",
+        },
+        "behaviour_wellbeing": {
+            "baseline": "Some episodes of distress/agitation noted.",
+            "target": "Reduce frequency and severity of distress episodes through consistent, person-centred approaches.",
+            "measurement": "Number and severity of behaviour incidents; mood trend.",
+        },
+        "skin_integrity": {
+            "baseline": f"Waterlow risk level: {persona.skin_risk_baseline}.",
+            "target": "No new pressure damage; maintain intact skin.",
+            "measurement": "Skin integrity assessment score; presence of new wounds.",
+        },
+        "medication": {
+            "baseline": "Takes regular prescribed medication.",
+            "target": "Safe administration of all medications, with prompt escalation of any refusal pattern.",
+            "measurement": "Medication administration/refusal rate.",
+        },
+        "sleep": {
+            "baseline": "Sleep pattern occasionally disrupted.",
+            "target": "Improve sleep continuity and reduce night-time waking.",
+            "measurement": "Number of night wakings; sleep quality rating.",
+        },
+        "pain_management": {
+            "baseline": "Pain not always consistently recognised or reported.",
+            "target": "Pain identified and managed promptly, including for non-verbal presentation.",
+            "measurement": "Pain assessment scores; PRN analgesia effectiveness.",
+        },
+        "social_activities": {
+            "baseline": "Engagement in group activities variable.",
+            "target": "Increase meaningful participation in activities aligned with personal interests.",
+            "measurement": "Activity participation rate and engagement level.",
+        },
+        "end_of_life": {
+            "baseline": "Advance wishes discussed with resident/family.",
+            "target": "Ensure comfort-focused, dignified care in line with recorded wishes.",
+            "measurement": "Symptom control; adherence to recorded preferences.",
+        },
+    }[domain]
 
 
 def _domains_for_persona(rng: random.Random, persona: Persona) -> list[str]:
@@ -55,10 +126,13 @@ def _domains_for_persona(rng: random.Random, persona: Persona) -> list[str]:
     return domains
 
 
-def build_resident_row(persona: Persona, care_home_id: uuid.UUID, resident_id: uuid.UUID, rng: random.Random) -> dict:
+def build_resident_row(
+    persona: Persona, care_home_id: uuid.UUID, resident_id: uuid.UUID, rng: random.Random, floor_id: uuid.UUID | None = None
+) -> dict:
     return {
         "id": resident_id,
         "care_home_id": care_home_id,
+        "floor_id": floor_id,
         "first_name": persona.first_name,
         "last_name": persona.last_name,
         "preferred_name": persona.preferred_name,
@@ -114,9 +188,10 @@ def build_resident_setup(
     medications, medication_ids = _build_medications(rng, care_home_id, resident_id, persona, window_start)
     rows["medications"] = medications
 
-    care_plans, care_plan_versions = _build_care_plans(rng, care_home_id, resident_id, persona, recorded_by)
+    care_plans, care_plan_versions, care_plan_goals = _build_care_plans(rng, care_home_id, resident_id, persona, recorded_by)
     rows["care_plans"] = care_plans
     rows["care_plan_versions"] = care_plan_versions
+    rows["care_plan_goals"] = care_plan_goals
 
     family_users, family_links = _build_family(rng, care_home_id, resident_id, persona, manager_user_id)
     rows["users"] = family_users
@@ -189,12 +264,12 @@ def _build_life_history(rng: random.Random, care_home_id: uuid.UUID, resident_id
             "care_home_id": care_home_id,
             "resident_id": resident_id,
             "occupation": occupation,
-            "family_background": None,
-            "significant_events": None,
+            "family_background": rng.choice(FAMILY_BACKGROUND_SNIPPETS),
+            "significant_events": rng.choice(SIGNIFICANT_EVENTS_SNIPPETS),
             "hobbies_interests": hobbies,
-            "important_relationships": None,
+            "important_relationships": rng.choice(IMPORTANT_RELATIONSHIPS_SNIPPETS),
             "faith_religion": faith,
-            "cultural_background": None,
+            "cultural_background": rng.choice(CULTURAL_BACKGROUNDS),
             "language_preferred": "English",
             "military_veteran": persona.is_veteran,
             "free_text_narrative": narrative,
@@ -284,23 +359,45 @@ def _build_diagnoses(rng: random.Random, care_home_id: uuid.UUID, resident_id: u
     return rows
 
 
+_DIRECTIVE_SUMMARIES = {
+    "DNACPR": "Do Not Attempt Cardiopulmonary Resuscitation, agreed with resident/family and GP.",
+    "ReSPECT": "Recommended Summary Plan for Emergency Care and Treatment, covering realistic treatment "
+    "options and ceiling of care in an emergency, agreed with resident/family and clinician.",
+    "advance_decision": "Advance Decision to Refuse Treatment (ADRT), specifying treatments the resident "
+    "does not wish to receive in specified future circumstances.",
+    "ceiling_of_care": "Agreed ceiling of care: treatment appropriate to comfort and dignity, without "
+    "escalation to invasive intervention or hospital admission except for symptom relief.",
+}
+
+
 def _build_advance_care_directives(
     rng: random.Random, care_home_id: uuid.UUID, resident_id: uuid.UUID, persona: Persona, manager_user_id: uuid.UUID
 ) -> list[dict]:
-    if not persona.dnacpr:
-        return []
+    directive_types = []
+    if persona.dnacpr:
+        directive_types.append("DNACPR")
+        if rng.random() < 0.5:
+            directive_types.append("ReSPECT")
+        if rng.random() < 0.15:
+            directive_types.append("ceiling_of_care")
+    elif persona.mobility_level in ("hoist_dependent", "bed_bound") and rng.random() < 0.3:
+        directive_types.append("ReSPECT")
+    if rng.random() < 0.1 and "advance_decision" not in directive_types:
+        directive_types.append("advance_decision")
+
     return [
         {
             "id": seeded_uuid(rng),
             "care_home_id": care_home_id,
             "resident_id": resident_id,
-            "directive_type": "DNACPR",
-            "summary": "Do Not Attempt Cardiopulmonary Resuscitation, agreed with resident/family and GP.",
-            "document_reference": f"DNACPR-{rng.randint(1000, 9999)}",
+            "directive_type": directive_type,
+            "summary": _DIRECTIVE_SUMMARIES[directive_type],
+            "document_reference": f"{directive_type.upper()}-{rng.randint(1000, 9999)}",
             "signed_by_clinician": "Dr. " + rng.choice(["Patel", "Osei", "Nowak", "Hughes"]),
             "review_due": date.today() + timedelta(days=180),
             "is_current": True,
         }
+        for directive_type in directive_types
     ]
 
 
@@ -480,12 +577,14 @@ def _build_medications(
 
 def _build_care_plans(
     rng: random.Random, care_home_id: uuid.UUID, resident_id: uuid.UUID, persona: Persona, recorded_by
-) -> tuple[list[dict], list[dict]]:
+) -> tuple[list[dict], list[dict], list[dict]]:
     domains = _domains_for_persona(rng, persona)
     plans = []
     versions = []
+    goals = []
     for domain in domains:
         plan_id = seeded_uuid(rng)
+        set_by = recorded_by()
         plans.append(
             {
                 "id": plan_id,
@@ -505,11 +604,77 @@ def _build_care_plans(
                 "care_plan_id": plan_id,
                 "version_number": 1,
                 "content": _CARE_PLAN_GOALS[domain],
-                "changed_by": recorded_by(),
+                "changed_by": set_by,
                 "change_reason": "Initial care plan on admission.",
             }
         )
-    return plans, versions
+        goal_fields = _goal_fields_for_domain(domain, persona)
+        goals.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": care_home_id,
+                "resident_id": resident_id,
+                "care_plan_id": plan_id,
+                "goal_text": _CARE_PLAN_GOALS[domain],
+                "baseline": goal_fields["baseline"],
+                "target": goal_fields["target"],
+                "measurement": goal_fields["measurement"],
+                "status": "in_progress",
+                "set_by": set_by,
+                "review_date": date.today() + timedelta(days=90),
+                "achieved_date": None,
+            }
+        )
+
+    # ~40% of residents also get a 'personal' aspiration plan/goal -- future-facing,
+    # person-centred, deliberately not one of the 11 clinical domains (migration
+    # 0020's care_plan_domain 'personal' value).
+    if rng.random() < 0.4:
+        aspiration = rng.choice(PERSONAL_ASPIRATIONS)
+        goal_text = f"I would like to {aspiration}."
+        plan_id = seeded_uuid(rng)
+        set_by = recorded_by()
+        plans.append(
+            {
+                "id": plan_id,
+                "care_home_id": care_home_id,
+                "resident_id": resident_id,
+                "domain": "personal",
+                "goal": goal_text,
+                "current_version": 1,
+                "review_due": date.today() + timedelta(days=90),
+                "is_active": True,
+            }
+        )
+        versions.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": care_home_id,
+                "care_plan_id": plan_id,
+                "version_number": 1,
+                "content": goal_text,
+                "changed_by": set_by,
+                "change_reason": "Recorded during person-centred planning discussion.",
+            }
+        )
+        goals.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": care_home_id,
+                "resident_id": resident_id,
+                "care_plan_id": plan_id,
+                "goal_text": goal_text,
+                "baseline": "Not currently doing this as often as they'd like.",
+                "target": f"Support {aspiration} on a regular, sustainable basis.",
+                "measurement": "Frequency of supported opportunities; resident-reported satisfaction.",
+                "status": "in_progress",
+                "set_by": set_by,
+                "review_date": date.today() + timedelta(days=90),
+                "achieved_date": None,
+            }
+        )
+
+    return plans, versions, goals
 
 
 def _build_family(

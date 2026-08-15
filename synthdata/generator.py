@@ -16,9 +16,17 @@ from datetime import date, timedelta
 from sqlalchemy import text, update
 
 from app.shared.security import generate_opaque_token
+from synthdata.ai_insights import build_prompt_versions, build_resident_ai_outputs
 from synthdata.daily_records import ResidentContext, ResidentDailyState, generate_daily_rows
-from synthdata.db import Schema, build_engine, insert_many, tenant_transaction
-from synthdata.home_setup import build_activity_occurrences, build_admin_user, build_care_home, build_staff_users
+from synthdata.db import Schema, build_engine, insert_many, insert_rows, tenant_transaction
+from synthdata.home_setup import (
+    build_activity_occurrences,
+    build_admin_user,
+    build_care_home,
+    build_floors,
+    build_staff_users,
+    build_user_floor_links,
+)
 from synthdata.ids import seeded_uuid
 from synthdata.keycloak_sync import create_admin_account
 from synthdata.personas import generate_persona
@@ -37,7 +45,7 @@ _SETUP_TABLE_ORDER = [
     "resident_preferences", "resident_daily_routines", "resident_allergies", "resident_diagnoses",
     "advance_care_directives", "communication_needs", "continence_care_plans", "nutrition_hydration_targets",
     "mobility_assessments", "skin_integrity_assessments", "medications", "care_plans", "care_plan_versions",
-    "user_resident_links",
+    "care_plan_goals", "user_resident_links",
 ]
 _DAILY_TABLE_ORDER = [
     "food_intake_records", "fluid_intake_records", "continence_records", "mobility_observations",
@@ -45,6 +53,10 @@ _DAILY_TABLE_ORDER = [
     "weight_records", "pain_assessments", "medication_events", "medication_stock_events", "falls_incidents",
     "incidents", "wound_records", "wound_review_notes", "nutrition_risk_assessments",
     "mental_health_assessments", "activity_participation", "visits_log",
+    "mobility_assessments", "skin_integrity_assessments", "appointments", "safeguarding_concerns",
+]
+_AI_TABLE_ORDER = [
+    "ai_generation_logs", "resident_ai_summaries", "resident_ai_reports", "resident_ai_alerts", "resident_predictions",
 ]
 
 
@@ -112,6 +124,33 @@ def generate(
     with tenant_transaction(engine, care_home_id, _SYSTEM_ACTOR) as conn:
         if create_care_home:
             insert_many(conn, schema, {"care_homes": [care_home]})
+            floors = build_floors(rng, care_home_id)
+            insert_many(conn, schema, {"floors": floors})
+        else:
+            floors = [
+                dict(row)
+                for row in conn.execute(
+                    text("SELECT id, floor_type FROM floors WHERE care_home_id = :chi"), {"chi": str(care_home_id)}
+                ).mappings()
+            ]
+        residential_floor_id = next(f["id"] for f in floors if f["floor_type"] == "residential")
+        dementia_floor_id = next(f["id"] for f in floors if f["floor_type"] == "dementia")
+
+        # ai_prompt_versions is system-wide reference data with no care_home_id
+        # (migration 0016) -- UNIQUE(report_type, version_label) means a rerun against
+        # a care home that already exists must not try to recreate rows another run
+        # (for this or any other care home) already inserted.
+        existing_prompt_versions = [
+            dict(row) for row in conn.execute(text("SELECT id, report_type, version_label FROM ai_prompt_versions")).mappings()
+        ]
+        existing_prompt_keys = {(r["report_type"], r["version_label"]) for r in existing_prompt_versions}
+        new_prompt_versions = [
+            pv for pv in build_prompt_versions(rng) if (pv["report_type"], pv["version_label"]) not in existing_prompt_keys
+        ]
+        insert_many(conn, schema, {"ai_prompt_versions": new_prompt_versions})
+        prompt_version_ids = {r["report_type"]: r["id"] for r in existing_prompt_versions} | {
+            pv["report_type"]: pv["id"] for pv in new_prompt_versions
+        }
 
         staff_users = build_staff_users(rng, care_home_id, staff_count)
         insert_many(conn, schema, {"users": staff_users})
@@ -135,6 +174,9 @@ def generate(
             )
         insert_many(conn, schema, {"users": [admin_user]})
 
+        user_floor_links = build_user_floor_links(rng, care_home_id, [*staff_users, admin_user], floors, manager_user_id)
+        insert_many(conn, schema, {"user_floor_links": user_floor_links})
+
         activity_occurrences = build_activity_occurrences(rng, care_home_id, window_start, days)
         insert_many(conn, schema, {"activities": activity_occurrences})
         activities_by_day: dict[date, list[dict]] = defaultdict(list)
@@ -148,8 +190,9 @@ def generate(
         for _ in range(residents):
             persona = generate_persona(rng, window_start=window_start)
             resident_id = seeded_uuid(rng)
+            floor_id = dementia_floor_id if persona.cognition == "advanced_dementia" else residential_floor_id
 
-            setup_rows["residents"].append(build_resident_row(persona, care_home_id, resident_id, rng))
+            setup_rows["residents"].append(build_resident_row(persona, care_home_id, resident_id, rng, floor_id=floor_id))
 
             resident_setup, medication_ids = build_resident_setup(
                 rng,
@@ -176,6 +219,8 @@ def generate(
                     contacts=resident_setup["resident_contacts"],
                     state=state,
                     trajectory_name=trajectory_name,
+                    care_plans=resident_setup["care_plans"],
+                    care_plan_goals=resident_setup["care_plan_goals"],
                 )
             )
 
@@ -195,6 +240,15 @@ def generate(
 
         insert_many(conn, schema, daily_rows)
         _apply_wound_updates(conn, schema, resident_contexts)
+        _apply_care_plan_goal_updates(conn, schema, resident_contexts, rng)
+
+        window_end = window_start + timedelta(days=days - 1)
+        ai_rows: dict[str, list[dict]] = {name: [] for name in _AI_TABLE_ORDER}
+        for ctx in resident_contexts:
+            ctx_ai_rows = build_resident_ai_outputs(rng, ctx, prompt_version_ids, window_start, window_end)
+            for table_name, rows in ctx_ai_rows.items():
+                ai_rows[table_name].extend(rows)
+        insert_many(conn, schema, ai_rows)
 
     return GenerateResult(
         care_home_id=care_home_id,
@@ -213,3 +267,65 @@ def _apply_wound_updates(conn, schema: Schema, resident_contexts: list[ResidentC
             conn.execute(
                 update(wound_records).where(wound_records.c.id == wound_id).values(**changes)
             )
+
+
+# care_plan_goals.status a resident's trajectory would plausibly drift to over the
+# window, keyed by trajectory_name. 'personal' (aspiration) goals aren't clinical, so
+# they're drawn from their own distribution below rather than this one.
+_GOAL_STATUS_DRIFT = {
+    "stable": ["maintained", "maintained", "in_progress"],
+    "gradual_decline": ["declining", "declining", "in_progress"],
+    "post_fall_recovery": ["improving", "achieved", "maintained"],
+    "uti_episode": ["maintained", "improving"],
+}
+_PERSONAL_GOAL_STATUS_DRIFT = ["in_progress", "improving", "improving", "achieved"]
+_VERSION_BUMP_REASONS = {
+    "declining": "Goal reviewed: limited progress since last review; plan continues with increased monitoring.",
+    "improving": "Goal reviewed: resident showing improvement; plan continues.",
+    "achieved": "Goal reviewed: outcome achieved.",
+}
+
+
+def _apply_care_plan_goal_updates(conn, schema: Schema, resident_contexts: list[ResidentContext], rng: random.Random) -> None:
+    """care_plan_goals (migration 0020) are seeded at 'in_progress' during setup --
+    this drifts each one to a status consistent with how its resident's trajectory
+    actually played out, and bumps the parent care_plans row to a new
+    care_plan_versions revision wherever that's a materially different status, so
+    care_plan_versions carries real revision history instead of only ever v1."""
+    care_plan_goals_table = schema["care_plan_goals"]
+    care_plans_table = schema["care_plans"]
+    new_version_rows: list[dict] = []
+
+    for ctx in resident_contexts:
+        plans_by_id = {plan["id"]: plan for plan in ctx.care_plans}
+        for goal in ctx.care_plan_goals:
+            plan = plans_by_id[goal["care_plan_id"]]
+            if plan["domain"] == "personal":
+                new_status = rng.choice(_PERSONAL_GOAL_STATUS_DRIFT)
+            else:
+                new_status = rng.choice(_GOAL_STATUS_DRIFT[ctx.trajectory_name])
+            if new_status == goal["status"]:
+                continue
+
+            changes: dict = {"status": new_status}
+            if new_status == "achieved":
+                changes["achieved_date"] = date.today()
+            conn.execute(update(care_plan_goals_table).where(care_plan_goals_table.c.id == goal["id"]).values(**changes))
+
+            reason = _VERSION_BUMP_REASONS.get(new_status)
+            if reason is None:
+                continue
+            conn.execute(update(care_plans_table).where(care_plans_table.c.id == plan["id"]).values(current_version=2))
+            new_version_rows.append(
+                {
+                    "id": seeded_uuid(rng),
+                    "care_home_id": ctx.care_home_id,
+                    "care_plan_id": plan["id"],
+                    "version_number": 2,
+                    "content": f"{plan['goal']} (Status: {new_status})",
+                    "changed_by": rng.choice(ctx.staff_user_ids),
+                    "change_reason": reason,
+                }
+            )
+
+    insert_rows(conn, schema["care_plan_versions"], new_version_rows)

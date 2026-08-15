@@ -21,6 +21,10 @@ class DailyBias:
     skin_risk_elevated: bool = False      # elevated chance of a wound / skin concern today
     sleep_disruption: bool = False        # more night wakings, poorer sleep quality
     continence_event_multiplier: float = 1.0
+    # 0..1, only meaningful for gradual_decline (its `progress`) -- periodic
+    # mobility/skin reassessments (daily_records.py) read this to drift scores
+    # upward over the window instead of reassessing at a flat baseline every time.
+    decline_severity: float = 0.0
 
 
 class Trajectory(abc.ABC):
@@ -45,6 +49,7 @@ class GradualDeclineTrajectory(Trajectory):
             mood="low" if progress > 0.6 else None,
             skin_risk_elevated=progress > 0.7 and rng.random() < 0.3,
             sleep_disruption=progress > 0.5 and rng.random() < 0.3,
+            decline_severity=progress,
         )
 
 

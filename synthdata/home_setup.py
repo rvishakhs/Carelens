@@ -41,6 +41,48 @@ def build_care_home(rng: random.Random, name: str) -> dict:
     }
 
 
+def build_floors(rng: random.Random, care_home_id: uuid.UUID) -> list[dict]:
+    """Every synthetic care home gets exactly two floors -- enough to exercise
+    floor-scoped RLS (migration 0013) without residents.floor_id staying NULL, which
+    is what made every prior run's residents invisible under floor-scoped policies."""
+    return [
+        {
+            "id": seeded_uuid(rng),
+            "care_home_id": care_home_id,
+            "name": "Ground Floor",
+            "floor_type": "residential",
+            "description": "General residential care.",
+            "is_active": True,
+        },
+        {
+            "id": seeded_uuid(rng),
+            "care_home_id": care_home_id,
+            "name": "First Floor",
+            "floor_type": "dementia",
+            "description": "Dementia-specialist care.",
+            "is_active": True,
+        },
+    ]
+
+
+def build_user_floor_links(rng: random.Random, care_home_id: uuid.UUID, staff_users: list[dict], floors: list[dict], granted_by: uuid.UUID) -> list[dict]:
+    """Every staff member is granted every floor -- a single synthetic care home has
+    no reason to restrict staff to one floor, and this is authorisation (which floors
+    a user may EVER see), not the session-level floor selection RLS actually filters
+    on (see migration 0013's docstring)."""
+    return [
+        {
+            "id": seeded_uuid(rng),
+            "care_home_id": care_home_id,
+            "user_id": staff["id"],
+            "floor_id": floor["id"],
+            "granted_by": granted_by,
+        }
+        for staff in staff_users
+        for floor in floors
+    ]
+
+
 def build_staff_users(rng: random.Random, care_home_id: uuid.UUID, count: int) -> list[dict]:
     roles = list(STAFF_ROLE_WEIGHTS.keys())
     weights = list(STAFF_ROLE_WEIGHTS.values())

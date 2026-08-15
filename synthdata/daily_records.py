@@ -15,7 +15,7 @@ from datetime import UTC, date, datetime, time, timedelta
 
 from synthdata.ids import seeded_uuid
 from synthdata.notes import generate_note
-from synthdata.personas import Persona
+from synthdata.personas import MOBILITY_LEVELS, Persona
 from synthdata.trajectories import DailyBias
 
 _MEAL_TIMES: list[tuple[str, time]] = [
@@ -25,7 +25,8 @@ _MEAL_TIMES: list[tuple[str, time]] = [
 ]
 _FLUID_ROUND_TIMES = [time(10, 0), time(13, 0), time(15, 30), time(19, 0)]
 _BOWEL_TYPES = ["type_1", "type_2", "type_3", "type_4", "type_5", "type_6", "type_7"]
-_BEHAVIOUR_TYPES = ["verbal_aggression", "wandering", "resistiveness_to_care", "repetitive_vocalisation", "other"]
+_BEHAVIOUR_TYPES = ["verbal_aggression", "wandering", "resistiveness_to_care", "repetitive_vocalisation", "physical_aggression", "other"]
+_BEHAVIOUR_TYPE_WEIGHTS = [0.3, 0.25, 0.2, 0.1, 0.05, 0.1]
 _WOUND_LOCATIONS = ["sacrum", "left heel", "right heel", "left elbow", "coccyx"]
 
 
@@ -44,6 +45,9 @@ class ResidentDailyState:
     last_mental_health_day: int = -100
     last_stock_delivery_day: int = -100
     last_skin_assessment_day: int = -100
+    last_mobility_assessment_day: int = -100
+    last_gp_review_day: int = -100
+    safeguarding_generated: bool = False
     # wound_id -> latest {"status": ..., "healed_date": date|None} -- applied as an
     # UPDATE against wound_records at the end of the run, since wound_records.status
     # must reflect the *current* status, not just what it was at creation.
@@ -61,6 +65,8 @@ class ResidentContext:
     contacts: list[dict]               # this resident's `resident_contacts` rows
     state: ResidentDailyState
     trajectory_name: str = "stable"
+    care_plans: list[dict] = dataclasses.field(default_factory=list)       # this resident's `care_plans` rows
+    care_plan_goals: list[dict] = dataclasses.field(default_factory=list)  # this resident's `care_plan_goals` rows
 
 
 def _at(day: date, t: time) -> datetime:
@@ -82,6 +88,7 @@ def generate_daily_rows(
         "weight_records", "pain_assessments", "medication_events", "medication_stock_events", "falls_incidents",
         "incidents", "wound_records", "wound_review_notes", "nutrition_risk_assessments",
         "mental_health_assessments", "activity_participation", "visits_log",
+        "mobility_assessments", "skin_integrity_assessments", "appointments", "safeguarding_concerns",
     )}
 
     recorded_by = lambda: rng.choice(ctx.staff_user_ids)  # noqa: E731
@@ -91,7 +98,9 @@ def generate_daily_rows(
     rows["continence_records"] += _continence(rng, ctx, day, bias, recorded_by)
     rows["mobility_observations"] += _mobility_observation(rng, ctx, day, recorded_by)
     rows["wellbeing_records"] += _wellbeing(rng, ctx, day, bias, recorded_by)
-    rows["behaviour_records"] += _behaviour(rng, ctx, day, bias, recorded_by)
+    behaviour_rows = _behaviour(rng, ctx, day, bias, recorded_by)
+    rows["behaviour_records"] += behaviour_rows["behaviour_records"]
+    rows["incidents"] += behaviour_rows["incidents"]
     rows["communication_logs"] += _communication_log(rng, ctx, day, bias, recorded_by)
     rows["sleep_records"] += _sleep(rng, ctx, day, bias, recorded_by)
     rows["pain_assessments"] += _pain(rng, ctx, day, bias, recorded_by)
@@ -103,9 +112,15 @@ def generate_daily_rows(
     rows["falls_incidents"] += fall_rows["falls_incidents"]
     rows["incidents"] += fall_rows["incidents"]
 
+    rows["appointments"] += _appointments(rng, ctx, day, day_index, bias, recorded_by, fall_rows)
+
     wound_rows = _wounds(rng, ctx, day, day_index, bias, recorded_by)
     rows["wound_records"] += wound_rows["wound_records"]
     rows["wound_review_notes"] += wound_rows["wound_review_notes"]
+
+    extra_rows = _safeguarding_and_rare_incidents(rng, ctx, day, bias, recorded_by)
+    rows["incidents"] += extra_rows["incidents"]
+    rows["safeguarding_concerns"] += extra_rows["safeguarding_concerns"]
 
     # Periodic domains -- not every day.
     if day_index - ctx.state.last_vitals_day >= 7 or bias.fall_today or bias.confusion_spike:
@@ -127,6 +142,18 @@ def generate_daily_rows(
     if day_index - ctx.state.last_stock_delivery_day >= 28:
         rows["medication_stock_events"] += _stock_deliveries(rng, ctx, day, recorded_by)
         ctx.state.last_stock_delivery_day = day_index
+
+    if day_index - ctx.state.last_mobility_assessment_day >= 90:
+        rows["mobility_assessments"] += _mobility_reassessment(rng, ctx, day, bias, recorded_by)
+        ctx.state.last_mobility_assessment_day = day_index
+
+    if day_index - ctx.state.last_skin_assessment_day >= 30:
+        rows["skin_integrity_assessments"] += _skin_reassessment(rng, ctx, day, bias, recorded_by)
+        ctx.state.last_skin_assessment_day = day_index
+
+    if day_index - ctx.state.last_gp_review_day >= 90:
+        rows["appointments"] += _gp_review(rng, ctx, day, recorded_by)
+        ctx.state.last_gp_review_day = day_index
 
     return rows
 
@@ -298,20 +325,22 @@ def _wellbeing(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> 
     ]
 
 
-def _behaviour(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> list[dict]:
+def _behaviour(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> dict[str, list[dict]]:
     persona = ctx.persona
     if persona.cognition == "intact":
-        return []
+        return {"behaviour_records": [], "incidents": []}
     trigger = bias.confusion_spike or bias.mood in ("agitated", "distressed") or rng.random() < 0.05
     if not trigger:
-        return []
-    behaviour_type = rng.choice(_BEHAVIOUR_TYPES)
-    return [
+        return {"behaviour_records": [], "incidents": []}
+    behaviour_type = rng.choices(_BEHAVIOUR_TYPES, weights=_BEHAVIOUR_TYPE_WEIGHTS)[0]
+    harm = rng.random() < (0.4 if behaviour_type == "physical_aggression" else 0.05)
+    occurred_at = _at(day, time(rng.randint(14, 22), rng.choice([0, 30])))
+    behaviour_records = [
         {
             "id": seeded_uuid(rng),
             "care_home_id": ctx.care_home_id,
             "resident_id": ctx.resident_id,
-            "occurred_at": _at(day, time(rng.randint(14, 22), rng.choice([0, 30]))),
+            "occurred_at": occurred_at,
             "recorded_by": recorded_by(),
             "behaviour_type": behaviour_type,
             "antecedent": rng.choice(["Asked to move to another room", "Personal care attempted", "Unclear trigger", "Noise from another resident"]),
@@ -320,9 +349,32 @@ def _behaviour(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> 
             "duration_minutes": rng.randint(2, 30),
             "triggers_suspected": "Possible UTI or discomfort" if bias.confusion_spike else None,
             "de_escalation_used": "Verbal reassurance, distraction technique",
-            "harm_to_self_or_others": rng.random() < 0.05,
+            "harm_to_self_or_others": harm,
         }
     ]
+    # A physical_aggression episode with harm gets its own incident row too --
+    # behaviour_records is the clinical/ABC record, incidents is the reportable event.
+    incidents = []
+    if behaviour_type == "physical_aggression" and harm:
+        incidents.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "incident_type": "behavioural",
+                "occurred_at": occurred_at,
+                "location": rng.choice(["bedroom", "lounge", "dining room", "corridor"]),
+                "description": behaviour_records[0]["behaviour_description"],
+                "immediate_action": behaviour_records[0]["consequence"],
+                "reported_by": recorded_by(),
+                "riddor_reportable": False,
+                "cqc_notifiable": False,
+                "family_informed": rng.random() < 0.6,
+                "investigation_status": "closed",
+                "investigation_outcome": "Behaviour support plan reviewed with the team.",
+            }
+        )
+    return {"behaviour_records": behaviour_records, "incidents": incidents}
 
 
 _COMMUNICATION_SUMMARIES = [
@@ -680,6 +732,277 @@ def _mental_health(rng, ctx: ResidentContext, day, recorded_by) -> list[dict]:
             "next_review_due": day + timedelta(days=90),
         }
     ]
+
+
+_SKIN_RISK_LEVELS = ["low", "medium", "high", "very_high"]
+
+
+def _mobility_reassessment(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> list[dict]:
+    """Unlike the setup-time assessment (setup_records.py, admission only), this
+    reruns every 90 days over the window -- a gradual_decline trajectory nudges the
+    level and falls-risk score worse over time, giving Phase 2's change-detection
+    something real to detect instead of a single static baseline row per resident."""
+    persona = ctx.persona
+    level_index = MOBILITY_LEVELS.index(persona.mobility_level)
+    declined = bias.decline_severity > 0.5 and rng.random() < bias.decline_severity * 0.4
+    if declined:
+        level_index = min(level_index + 1, len(MOBILITY_LEVELS) - 1)
+    current_level = MOBILITY_LEVELS[level_index]
+    aids = {
+        "independent": [],
+        "requires_supervision": ["walking_stick"],
+        "requires_one_assist": ["zimmer_frame"],
+        "requires_two_assist": ["zimmer_frame", "wheelchair"],
+        "hoist_dependent": ["wheelchair", "hoist"],
+        "bed_bound": ["hoist"],
+    }[current_level]
+    risk_score = min(30, persona.falls_risk_baseline + round(bias.decline_severity * 8))
+    risk_level = {0: "low", 1: "low", 2: "medium", 3: "medium", 4: "high", 5: "very_high"}[min(risk_score // 5, 5)]
+    return [
+        {
+            "id": seeded_uuid(rng),
+            "care_home_id": ctx.care_home_id,
+            "resident_id": ctx.resident_id,
+            "mobility_level": current_level,
+            "aids_used": aids,
+            "transfer_method": "Standing hoist" if "hoist" in aids else None,
+            "falls_risk_score": risk_score,
+            "falls_risk_level": risk_level,
+            "assessed_by": recorded_by(),
+            "assessed_at": _at(day, time(9, 0)),
+            "next_review_due": day + timedelta(days=90),
+            "notes": "Reassessment shows some decline in mobility since last review." if declined else None,
+        }
+    ]
+
+
+def _skin_reassessment(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> list[dict]:
+    """Reruns every 30 days over the window -- same rationale as _mobility_reassessment
+    above. skin_risk_elevated (any trajectory) or sustained decline can push the
+    Waterlow risk level up a band; there's no equivalent recovery path modelled since
+    pressure risk doesn't self-resolve the way mood/appetite do."""
+    persona = ctx.persona
+    level_index = _SKIN_RISK_LEVELS.index(persona.skin_risk_baseline)
+    if bias.skin_risk_elevated or (bias.decline_severity > 0.5 and rng.random() < bias.decline_severity * 0.3):
+        level_index = min(level_index + 1, len(_SKIN_RISK_LEVELS) - 1)
+    current_level = _SKIN_RISK_LEVELS[level_index]
+    score_by_level = {"low": rng.randint(5, 9), "medium": rng.randint(10, 14), "high": rng.randint(15, 19), "very_high": rng.randint(20, 25)}
+    areas = ["sacrum", "heels"] if persona.mobility_level in ("hoist_dependent", "bed_bound") else ["heels"]
+    return [
+        {
+            "id": seeded_uuid(rng),
+            "care_home_id": ctx.care_home_id,
+            "resident_id": ctx.resident_id,
+            "assessment_tool": "Waterlow",
+            "total_score": score_by_level[current_level],
+            "risk_level": current_level,
+            "pressure_areas_checked": areas,
+            "equipment_in_use": "Pressure-relieving mattress" if current_level in ("high", "very_high") else None,
+            "reposition_frequency": "Every 2 hours" if current_level in ("high", "very_high") else None,
+            "assessed_by": recorded_by(),
+            "assessed_at": _at(day, time(9, 30)),
+            "next_review_due": day + timedelta(days=30),
+        }
+    ]
+
+
+# --- Appointments ------------------------------------------------------------------------------
+
+_GP_REVIEW_OUTCOMES = [
+    "No changes to current management plan.",
+    "Medication review completed; dosage of one medication adjusted.",
+    "Routine bloods requested.",
+    "Referral to physiotherapy for mobility review.",
+]
+_PHYSIO_OUTCOMES = [
+    "Continues to make steady progress with current exercise plan.",
+    "Some improvement in transfer confidence noted.",
+    "No change; plan to continue current programme.",
+    "Slight decline noted; exercise plan to be reviewed.",
+]
+_HOSPITAL_FALL_OUTCOMES = [
+    "Assessed, no fracture found. Discharged same day with advice.",
+    "X-ray showed no acute fracture. Discharged with analgesia.",
+    "Admitted for observation overnight, discharged the following day.",
+]
+
+
+def _gp_review(rng, ctx: ResidentContext, day, recorded_by) -> list[dict]:
+    return [
+        {
+            "id": seeded_uuid(rng),
+            "care_home_id": ctx.care_home_id,
+            "resident_id": ctx.resident_id,
+            "appointment_type": "gp",
+            "scheduled_at": _at(day, time(rng.randint(9, 16), 0)),
+            "provider_name": "Visiting GP",
+            "location": "Care home - consultation room",
+            "reason": "Routine medication and health review.",
+            "status": "completed",
+            "outcome": rng.choice(_GP_REVIEW_OUTCOMES),
+            "transport_required": False,
+            "escort_required": False,
+            "family_informed": rng.random() < 0.2,
+            "recorded_by": recorded_by(),
+            "notes": None,
+        }
+    ]
+
+
+def _appointments(rng, ctx: ResidentContext, day, day_index, bias: DailyBias, recorded_by, fall_rows: dict[str, list[dict]]) -> list[dict]:
+    rows = []
+
+    falls = fall_rows.get("falls_incidents", [])
+    if falls and falls[0]["severity"] == "moderate_injury":
+        rows.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "appointment_type": "hospital",
+                "scheduled_at": falls[0]["occurred_at"],
+                "provider_name": "Accident & Emergency",
+                "location": "General Hospital",
+                "reason": "Assessment following a fall with suspected injury.",
+                "status": "completed",
+                "outcome": rng.choice(_HOSPITAL_FALL_OUTCOMES),
+                "transport_required": True,
+                "escort_required": True,
+                "family_informed": True,
+                "recorded_by": recorded_by(),
+                "notes": None,
+            }
+        )
+
+    # Monthly physio for residents needing mobility support -- spread across the
+    # month via a per-resident offset so they don't all land on the same day.
+    if ctx.persona.mobility_level in ("requires_supervision", "requires_one_assist", "requires_two_assist") and (
+        day_index % 30 == ctx.resident_id.int % 30
+    ):
+        rows.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "appointment_type": "physiotherapy",
+                "scheduled_at": _at(day, time(rng.randint(10, 15), 0)),
+                "provider_name": "Community Physiotherapy Team",
+                "location": "Care home - activity room",
+                "reason": "Ongoing mobility and strength maintenance programme.",
+                "status": "completed",
+                "outcome": rng.choice(_PHYSIO_OUTCOMES),
+                "transport_required": False,
+                "escort_required": False,
+                "family_informed": False,
+                "recorded_by": recorded_by(),
+                "notes": None,
+            }
+        )
+
+    if rng.random() < 0.002:
+        appointment_type = rng.choice(["dentist", "optician", "chiropody"])
+        rows.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "appointment_type": appointment_type,
+                "scheduled_at": _at(day, time(rng.randint(9, 16), 0)),
+                "provider_name": f"Visiting {appointment_type}",
+                "location": "Care home - consultation room",
+                "reason": "Routine check-up.",
+                "status": "completed",
+                "outcome": "Routine check, no concerns identified.",
+                "transport_required": False,
+                "escort_required": False,
+                "family_informed": False,
+                "recorded_by": recorded_by(),
+                "notes": None,
+            }
+        )
+
+    return rows
+
+
+# --- Safeguarding & rare incidents --------------------------------------------------------------
+
+_SAFEGUARDING_DESCRIPTIONS = {
+    "physical_abuse": "Unexplained bruising noted during personal care; safeguarding referral made as a precaution.",
+    "neglect": "Concern raised that the call bell was not answered promptly on several occasions.",
+    "psychological_abuse": "Family raised a concern about a staff member's tone during a handover conversation.",
+    "self_neglect": "Resident observed declining personal care support over several days; capacity and wellbeing reviewed.",
+    "financial_abuse": "Family raised concern about missing personal funds; reviewed with the home manager and finance records checked.",
+}
+
+
+def _safeguarding_and_rare_incidents(rng, ctx: ResidentContext, day, bias: DailyBias, recorded_by) -> dict[str, list[dict]]:
+    incidents: list[dict] = []
+    safeguarding_concerns: list[dict] = []
+
+    if rng.random() < 0.003:
+        incidents.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "incident_type": "near_miss",
+                "occurred_at": _at(day, time(rng.randint(7, 22), 0)),
+                "location": rng.choice(["bedroom", "bathroom", "corridor", "lounge"]),
+                "description": "Found resident attempting to stand unaided; intervened before a fall occurred.",
+                "immediate_action": "Resident reseated safely, mobility aid provided, increased checks arranged.",
+                "reported_by": recorded_by(),
+                "riddor_reportable": False,
+                "cqc_notifiable": False,
+                "family_informed": False,
+                "investigation_status": "closed",
+                "investigation_outcome": None,
+            }
+        )
+
+    if rng.random() < 0.001:
+        incidents.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "incident_type": "medication_error",
+                "occurred_at": _at(day, time(rng.randint(7, 22), 0)),
+                "location": "Resident's room",
+                "description": "Medication given approximately 30 minutes outside the scheduled window due to shift changeover.",
+                "immediate_action": "Resident monitored, no adverse effect noted. GP and pharmacist informed.",
+                "reported_by": recorded_by(),
+                "riddor_reportable": False,
+                "cqc_notifiable": False,
+                "family_informed": rng.random() < 0.5,
+                "investigation_status": "closed",
+                "investigation_outcome": "No harm caused; medication administration process reviewed with staff.",
+            }
+        )
+
+    if not ctx.state.safeguarding_generated and rng.random() < 0.0015:
+        ctx.state.safeguarding_generated = True
+        category = rng.choice(list(_SAFEGUARDING_DESCRIPTIONS.keys()))
+        safeguarding_concerns.append(
+            {
+                "id": seeded_uuid(rng),
+                "care_home_id": ctx.care_home_id,
+                "resident_id": ctx.resident_id,
+                "incident_id": None,
+                "category": category,
+                "description": _SAFEGUARDING_DESCRIPTIONS[category],
+                "raised_by": recorded_by(),
+                "local_authority_notified": category in ("physical_abuse", "financial_abuse"),
+                "notified_at": _at(day, time(15, 0)) if category in ("physical_abuse", "financial_abuse") else None,
+                "status": "closed",
+                "outcome": (
+                    "Concern investigated; no further action required."
+                    if rng.random() < 0.6
+                    else "Care plan updated; increased monitoring in place."
+                ),
+            }
+        )
+
+    return {"incidents": incidents, "safeguarding_concerns": safeguarding_concerns}
 
 
 # --- Activities & visits -----------------------------------------------------------------------

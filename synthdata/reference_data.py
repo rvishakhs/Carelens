@@ -134,3 +134,61 @@ ACTIVITY_CALENDAR = [
     ("Movie afternoon", "social"),
     ("Reminiscence group", "cognitive"),
 ]
+
+# resident_life_history's narrative fields -- kept as generic templates (not tied to
+# any one persona attribute) since the point is texture for the AI layer to read, not
+# another dimension to correlate with clinical data.
+FAMILY_BACKGROUND_SNIPPETS = [
+    "Grew up one of four siblings in a close-knit family; two siblings are still living.",
+    "Only child; described their childhood home as quiet but happy.",
+    "Eldest of six children, took on a lot of caring responsibility for younger siblings early on.",
+    "Married for over 40 years before being widowed; speaks fondly of their late spouse.",
+    "Raised three children, all of whom remain in regular contact.",
+    "Comes from a large extended family that still gathers every Christmas.",
+    "Divorced in their 40s; closest relationship now is with a sibling rather than former in-laws.",
+    "Never married; describes a close circle of lifelong friends as their real family.",
+]
+SIGNIFICANT_EVENTS_SNIPPETS = [
+    "Emigrated to the UK in their twenties and built a life here from scratch.",
+    "Lived through the Blitz as a child; rarely discusses it but it shaped a lifelong dislike of loud noises.",
+    "Lost a child in infancy; family have asked staff to be sensitive if this comes up.",
+    "Took early retirement to care for a spouse with a long-term illness.",
+    "Ran a small business for over 20 years before retiring.",
+    "Moved house eleven times for a partner's career before finally settling in this area.",
+    "Survived a serious illness in their 50s that family say changed their outlook on life.",
+    "Was a keen amateur sportsperson in their youth and still follows the sport closely.",
+]
+IMPORTANT_RELATIONSHIPS_SNIPPETS = [
+    "Very close to a daughter who visits weekly and manages most day-to-day decisions.",
+    "A son lives abroad but calls every Sunday without fail.",
+    "A niece who was more like a daughter growing up remains the primary family contact.",
+    "Closest relationship is with a lifelong friend from school who still visits regularly.",
+    "Family relationships are somewhat distant; a paid companion previously provided most social contact.",
+    "Grandchildren visit often and their photos are prominently displayed in the room.",
+    "A former neighbour of many years still calls in for tea most weeks.",
+]
+CULTURAL_BACKGROUNDS = [
+    "British", "Irish", "Afro-Caribbean", "South Asian (Indian)", "South Asian (Pakistani)",
+    "Polish", "Welsh", "Scottish", "Jewish", "Chinese", "Nigerian", "Italian",
+]
+
+# resident_preferences-style items generated for care_plans in the new 'personal'
+# domain (migration 0020) -- future/aspirational goals, distinct from the 11 clinical
+# domains, matching the "what matters to me / what would I like to keep doing" strand
+# of person-centred planning.
+PERSONAL_ASPIRATIONS = [
+    "see grandchildren more often",
+    "get back into tending the garden",
+    "attend church services again",
+    "regain confidence walking to the lounge unaided",
+    "continue painting watercolours",
+    "have more one-to-one time with a favourite carer",
+    "listen to more live music",
+    "go on a supported outing into town",
+    "keep up correspondence with old friends by letter",
+    "spend more time outdoors when the weather allows",
+]
+
+# advance_care_directives.directive_type variety (migration 0004) -- previously only
+# DNACPR was ever generated.
+DIRECTIVE_TYPES = ["DNACPR", "ReSPECT", "advance_decision", "ceiling_of_care"]
