@@ -1,7 +1,7 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 
-import type { CareStatus, GoalStatus } from "@/types";
+import type { GoalStatus, ResidentStatus } from "@/types";
 
 type Tone = "rose" | "amber" | "emerald" | "slate" | "indigo" | "sky";
 
@@ -30,36 +30,47 @@ export function Pill({
   );
 }
 
-const careStatusTone: Record<CareStatus, Tone> = {
-  good: "emerald",
-  attention: "amber",
-  high_risk: "rose",
+const residentStatusTone: Record<ResidentStatus, Tone> = {
+  active: "emerald",
+  hospitalized: "amber",
+  discharged: "slate",
+  archived: "slate",
 };
 
-const careStatusLabel: Record<CareStatus, string> = {
-  good: "Good",
-  attention: "Attention",
-  high_risk: "High Risk",
+const residentStatusLabel: Record<ResidentStatus, string> = {
+  active: "Active",
+  hospitalized: "Hospitalized",
+  discharged: "Discharged",
+  archived: "Archived",
 };
 
-export function StatusPill({ status, className }: { status: CareStatus; className?: string }) {
+export function StatusPill({ status, className }: { status: ResidentStatus; className?: string }) {
   return (
-    <Pill tone={careStatusTone[status]} className={className}>
-      {careStatusLabel[status]}
+    <Pill tone={residentStatusTone[status]} className={className}>
+      {residentStatusLabel[status]}
     </Pill>
   );
 }
 
+// Mirrors care_plan_goals.status (migration 0020's care_plan_goal_status enum).
 const goalStatusTone: Record<GoalStatus, Tone> = {
-  on_track: "emerald",
-  at_risk: "amber",
-  off_track: "rose",
+  not_started: "slate",
+  in_progress: "sky",
+  improving: "emerald",
+  maintained: "emerald",
+  declining: "amber",
+  achieved: "indigo",
+  discontinued: "slate",
 };
 
 const goalStatusLabel: Record<GoalStatus, string> = {
-  on_track: "On Track",
-  at_risk: "At Risk",
-  off_track: "Off Track",
+  not_started: "Not Started",
+  in_progress: "In Progress",
+  improving: "Improving",
+  maintained: "Maintained",
+  declining: "Declining",
+  achieved: "Achieved",
+  discontinued: "Discontinued",
 };
 
 export function GoalStatusPill({ status, className }: { status: GoalStatus; className?: string }) {

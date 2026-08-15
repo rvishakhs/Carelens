@@ -1,23 +1,40 @@
 /**
- * Static sample data so every screen renders realistically without a backend.
- * Replaced by real API calls once Keycloak auth + Postgres loading land (next phase).
+ * Static sample data for the screens not yet wired to the backend (Dashboard,
+ * AI Insights, Calendar, Reports, Care Records, Staff roster shift display). Residents,
+ * Medications and Care Plans are real (see @/lib/api / @/lib/residents) -- the mock
+ * resident shape here is deliberately its own type (`MockResident`), not the real
+ * `Resident` from @/types, since it carries fields (name/room/dob/avatarColor/...)
+ * the backend doesn't return.
  */
 import type {
   ActivityItem,
   AttentionResident,
   CalendarEvent,
-  CarePlanGoal,
-  CareRecordDay,
   KeyMetric,
-  Medication,
   ReportItem,
-  Resident,
   StaffMember,
 } from "@/types";
 
 export const CARE_HOMES = ["Green Meadows Care Home", "Riverside Lodge", "Oakfield House"];
 
-export const RESIDENTS: Resident[] = [
+interface MockResident {
+  id: string;
+  name: string;
+  room: string;
+  age: number;
+  dob: string;
+  gender: "Male" | "Female";
+  careStatus: "good" | "attention" | "high_risk";
+  primaryNeeds: string[];
+  lastActivity: string;
+  initials: string;
+  avatarColor: string;
+  flags?: { dnr?: boolean; allergies?: boolean; diabetic?: boolean };
+  primaryNurse?: string;
+  unit: string;
+}
+
+export const MOCK_RESIDENTS: MockResident[] = [
   {
     id: "r1",
     name: "Margaret Smith",
@@ -156,21 +173,21 @@ export const RECENT_ACTIVITY: ActivityItem[] = [
   { id: "a3", title: "Emma Davis", meta: "Added note for Patricia Williams", time: "45 min ago", icon: "sticky-note" },
 ];
 
-export const RESIDENT_ACTIVITY: ActivityItem[] = [
-  { id: "ra1", title: "Breakfast", meta: "Completed • 8:15 AM", time: "8:15 AM", icon: "utensils" },
-  { id: "ra2", title: "Medication", meta: "Given • 9:00 AM", time: "9:00 AM", icon: "pill" },
-  { id: "ra3", title: "Physiotherapy", meta: "Session • 10:00 AM", time: "10:00 AM", icon: "activity" },
-  { id: "ra4", title: "Bingo Activity", meta: "Participated • 2:00 PM", time: "2:00 PM", icon: "sparkles" },
-];
+interface MockCareRecordEntry {
+  id: string;
+  residentId: string;
+  time: string;
+  title: string;
+  category: string;
+  staff: string;
+}
 
-export const CARE_PLAN_GOALS: CarePlanGoal[] = [
-  { id: "g1", title: "Maintain nutrition", description: "Goal: Good intake at all meals", status: "on_track" },
-  { id: "g2", title: "Improve mobility", description: "Goal: Walk 20 mins daily", status: "on_track" },
-  { id: "g3", title: "Skin integrity", description: "Goal: No pressure damage", status: "at_risk" },
-  { id: "g4", title: "Hydration", description: "Goal: 1500ml fluid per day", status: "on_track" },
-];
+interface MockCareRecordDay {
+  date: string;
+  entries: MockCareRecordEntry[];
+}
 
-export const CARE_RECORDS: CareRecordDay[] = [
+export const CARE_RECORDS: MockCareRecordDay[] = [
   {
     date: "Tuesday, 9 July 2024",
     entries: [
@@ -231,17 +248,6 @@ export const STAFF: StaffMember[] = [
   { id: "s3", name: "Emma Davis", role: "Care Assistant", status: "on_duty", shift: "7:00 AM – 3:00 PM", initials: "ED", avatarColor: "bg-amber-200 text-amber-900" },
   { id: "s4", name: "Priya Patel", role: "Registered Nurse", status: "off_duty", shift: "Night shift", initials: "PP", avatarColor: "bg-violet-200 text-violet-900" },
   { id: "s5", name: "Tom Wright", role: "Physiotherapist", status: "on_duty", shift: "9:00 AM – 5:00 PM", initials: "TW", avatarColor: "bg-emerald-200 text-emerald-900" },
-];
-
-export const MEDICATIONS: Medication[] = [
-  { id: "m1", residentId: "r1", name: "Metformin", dosage: "500mg", time: "8:00 AM", status: "given" },
-  { id: "m2", residentId: "r1", name: "Atorvastatin", dosage: "20mg", time: "8:00 PM", status: "due" },
-  { id: "m3", residentId: "r2", name: "Sertraline", dosage: "50mg", time: "9:00 AM", status: "missed" },
-  { id: "m4", residentId: "r3", name: "Amlodipine", dosage: "5mg", time: "9:00 AM", status: "given" },
-  { id: "m5", residentId: "r4", name: "Insulin Glargine", dosage: "12 units", time: "7:30 AM", status: "given" },
-  { id: "m6", residentId: "r5", name: "Paracetamol", dosage: "1g", time: "12:00 PM", status: "due" },
-  { id: "m7", residentId: "r6", name: "Furosemide", dosage: "40mg", time: "8:00 AM", status: "given" },
-  { id: "m8", residentId: "r8", name: "Lisinopril", dosage: "10mg", time: "8:00 AM", status: "due" },
 ];
 
 export const CALENDAR_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];

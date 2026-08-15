@@ -6,13 +6,23 @@ from fastapi import APIRouter, Depends, Request
 from app.modules.identity.dependencies import get_current_user, get_floor_scope
 from app.modules.identity.permissions import Permission, require
 from app.modules.identity.schemas import CurrentUser
+from app.modules.residents.detail_repository import ResidentDetailRepository
 from app.modules.residents.repository import ResidentRepository
-from app.modules.residents.schemas import ResidentCreate, ResidentRead
+from app.modules.residents.schemas import (
+    ActivityEntry,
+    CarePlanRead,
+    CareRecordEntry,
+    ResidentCreate,
+    ResidentListItem,
+    ResidentOverview,
+    ResidentRead,
+)
 from app.modules.residents.service import ResidentService
 from app.shared.database import rls_session
 from app.shared.exceptions import NotFoundError
 
 router = APIRouter(prefix="/residents", tags=["residents"])
+care_plans_router = APIRouter(prefix="/care-plans", tags=["residents"])
 
 
 async def get_resident_repository(
@@ -37,6 +47,14 @@ async def get_resident_repository_scoped(
         yield ResidentRepository(session)
 
 
+async def get_resident_detail_repository(
+    current_user: CurrentUser = Depends(get_current_user),
+    floor_ids: list[uuid.UUID] = Depends(get_floor_scope),
+) -> AsyncIterator[ResidentDetailRepository]:
+    async with rls_session(current_user.care_home_id, current_user.id, floor_ids) as session:
+        yield ResidentDetailRepository(session)
+
+
 def get_resident_service(
     request: Request, repository: ResidentRepository = Depends(get_resident_repository)
 ) -> ResidentService:
@@ -53,13 +71,12 @@ async def create_resident(
     return ResidentRead.model_validate(resident)
 
 
-@router.get("", response_model=list[ResidentRead])
+@router.get("", response_model=list[ResidentListItem])
 async def list_residents(
     _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
-    repository: ResidentRepository = Depends(get_resident_repository_scoped),
-) -> list[ResidentRead]:
-    residents = await repository.list_active()
-    return [ResidentRead.model_validate(r) for r in residents]
+    repository: ResidentDetailRepository = Depends(get_resident_detail_repository),
+) -> list[ResidentListItem]:
+    return await repository.list_with_summary()
 
 
 @router.get("/{resident_id}", response_model=ResidentRead)
@@ -72,3 +89,50 @@ async def get_resident(
     if resident is None:
         raise NotFoundError(f"resident {resident_id} not found")
     return ResidentRead.model_validate(resident)
+
+
+@router.get("/{resident_id}/overview", response_model=ResidentOverview)
+async def get_resident_overview(
+    resident_id: uuid.UUID,
+    _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
+    repository: ResidentDetailRepository = Depends(get_resident_detail_repository),
+) -> ResidentOverview:
+    overview = await repository.get_overview(resident_id)
+    if overview is None:
+        raise NotFoundError(f"resident {resident_id} not found")
+    return overview
+
+
+@router.get("/{resident_id}/care-plan", response_model=list[CarePlanRead])
+async def get_resident_care_plan(
+    resident_id: uuid.UUID,
+    _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
+    repository: ResidentDetailRepository = Depends(get_resident_detail_repository),
+) -> list[CarePlanRead]:
+    return await repository.get_care_plan(resident_id)
+
+
+@router.get("/{resident_id}/care-records", response_model=list[CareRecordEntry])
+async def get_resident_care_records(
+    resident_id: uuid.UUID,
+    _: CurrentUser = Depends(require(Permission.VIEW_OBSERVATION)),
+    repository: ResidentDetailRepository = Depends(get_resident_detail_repository),
+) -> list[CareRecordEntry]:
+    return await repository.get_care_records(resident_id)
+
+
+@router.get("/{resident_id}/activity", response_model=list[ActivityEntry])
+async def get_resident_activity(
+    resident_id: uuid.UUID,
+    _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
+    repository: ResidentDetailRepository = Depends(get_resident_detail_repository),
+) -> list[ActivityEntry]:
+    return await repository.get_activity(resident_id)
+
+
+@care_plans_router.get("", response_model=list[CarePlanRead])
+async def list_all_care_plans(
+    _: CurrentUser = Depends(require(Permission.VIEW_RESIDENT)),
+    repository: ResidentDetailRepository = Depends(get_resident_detail_repository),
+) -> list[CarePlanRead]:
+    return await repository.list_active_care_plans()

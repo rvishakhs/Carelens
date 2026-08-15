@@ -9,12 +9,12 @@ import {
   ATTENTION_RESIDENTS,
   CARE_OVERVIEW_BREAKDOWN,
   DASHBOARD_STATS,
+  MOCK_RESIDENTS,
   RECENT_ACTIVITY,
-  RESIDENTS,
 } from "@/lib/mockData";
 
 function initialsFor(name: string) {
-  const resident = RESIDENTS.find((r) => r.name === name);
+  const resident = MOCK_RESIDENTS.find((r) => r.name === name);
   return resident?.initials ?? name.slice(0, 2).toUpperCase();
 }
 

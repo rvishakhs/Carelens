@@ -30,9 +30,10 @@ class MedicationService:
             medication_id=medication_id,
             resident_id=medication.resident_id,
             status=data.status,
-            scheduled_at=data.scheduled_at,
-            recorded_at=datetime.now(UTC),
-            recorded_by=actor_user_id,
+            scheduled_for=data.scheduled_for,
+            administered_at=datetime.now(UTC) if data.status in ("administered", "self_administered") else None,
+            reason=data.reason,
+            administered_by=actor_user_id if data.status in ("administered", "self_administered") else None,
             notes=data.notes,
         )
         event = await self._repository.record_event(event)

@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import AsyncIterator
+from datetime import date
 
 from fastapi import APIRouter, Depends, Request
 
@@ -7,7 +8,13 @@ from app.modules.identity.dependencies import get_current_user
 from app.modules.identity.permissions import Permission, require
 from app.modules.identity.schemas import CurrentUser
 from app.modules.medications.repository import MedicationRepository
-from app.modules.medications.schemas import MedicationCreate, MedicationEventCreate, MedicationEventRead, MedicationRead
+from app.modules.medications.schemas import (
+    MedicationCreate,
+    MedicationEventCreate,
+    MedicationEventRead,
+    MedicationRead,
+    MedicationSchedule,
+)
 from app.modules.medications.service import MedicationService
 from app.shared.database import rls_session
 
@@ -44,6 +51,15 @@ async def list_medications(
     repository: MedicationRepository = Depends(get_medication_repository),
 ) -> list[MedicationRead]:
     return await repository.list_for_resident(resident_id)
+
+
+@router.get("/schedule", response_model=MedicationSchedule)
+async def get_medication_schedule(
+    _: CurrentUser = Depends(require(Permission.VIEW_MEDICATIONS)),
+    repository: MedicationRepository = Depends(get_medication_repository),
+) -> MedicationSchedule:
+    day, entries = await repository.get_schedule_for_latest_day()
+    return MedicationSchedule(day=day or date.today(), entries=entries)
 
 
 @router.post("/{medication_id}/events", response_model=MedicationEventRead, status_code=201)

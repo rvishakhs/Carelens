@@ -1,50 +1,171 @@
-export type CareStatus = "good" | "attention" | "high_risk";
+// Mirrors app/modules/residents/models.py's ResidentStatus enum.
+export type ResidentStatus = "active" | "discharged" | "hospitalized" | "archived";
 
-export interface ResidentFlags {
-  dnr?: boolean;
-  allergies?: boolean;
-  diabetic?: boolean;
-}
-
+// GET /residents -- mirrors app/modules/residents/schemas.py's ResidentListItem.
 export interface Resident {
   id: string;
   first_name: string;
-  preferredName?: string;
-  room_number: string;
-  age: number;
-  dob: string;
-  gender: "Male" | "Female";
-  careStatus: CareStatus;
-  primaryNeeds: string[];
-  lastActivity: string;
-  initials: string;
-  avatarColor: string;
-  flags?: ResidentFlags;
-  primaryNurse?: string;
-  unit: string;
+  last_name: string;
+  preferred_name: string | null;
+  date_of_birth: string;
+  gender: string | null;
+  room_number: string | null;
+  floor_id: string | null;
+  floor_name: string | null;
+  status: ResidentStatus;
+  dnacpr: boolean;
+  has_allergies: boolean;
+  diabetic: boolean;
+  active_care_domains: string[];
+  last_activity_at: string | null;
 }
 
-export interface CareRecordEntry {
+// GET /residents/{id}/overview -- mirrors ResidentOverview.
+export interface Diagnosis {
   id: string;
-  residentId: string;
-  time: string;
-  title: string;
+  condition_name: string;
+  icd10_code: string | null;
+  diagnosed_date: string | null;
+  is_primary: boolean;
+  status: string;
+  notes: string | null;
+}
+
+export interface Allergy {
+  id: string;
+  allergen: string;
+  reaction: string | null;
+  severity: string | null;
+}
+
+export interface Contact {
+  id: string;
+  full_name: string;
+  relationship: string;
+  is_next_of_kin: boolean;
+  is_emergency_contact: boolean;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface AdvanceDirective {
+  id: string;
+  directive_type: string;
+  summary: string;
+  review_due: string | null;
+  is_current: boolean;
+}
+
+export interface LifeHistory {
+  occupation: string | null;
+  family_background: string | null;
+  significant_events: string | null;
+  hobbies_interests: string | null;
+  important_relationships: string | null;
+  faith_religion: string | null;
+  cultural_background: string | null;
+  military_veteran: boolean;
+  free_text_narrative: string | null;
+}
+
+export interface Preference {
   category: string;
-  staff: string;
+  preference: string;
+  is_like: boolean;
+  priority: number;
 }
 
-export interface CareRecordDay {
-  date: string;
-  entries: CareRecordEntry[];
+export interface VitalsSnapshot {
+  recorded_at: string;
+  blood_pressure_systolic: number | null;
+  blood_pressure_diastolic: number | null;
+  heart_rate_bpm: number | null;
+  oxygen_saturation_pct: number | null;
+  temperature_celsius: number | null;
+  news2_score: number | null;
 }
 
-export type GoalStatus = "on_track" | "at_risk" | "off_track";
+export interface WeightPoint {
+  recorded_at: string;
+  weight_kg: number;
+}
+
+export interface ResidentOverview {
+  resident_id: string;
+  diagnoses: Diagnosis[];
+  allergies: Allergy[];
+  contacts: Contact[];
+  advance_directives: AdvanceDirective[];
+  life_history: LifeHistory | null;
+  top_preferences: Preference[];
+  latest_vitals: VitalsSnapshot | null;
+  weight_trend: WeightPoint[];
+  mobility_level: string | null;
+  falls_risk_level: string | null;
+  skin_risk_level: string | null;
+  active_medication_count: number;
+  dnacpr: boolean;
+}
+
+// Mirrors care_plan_goals.status (migration 0020's care_plan_goal_status enum).
+export type GoalStatus = "not_started" | "in_progress" | "improving" | "maintained" | "declining" | "achieved" | "discontinued";
 
 export interface CarePlanGoal {
   id: string;
-  title: string;
-  description: string;
+  goal_text: string;
+  baseline: string | null;
+  target: string | null;
+  measurement: string | null;
   status: GoalStatus;
+  review_date: string | null;
+}
+
+// GET /residents/{id}/care-plan and GET /care-plans -- mirrors CarePlanRead.
+export interface CarePlan {
+  id: string;
+  resident_id: string;
+  domain: string;
+  goal: string;
+  is_active: boolean;
+  review_due: string | null;
+  goals: CarePlanGoal[];
+}
+
+// GET /residents/{id}/care-records -- mirrors CareRecordEntry.
+export interface CareRecordEntry {
+  id: string;
+  record_type: string;
+  recorded_at: string;
+  title: string;
+  detail: string | null;
+}
+
+// GET /residents/{id}/activity -- mirrors ActivityEntry.
+export interface ActivityEntry {
+  id: string;
+  entry_type: "activity" | "visit" | "appointment";
+  occurred_at: string;
+  title: string;
+  detail: string | null;
+}
+
+// GET /medications/schedule -- mirrors MedicationSchedule/MedicationScheduleEntry.
+export type MedicationScheduleStatus = "given" | "due" | "missed";
+
+export interface MedicationScheduleEntry {
+  medication_event_id: string | null;
+  medication_id: string;
+  resident_id: string;
+  resident_display_name: string;
+  drug_name: string;
+  dose: string;
+  scheduled_for: string | null;
+  status: MedicationScheduleStatus;
+}
+
+export interface MedicationSchedule {
+  day: string;
+  entries: MedicationScheduleEntry[];
 }
 
 export interface KeyMetric {
@@ -102,17 +223,6 @@ export interface AttentionResident {
   name: string;
   room: string;
   issue: string;
-}
-
-export type MedicationStatus = "given" | "due" | "missed";
-
-export interface Medication {
-  id: string;
-  residentId: string;
-  name: string;
-  dosage: string;
-  time: string;
-  status: MedicationStatus;
 }
 
 // Mirrors app/modules/identity/models.py's Role enum.

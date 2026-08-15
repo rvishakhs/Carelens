@@ -6,7 +6,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Pill } from "@/components/ui/Pill";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CARE_RECORDS, RESIDENTS } from "@/lib/mockData";
+import { CARE_RECORDS, MOCK_RESIDENTS } from "@/lib/mockData";
 
 const CATEGORY_TONE: Record<string, "emerald" | "sky" | "indigo" | "amber" | "rose" | "slate"> = {
   Nutrition: "emerald",
@@ -17,7 +17,7 @@ const CATEGORY_TONE: Record<string, "emerald" | "sky" | "indigo" | "amber" | "ro
 };
 
 function residentName(id: string) {
-  return RESIDENTS.find((r) => r.id === id)?.name ?? "Unknown resident";
+  return MOCK_RESIDENTS.find((r) => r.id === id)?.name ?? "Unknown resident";
 }
 
 export function CareRecordsPage() {
@@ -70,7 +70,7 @@ export function CareRecordsPage() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Resident</label>
               <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
-                {RESIDENTS.map((r) => (
+                {MOCK_RESIDENTS.map((r) => (
                   <option key={r.id}>{r.name}</option>
                 ))}
               </select>
