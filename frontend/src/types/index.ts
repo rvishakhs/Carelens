@@ -140,6 +140,99 @@ export interface CareRecordEntry {
   detail: string | null;
 }
 
+// GET /care-recording/categories -- mirrors app/modules/care_recording/schemas.py's CareCategoryRead.
+export interface CareCategory {
+  id: string;
+  name: string;
+  icon: string | null;
+  sort_order: number;
+}
+
+// mirrors CareTemplateOptionRead.
+export interface CareTemplateOption {
+  id: string;
+  label: string;
+  value_code: string | null;
+  sort_order: number;
+  requires_note: boolean;
+  triggers_alert: boolean;
+}
+
+// mirrors CareTemplateSectionRead.
+export interface CareTemplateSection {
+  id: string;
+  name: string;
+  sort_order: number;
+  options: CareTemplateOption[];
+}
+
+// mirrors CareTemplateMeasurementRead.
+export type CareMeasurementDataType = "numeric" | "text" | "boolean";
+
+export interface CareTemplateMeasurement {
+  id: string;
+  name: string;
+  data_type: CareMeasurementDataType;
+  unit: string | null;
+  min_value: number | null;
+  max_value: number | null;
+  is_required: boolean;
+}
+
+// GET /care-recording/categories/{id}/templates, GET /care-recording/templates/{id}
+// -- mirrors CareTemplateRead.
+export interface CareTemplate {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  requires_note: boolean;
+  sort_order: number;
+  sections: CareTemplateSection[];
+  measurements: CareTemplateMeasurement[];
+}
+
+// Mirrors CareEventCreate.status.
+export type CareEventStatus = "completed" | "declined" | "refused" | "not_applicable";
+
+// mirrors CareEventOptionCreate.
+export interface CareEventOptionCreate {
+  care_template_option_id: string;
+  note?: string | null;
+}
+
+// mirrors CareEventMeasurementCreate.
+export interface CareEventMeasurementCreate {
+  care_template_measurement_id: string;
+  value_numeric?: number | null;
+  value_text?: string | null;
+  value_boolean?: boolean | null;
+}
+
+// POST /care-recording/events request body -- mirrors CareEventCreate.
+export interface CareEventCreate {
+  resident_id: string;
+  template_id: string;
+  occurred_at?: string | null;
+  status: CareEventStatus;
+  note?: string | null;
+  options: CareEventOptionCreate[];
+  measurements: CareEventMeasurementCreate[];
+}
+
+// POST /care-recording/events response, GET /care-recording/residents/{id}/events
+// -- mirrors CareEventRead.
+export interface CareEvent {
+  id: string;
+  resident_id: string;
+  template_id: string;
+  category_id: string;
+  occurred_at: string;
+  recorded_by: string | null;
+  status: CareEventStatus;
+  note: string | null;
+}
+
 // GET /residents/{id}/activity -- mirrors ActivityEntry.
 export interface ActivityEntry {
   id: string;

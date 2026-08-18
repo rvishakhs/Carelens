@@ -5,6 +5,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { AiInsightsPage } from "@/pages/AiInsightsPage";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { CarePlansPage } from "@/pages/CarePlansPage";
+import { CareRecordEntryPage } from "@/pages/CareRecordEntryPage";
 import { CareRecordsPage } from "@/pages/CareRecordsPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { MedicationsPage } from "@/pages/MedicationsPage";
@@ -27,6 +28,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/residents" element={<ResidentsPage />} />
           <Route path="/residents/:id" element={<ResidentDetailPage />} />
+          <Route path="/residents/:id/care-records" element={<CareRecordEntryPage />} />
           <Route path="/care-records" element={<CareRecordsPage />} />
           <Route path="/care-plans" element={<CarePlansPage />} />
           <Route path="/medications" element={<MedicationsPage />} />

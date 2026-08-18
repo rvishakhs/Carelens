@@ -1,105 +1,82 @@
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/Button";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { Modal } from "@/components/ui/Modal";
-import { Pill } from "@/components/ui/Pill";
+import { Avatar } from "@/components/ui/Avatar";
+import { Card } from "@/components/ui/Card";
+import { StatusPill } from "@/components/ui/Pill";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CARE_RECORDS, MOCK_RESIDENTS } from "@/lib/mockData";
-
-const CATEGORY_TONE: Record<string, "emerald" | "sky" | "indigo" | "amber" | "rose" | "slate"> = {
-  Nutrition: "emerald",
-  Medical: "rose",
-  Mobility: "sky",
-  Activities: "indigo",
-  "Personal Care": "amber",
-};
-
-function residentName(id: string) {
-  return MOCK_RESIDENTS.find((r) => r.id === id)?.name ?? "Unknown resident";
-}
+import type { Resident } from "@/types";
+import { avatarColorFor, calculateAge, fetchResidents, initialsFor } from "@/utils/helper";
 
 export function CareRecordsPage() {
-  const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const [residents, setResidents] = useState<Resident[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchResidents()
+      .then(setResidents)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return residents;
+    const q = query.toLowerCase();
+    return residents.filter(
+      (r) => `${r.first_name} ${r.last_name}`.toLowerCase().includes(q) || (r.room_number ?? "").toLowerCase().includes(q),
+    );
+  }, [residents, query]);
 
   return (
     <div>
-      <PageHeader
-        title="Care Records"
-        subtitle="Daily log of care activity across all residents"
-        actions={
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="h-4 w-4" />
-            Add Care Record
-          </Button>
-        }
-      />
+      <PageHeader title="Care Records" subtitle="Choose a resident to record or review their care" />
 
-      <div className="space-y-4">
-        {CARE_RECORDS.map((day) => (
-          <Card key={day.date}>
-            <CardHeader title={day.date} subtitle={`${day.entries.length} entries`} />
-            <div className="divide-y divide-slate-100">
-              {day.entries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between gap-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-900">{entry.title}</p>
-                    <p className="truncate text-xs text-slate-500">
-                      {residentName(entry.residentId)} · {entry.staff}
-                    </p>
-                  </div>
-                  <Pill tone={CATEGORY_TONE[entry.category] ?? "slate"}>{entry.category}</Pill>
-                  <span className="w-16 shrink-0 text-right text-xs text-slate-400">{entry.time}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ))}
+      <div className="relative mb-5 max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search residents by name or room…"
+          className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+        />
       </div>
 
-      {showModal && (
-        <Modal title="Add Care Record" onClose={() => setShowModal(false)}>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setShowModal(false);
-            }}
-          >
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Resident</label>
-              <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
-                {MOCK_RESIDENTS.map((r) => (
-                  <option key={r.id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Category</label>
-              <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
-                {Object.keys(CATEGORY_TONE).map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Notes</label>
-              <textarea
-                rows={3}
-                placeholder="Add details about this care activity…"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Record</Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {!loading &&
+          filtered.map((resident) => (
+            <Card
+              key={resident.id}
+              className="cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => navigate(`/residents/${resident.id}/care-records`)}
+            >
+              <div className="flex items-center gap-3">
+                <Avatar
+                  initials={initialsFor(resident.first_name, resident.last_name)}
+                  colorClass={avatarColorFor(resident.id)}
+                  size="lg"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="truncate font-semibold text-slate-900">
+                      {resident.preferred_name || resident.first_name} {resident.last_name}
+                    </h3>
+                    <StatusPill status={resident.status} />
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    {resident.room_number ?? "No room"} · {calculateAge(resident.date_of_birth)} yrs · {resident.floor_name ?? "Unassigned"}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
+
+        {loading && <div className="col-span-full py-12 text-center text-sm text-slate-400">Loading residents…</div>}
+        {!loading && filtered.length === 0 && (
+          <div className="col-span-full py-12 text-center text-sm text-slate-400">No residents match your search.</div>
+        )}
+      </div>
     </div>
   );
 }

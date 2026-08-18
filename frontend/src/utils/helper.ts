@@ -1,8 +1,12 @@
 import api from "@/lib/api";
 import type {
   ActivityEntry,
+  CareCategory,
+  CareEvent,
+  CareEventCreate,
   CarePlan,
   CareRecordEntry,
+  CareTemplate,
   MedicationSchedule,
   Resident,
   ResidentOverview,
@@ -40,6 +44,26 @@ export async function fetchAllCarePlans(): Promise<CarePlan[]> {
 
 export async function fetchMedicationSchedule(): Promise<MedicationSchedule> {
   const { data } = await api.get<MedicationSchedule>("/medications/schedule");
+  return data;
+}
+
+export async function fetchCareCategories(): Promise<CareCategory[]> {
+  const { data } = await api.get<CareCategory[]>("/care-recording/categories");
+  return data;
+}
+
+export async function fetchCareTemplatesByCategory(categoryId: string): Promise<CareTemplate[]> {
+  const { data } = await api.get<CareTemplate[]>(`/care-recording/categories/${categoryId}/templates`);
+  return data;
+}
+
+export async function fetchCareTemplateDetail(templateId: string): Promise<CareTemplate> {
+  const { data } = await api.get<CareTemplate>(`/care-recording/templates/${templateId}`);
+  return data;
+}
+
+export async function createCareEvent(payload: CareEventCreate): Promise<CareEvent> {
+  const { data } = await api.post<CareEvent>("/care-recording/events", payload);
   return data;
 }
 

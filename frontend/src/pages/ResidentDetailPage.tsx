@@ -1,8 +1,9 @@
-import { AlertTriangle, Cookie, HeartPulse } from "lucide-react";
+import { AlertTriangle, Cookie, HeartPulse, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { GoalStatusPill, StatusPill } from "@/components/ui/Pill";
 import { Tabs } from "@/components/ui/Tabs";
@@ -303,7 +304,18 @@ export function ResidentDetailPage() {
 
       {tab === "Care Records" && (
         <Card>
-          <CardHeader title="Recent Care Records" subtitle={`${careRecords.length} entries logged`} />
+          <CardHeader
+            title="Recent Care Records"
+            subtitle={`${careRecords.length} entries logged`}
+            action={
+              <Link to={`/residents/${id}/care-records`}>
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  Record Care
+                </Button>
+              </Link>
+            }
+          />
           <div className="divide-y divide-slate-100">
             {careRecords.map((entry) => (
               <div key={entry.id} className="flex items-center justify-between py-3">
