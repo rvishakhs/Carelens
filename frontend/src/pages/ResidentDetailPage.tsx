@@ -9,17 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { GoalStatusPill, Pill, StatusPill } from "@/components/ui/Pill";
+import { TileGrid } from "@/components/ui/Tile";
 import { Tabs } from "@/components/ui/Tabs";
-import type {
-  ActivityEntry,
-  CareEventHistoryItem,
-  CareEventMeasurementSummary,
-  CareEventOptionSummary,
-  CareEventStatus,
-  CarePlan,
-  Resident,
-  ResidentOverview,
-} from "@/types";
+import type { ActivityEntry, CareEventHistoryItem, CareEventStatus, CarePlan, Resident, ResidentOverview } from "@/types";
 import {
   avatarColorFor,
   calculateAge,
@@ -82,13 +74,6 @@ function statusTone(status: CareEventStatus): { border: string; dot: string; bad
     case "not_applicable":
       return { border: "border-rose-300", dot: "bg-rose-500", badge: "bg-rose-100 text-rose-700", label: "Not Applicable" };
   }
-}
-
-function measurementValueText(m: CareEventMeasurementSummary): string {
-  if (m.value_numeric !== null) return `${m.value_numeric}${m.unit ? ` ${m.unit}` : ""}`;
-  if (m.value_text !== null) return m.value_text;
-  if (m.value_boolean !== null) return m.value_boolean ? "Yes" : "No";
-  return "–";
 }
 
 export function ResidentDetailPage() {
@@ -492,7 +477,7 @@ export function ResidentDetailPage() {
           {careEvents.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-400">No records yet.</p>
           ) : (
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <TileGrid>
               {careEvents.map((event) => {
                 const tone = statusTone(event.status);
                 return (
@@ -501,17 +486,17 @@ export function ResidentDetailPage() {
                     type="button"
                     onClick={() => setSelectedEvent(event)}
                     className={clsx(
-                      "flex items-center gap-2.5 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition-shadow hover:shadow-sm",
+                      "flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 bg-white p-2 text-center transition-shadow hover:shadow-sm",
                       tone.border,
                     )}
                   >
                     <span className={clsx("h-2 w-2 shrink-0 rounded-full", tone.dot)} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">{event.template_name}</span>
-                    <span className="shrink-0 text-xs text-slate-400">{formatDateTime(event.occurred_at)}</span>
+                    <span className="line-clamp-2 text-xs font-medium leading-tight text-slate-900">{event.template_name}</span>
+                    <span className="text-[11px] text-slate-400">{formatDateTime(event.occurred_at)}</span>
                   </button>
                 );
               })}
-            </div>
+            </TileGrid>
           )}
         </Card>
       )}
@@ -534,34 +519,6 @@ export function ResidentDetailPage() {
             {selectedEvent.summary && (
               <div className="rounded-lg bg-slate-50 px-3 py-2.5">
                 <p className="text-sm text-slate-700">{selectedEvent.summary}</p>
-              </div>
-            )}
-
-            {selectedEvent.options.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Recorded</p>
-                <div className="space-y-1.5">
-                  {selectedEvent.options.map((option: CareEventOptionSummary, i: number) => (
-                    <div key={i} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                      <p className="font-medium text-slate-900">{option.label}</p>
-                      {option.note && <p className="text-xs text-slate-500">{option.note}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedEvent.measurements.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Measurements</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedEvent.measurements.map((measurement: CareEventMeasurementSummary, i: number) => (
-                    <div key={i} className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-xs text-slate-500">{measurement.name}</p>
-                      <p className="text-sm font-semibold text-slate-900">{measurementValueText(measurement)}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>

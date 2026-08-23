@@ -26,17 +26,25 @@ def _build_summary(template: CareTemplate, data: CareEventCreate) -> str:
     something meaningful to vectorise even when `note` is empty."""
     measurement_by_id = {measurement.id: measurement for measurement in template.measurements}
     selected_option_ids = {o.care_template_option_id for o in data.options}
+    option_notes_by_id = {o.care_template_option_id: o.note for o in data.options if o.note}
 
     parts = [template.name]
     if data.status != "completed":
         parts[0] += f" ({data.status.replace('_', ' ')})"
 
     # Grouped by section (e.g. "Food: Cereal, Porridge" / "Amount Eaten: Most") rather
-    # than one flat list, so which section a selection came from isn't lost.
+    # than one flat list, so which section a selection came from isn't lost. Per-option
+    # notes (e.g. why an option requiring one, like "Refused", was chosen) are the only
+    # per-option detail this summary carries -- the modal no longer lists options
+    # separately, so this is their one home now.
     for section in template.sections:
         labels = [option.label for option in section.options if option.id in selected_option_ids]
         if labels:
             parts.append(f"{section.name}: {', '.join(labels)}")
+        for option in section.options:
+            note = option_notes_by_id.get(option.id)
+            if note:
+                parts.append(f"{option.label} note: {note}")
 
     for m in data.measurements:
         measurement = measurement_by_id.get(m.care_template_measurement_id)
