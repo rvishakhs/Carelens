@@ -164,6 +164,7 @@ export interface CareTemplateSection {
   id: string;
   name: string;
   sort_order: number;
+  allow_multiple: boolean;
   options: CareTemplateOption[];
 }
 

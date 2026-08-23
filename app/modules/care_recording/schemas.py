@@ -28,6 +28,7 @@ class CareTemplateSectionRead(BaseModel):
     id: uuid.UUID
     name: str
     sort_order: int
+    allow_multiple: bool
     options: list[CareTemplateOptionRead] = []
 
     model_config = {"from_attributes": True}

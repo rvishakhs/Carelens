@@ -64,6 +64,7 @@ class CareTemplateSection(Base):
     template_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("care_templates.id"))
     name: Mapped[str] = mapped_column(String(255))
     sort_order: Mapped[int] = mapped_column(SmallInteger, default=0)
+    allow_multiple: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

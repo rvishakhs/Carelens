@@ -1,5 +1,5 @@
 import { clsx } from "clsx";
-import { ChevronDown, ChevronLeft, Search, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, Pencil, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
@@ -8,7 +8,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Tile, TileGrid } from "@/components/ui/Tile";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { careIconFor } from "@/lib/careIcons";
-import type { CareCategory, CareEventCreate, CareEventStatus, CareTemplate, Resident } from "@/types";
+import type { CareCategory, CareEventCreate, CareEventStatus, CareTemplate, CareTemplateSection, Resident } from "@/types";
 import { createCareEvent, fetchCareCategories, fetchCareTemplateDetail, fetchCareTemplatesByCategory, fetchResidents } from "@/utils/helper";
 
 type Stage = "select" | "review";
@@ -62,6 +62,45 @@ function buildPayload(residentId: string, template: CareTemplate, form: Template
   };
 }
 
+/** Mirrors the backend's _build_summary (app/modules/care_recording/service.py) so
+ * the live preview shown while recording matches what actually gets saved -- the
+ * generated sentence grows as sections/measurements are filled in, replacing a blank
+ * notes box with something that already says what happened. */
+function buildGeneratedNote(template: CareTemplate, form: TemplateFormState): string {
+  const parts: string[] = [form.status !== "completed" ? `${template.name} (${form.status.replace(/_/g, " ")})` : template.name];
+
+  for (const section of [...template.sections].sort((a, b) => a.sort_order - b.sort_order)) {
+    const labels = [...section.options]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .filter((o) => form.optionState[o.id]?.selected)
+      .map((o) => o.label);
+    if (labels.length > 0) parts.push(`${section.name}: ${labels.join(", ")}`);
+
+    for (const option of section.options) {
+      const state = form.optionState[option.id];
+      if (option.requires_note && state?.selected && state.note.trim()) {
+        parts.push(`${option.label} note: ${state.note.trim()}`);
+      }
+    }
+  }
+
+  for (const measurement of template.measurements) {
+    const raw = form.measurementValues[measurement.id];
+    if (raw === undefined || raw === "") continue;
+    const valueText =
+      measurement.data_type === "numeric"
+        ? `${raw}${measurement.unit ?? ""}`
+        : measurement.data_type === "boolean"
+          ? raw
+            ? "Yes"
+            : "No"
+          : String(raw);
+    parts.push(`${measurement.name}: ${valueText}`);
+  }
+
+  return parts.join(". ") + ".";
+}
+
 export function CareRecordEntryPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -84,6 +123,7 @@ export function CareRecordEntryPage() {
   const [templateDetailCache, setTemplateDetailCache] = useState<Record<string, CareTemplate>>({});
   const [formStates, setFormStates] = useState<Record<string, TemplateFormState>>({});
   const [durationMinutes, setDurationMinutes] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -208,14 +248,24 @@ export function CareRecordEntryPage() {
     });
   }
 
-  function toggleOption(templateId: string, optionId: string) {
-    updateForm(templateId, (prev) => ({
-      ...prev,
-      optionState: {
-        ...prev.optionState,
-        [optionId]: { selected: !prev.optionState[optionId]?.selected, note: prev.optionState[optionId]?.note ?? "" },
-      },
-    }));
+  function toggleOption(templateId: string, section: CareTemplateSection, optionId: string) {
+    updateForm(templateId, (prev) => {
+      const wasSelected = prev.optionState[optionId]?.selected ?? false;
+      const optionState = { ...prev.optionState };
+
+      // Radio behavior for single-select sections (everything except "Food" --
+      // see migration 0023): picking one clears any other sibling in the section.
+      if (!section.allow_multiple) {
+        for (const sibling of section.options) {
+          if (sibling.id !== optionId && optionState[sibling.id]?.selected) {
+            optionState[sibling.id] = { ...optionState[sibling.id], selected: false };
+          }
+        }
+      }
+
+      optionState[optionId] = { selected: !wasSelected, note: prev.optionState[optionId]?.note ?? "" };
+      return { ...prev, optionState };
+    });
   }
 
   function setOptionNote(templateId: string, optionId: string, note: string) {
@@ -463,7 +513,7 @@ export function CareRecordEntryPage() {
                                       label={option.label}
                                       selected={state?.selected}
                                       alert={option.triggers_alert}
-                                      onClick={() => toggleOption(template.id, option.id)}
+                                      onClick={() => toggleOption(template.id, section, option.id)}
                                       className="w-20"
                                     />
                                     {option.requires_note && state?.selected && (
@@ -522,17 +572,31 @@ export function CareRecordEntryPage() {
                     ))}
 
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                        Note
+                      <p className="mb-1.5 text-sm font-medium text-slate-700">
+                        Care Note
                         {detail.requires_note && <span className="text-rose-500"> *</span>}
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={form.generalNote}
-                        onChange={(e) => updateForm(template.id, { generalNote: e.target.value })}
-                        placeholder="Add any additional detail…"
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                      />
+                      </p>
+                      <div className="relative rounded-lg bg-slate-50 py-2.5 pl-3 pr-9 text-sm text-slate-700">
+                        {buildGeneratedNote(detail, form)}
+                        {form.generalNote.trim() && ` ${form.generalNote.trim()}`}
+                        <button
+                          type="button"
+                          onClick={() => setEditingNoteId(editingNoteId === template.id ? null : template.id)}
+                          title="Add more detail"
+                          className="absolute right-2 top-2 rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {(editingNoteId === template.id || detail.requires_note) && (
+                        <textarea
+                          rows={2}
+                          value={form.generalNote}
+                          onChange={(e) => updateForm(template.id, { generalNote: e.target.value })}
+                          placeholder="Add more detail…"
+                          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        />
+                      )}
                     </div>
                   </div>
                 )}
@@ -540,31 +604,30 @@ export function CareRecordEntryPage() {
             );
           })}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Time spent this round (minutes)
-              <span className="text-rose-500"> *</span>
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-              placeholder="e.g. 15"
-              className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-            />
-            <p className="mt-1.5 text-xs text-slate-500">Tracks staff time spent on {displayName} for this round of care.</p>
-          </div>
-
-          {submitError && <p className="text-sm text-rose-600">{submitError}</p>}
-
-          <div className="flex justify-end gap-3 pb-6">
-            <Button type="button" variant="secondary" onClick={() => setStage("select")}>
-              Back
-            </Button>
-            <Button type="button" onClick={handleSaveAll} disabled={!canSaveAll || submitting}>
-              {submitting ? "Saving…" : `Save (${selection.length})`}
-            </Button>
+          <div className="space-y-2 pb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 whitespace-nowrap">
+                Time spent (minutes)
+                <span className="text-rose-500">*</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={durationMinutes}
+                  onChange={(e) => setDurationMinutes(e.target.value)}
+                  placeholder="e.g. 15"
+                  className="w-20 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                />
+              </label>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" onClick={() => setStage("select")}>
+                  Back
+                </Button>
+                <Button type="button" onClick={handleSaveAll} disabled={!canSaveAll || submitting}>
+                  {submitting ? "Saving…" : `Save (${selection.length})`}
+                </Button>
+              </div>
+            </div>
+            {submitError && <p className="text-sm text-rose-600">{submitError}</p>}
           </div>
         </div>
       )}
