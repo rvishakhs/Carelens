@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import bindparam, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,6 +11,8 @@ from app.modules.care_recording.models import (
     CareEventMeasurement,
     CareEventOption,
     CareTemplate,
+    CareTemplateMeasurement,
+    CareTemplateOption,
     CareTemplateSection,
 )
 from app.modules.care_recording.ports import CareEventReader
@@ -43,6 +45,10 @@ class CareRecordingRepository(CareEventReader):
                 CareTemplate.deleted_at.is_(None),
             )
             .order_by(CareTemplate.sort_order)
+            .options(
+                selectinload(CareTemplate.sections).selectinload(CareTemplateSection.options),
+                selectinload(CareTemplate.measurements),
+            )
         )
         return list(result.scalars().all())
 
@@ -98,11 +104,102 @@ class CareRecordingRepository(CareEventReader):
         )
         return [CareEventRead.model_validate(e) for e in result.scalars().all()]
 
-    async def list_for_resident(self, resident_id: uuid.UUID, limit: int = 100) -> list[CareEvent]:
-        result = await self._session.execute(
-            select(CareEvent)
-            .where(CareEvent.resident_id == resident_id, CareEvent.deleted_at.is_(None))
-            .order_by(CareEvent.occurred_at.desc())
-            .limit(limit)
-        )
-        return list(result.scalars().all())
+    async def list_history_for_resident(self, resident_id: uuid.UUID, limit: int = 100) -> list[dict]:
+        """Denormalised history for the Care Records tile view -- see
+        CareEventHistoryItem's docstring for why this joins template/category names
+        and pulls option labels + measurement values up front instead of leaving the
+        frontend to re-fetch template detail per tile."""
+        event_rows = (
+            await self._session.execute(
+                select(
+                    CareEvent.id,
+                    CareEvent.occurred_at,
+                    CareEvent.status,
+                    CareEvent.note,
+                    CareEvent.summary,
+                    CareEvent.duration_minutes,
+                    CareEvent.recorded_by,
+                    CareTemplate.name.label("template_name"),
+                    CareCategory.name.label("category_name"),
+                    CareCategory.icon.label("category_icon"),
+                )
+                .join(CareTemplate, CareTemplate.id == CareEvent.template_id)
+                .join(CareCategory, CareCategory.id == CareEvent.category_id)
+                .where(CareEvent.resident_id == resident_id, CareEvent.deleted_at.is_(None))
+                .order_by(CareEvent.occurred_at.desc())
+                .limit(limit)
+            )
+        ).all()
+
+        event_ids = [row.id for row in event_rows]
+        if not event_ids:
+            return []
+
+        # identity.models isn't importable here (module-boundary rule -- see
+        # walkthrough.md's "the rule this enforces"), so this resolves display names
+        # via the users table by name rather than the ORM model.
+        recorder_ids = list({row.recorded_by for row in event_rows if row.recorded_by is not None})
+        names_by_user_id: dict[uuid.UUID, str] = {}
+        if recorder_ids:
+            name_stmt = text("SELECT id, display_name FROM users WHERE id IN :ids").bindparams(
+                bindparam("ids", expanding=True)
+            )
+            name_rows = (await self._session.execute(name_stmt, {"ids": recorder_ids})).all()
+            names_by_user_id = {row.id: row.display_name for row in name_rows}
+
+        option_rows = (
+            await self._session.execute(
+                select(CareEventOption.care_event_id, CareTemplateOption.label, CareEventOption.note)
+                .join(CareTemplateOption, CareTemplateOption.id == CareEventOption.care_template_option_id)
+                .where(CareEventOption.care_event_id.in_(event_ids))
+            )
+        ).all()
+
+        measurement_rows = (
+            await self._session.execute(
+                select(
+                    CareEventMeasurement.care_event_id,
+                    CareTemplateMeasurement.name,
+                    CareTemplateMeasurement.unit,
+                    CareEventMeasurement.value_numeric,
+                    CareEventMeasurement.value_text,
+                    CareEventMeasurement.value_boolean,
+                )
+                .join(CareTemplateMeasurement, CareTemplateMeasurement.id == CareEventMeasurement.care_template_measurement_id)
+                .where(CareEventMeasurement.care_event_id.in_(event_ids))
+            )
+        ).all()
+
+        options_by_event: dict[uuid.UUID, list[dict]] = {}
+        for row in option_rows:
+            options_by_event.setdefault(row.care_event_id, []).append({"label": row.label, "note": row.note})
+
+        measurements_by_event: dict[uuid.UUID, list[dict]] = {}
+        for row in measurement_rows:
+            measurements_by_event.setdefault(row.care_event_id, []).append(
+                {
+                    "name": row.name,
+                    "unit": row.unit,
+                    "value_numeric": row.value_numeric,
+                    "value_text": row.value_text,
+                    "value_boolean": row.value_boolean,
+                }
+            )
+
+        return [
+            {
+                "id": row.id,
+                "template_name": row.template_name,
+                "category_name": row.category_name,
+                "category_icon": row.category_icon,
+                "occurred_at": row.occurred_at,
+                "status": row.status,
+                "note": row.note,
+                "summary": row.summary,
+                "duration_minutes": row.duration_minutes,
+                "recorded_by_name": names_by_user_id.get(row.recorded_by) if row.recorded_by else None,
+                "options": options_by_event.get(row.id, []),
+                "measurements": measurements_by_event.get(row.id, []),
+            }
+            for row in event_rows
+        ]

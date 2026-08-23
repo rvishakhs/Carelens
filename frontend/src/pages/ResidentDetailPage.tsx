@@ -1,20 +1,31 @@
-import { AlertTriangle, Cookie, HeartPulse, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { clsx } from "clsx";
+import { Accessibility, ChevronRight, Edit, MoreHorizontal, Pill as PillIcon, Plus, Shield, TriangleAlert, UserRound } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { GoalStatusPill, StatusPill } from "@/components/ui/Pill";
+import { Modal } from "@/components/ui/Modal";
+import { GoalStatusPill, Pill, StatusPill } from "@/components/ui/Pill";
 import { Tabs } from "@/components/ui/Tabs";
-import { PageHeader } from "@/components/layout/PageHeader";
-import type { ActivityEntry, CarePlan, CareRecordEntry, Resident, ResidentOverview } from "@/types";
+import type {
+  ActivityEntry,
+  CareEventHistoryItem,
+  CareEventMeasurementSummary,
+  CareEventOptionSummary,
+  CareEventStatus,
+  CarePlan,
+  Resident,
+  ResidentOverview,
+} from "@/types";
 import {
   avatarColorFor,
   calculateAge,
   fetchResidentActivity,
+  fetchResidentCareEvents,
   fetchResidentCarePlan,
-  fetchResidentCareRecords,
   fetchResidentOverview,
   fetchResidents,
   formatDomainLabel,
@@ -27,13 +38,67 @@ function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+/** Green/amber/rose dot from a risk-level string; no clinical scoring implied beyond
+ * the level text the backend already returned (mobility_level, falls_risk_level, ...). */
+function riskDotClass(value: string | null | undefined): string {
+  if (!value) return "bg-slate-300";
+  const v = value.toLowerCase();
+  if (v.includes("high")) return "bg-rose-500";
+  if (v.includes("moderate") || v.includes("medium")) return "bg-amber-500";
+  return "bg-emerald-500";
+}
+
+function GlanceRow({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: string; tone: string }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5 text-sm">
+      <span className={`h-2 w-2 shrink-0 rounded-full ${tone}`} />
+      <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+      <span className="flex-1 text-slate-600">{label}</span>
+      <span className="font-medium capitalize text-slate-900">{value}</span>
+    </div>
+  );
+}
+
+function VitalTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+/** Green outline/dot for a completed entry, yellow for declined, red for
+ * refused/not applicable (i.e. not done) -- per the resident's Care Records tile
+ * view. Tiles only show the dot; the label still backs the detail modal's badge. */
+function statusTone(status: CareEventStatus): { border: string; dot: string; badge: string; label: string } {
+  switch (status) {
+    case "completed":
+      return { border: "border-emerald-300", dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-700", label: "Completed" };
+    case "declined":
+      return { border: "border-amber-300", dot: "bg-amber-500", badge: "bg-amber-100 text-amber-700", label: "Declined" };
+    case "refused":
+      return { border: "border-rose-300", dot: "bg-rose-500", badge: "bg-rose-100 text-rose-700", label: "Refused" };
+    case "not_applicable":
+      return { border: "border-rose-300", dot: "bg-rose-500", badge: "bg-rose-100 text-rose-700", label: "Not Applicable" };
+  }
+}
+
+function measurementValueText(m: CareEventMeasurementSummary): string {
+  if (m.value_numeric !== null) return `${m.value_numeric}${m.unit ? ` ${m.unit}` : ""}`;
+  if (m.value_text !== null) return m.value_text;
+  if (m.value_boolean !== null) return m.value_boolean ? "Yes" : "No";
+  return "–";
+}
+
 export function ResidentDetailPage() {
   const { id } = useParams();
   const [tab, setTab] = useState("Overview");
   const [resident, setResident] = useState<Resident | null>(null);
   const [overview, setOverview] = useState<ResidentOverview | null>(null);
   const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
-  const [careRecords, setCareRecords] = useState<CareRecordEntry[]>([]);
+  const [careEvents, setCareEvents] = useState<CareEventHistoryItem[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<CareEventHistoryItem | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -45,11 +110,11 @@ export function ResidentDetailPage() {
     const load = async () => {
       try {
         setLoading(true);
-        const [residents, overviewData, carePlanData, careRecordData, activityData] = await Promise.all([
+        const [residents, overviewData, carePlanData, careEventData, activityData] = await Promise.all([
           fetchResidents(),
           fetchResidentOverview(id),
           fetchResidentCarePlan(id),
-          fetchResidentCareRecords(id),
+          fetchResidentCareEvents(id),
           fetchResidentActivity(id),
         ]);
         if (cancelled) return;
@@ -62,7 +127,7 @@ export function ResidentDetailPage() {
         setResident(match);
         setOverview(overviewData);
         setCarePlans(carePlanData);
-        setCareRecords(careRecordData);
+        setCareEvents(careEventData);
         setActivity(activityData);
       } catch (err) {
         console.error(err);
@@ -78,6 +143,8 @@ export function ResidentDetailPage() {
     };
   }, [id]);
 
+  const allGoals = useMemo(() => carePlans.flatMap((plan) => plan.goals.map((goal) => ({ ...goal, domain: plan.domain }))), [carePlans]);
+
   if (notFound) {
     return <Navigate to="/residents" replace />;
   }
@@ -90,117 +157,223 @@ export function ResidentDetailPage() {
 
   return (
     <div>
-      <Link to="/residents" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">
-        Back to residents
-      </Link>
+      <div className="mb-4 flex items-center gap-1.5 text-sm text-slate-500">
+        <Link to="/residents" className="font-medium hover:text-slate-700">
+          Residents
+        </Link>
+        <span>/</span>
+        <span className="text-slate-700">{displayName}</span>
+      </div>
 
-      <PageHeader
-        title={displayName}
-        subtitle={`${resident.room_number ?? "No room assigned"} · ${resident.floor_name ?? "No floor assigned"}`}
+      <div className="mb-6 px-1">
+  <div className="flex flex-wrap items-center justify-between gap-6">
+
+    {/* Resident Profile */}
+    <div className="flex items-center gap-5">
+      <Avatar
+        initials={initialsFor(resident.first_name, resident.last_name)}
+        photoUrl={resident.photo_url}
+        colorClass={avatarColorFor(resident.id)}
+        size="xl"
+
       />
 
-      <Card className="mb-5">
-        <div className="flex flex-wrap items-center gap-6">
-          <Avatar initials={initialsFor(resident.first_name, resident.last_name)} colorClass={avatarColorFor(resident.id)} size="lg" />
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Age / DOB</p>
-            <p className="text-sm font-medium text-slate-900">
-              {calculateAge(resident.date_of_birth)} yrs · {resident.date_of_birth}
+      <div className="min-w-0">
+        <h2 className="text-2xl font-semibold text-slate-900">
+          {displayName}
+        </h2>
+
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+          <span>{resident.room_number ?? "No room assigned"}</span>
+          <span>·</span>
+
+          <span>
+            Age {calculateAge(resident.date_of_birth)}
+          </span>
+
+          {resident.gender && (
+            <>
+              <span>·</span>
+              <span className="capitalize">{resident.gender}</span>
+            </>
+          )}
+
+          <StatusPill
+            status={resident.status}
+            className="ml-1"
+          />
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {resident.has_allergies ? (
+            <Pill tone="amber">
+              Allergies
+              {overview?.allergies.length
+                ? `: ${overview.allergies
+                    .map((a) => a.allergen)
+                    .join(", ")}`
+                : ""}
+            </Pill>
+          ) : (
+            <Pill tone="slate">No known allergies</Pill>
+          )}
+
+          {resident.dnacpr ? (
+            <Pill tone="rose">DNACPR</Pill>
+          ) : (
+            <Pill tone="slate">No DNACPR</Pill>
+          )}
+        </div>
+      </div>
+    </div>
+
+    {/* Actions + Primary Nurse */}
+    <div className="flex flex-col items-stretch gap-3">
+
+      <div className="flex gap-2">
+        <Button variant="secondary" className="flex-1">
+          <Edit className="mr-2 h-4 w-4" />
+          Edit Profile
+        </Button>
+
+        <Button variant="secondary">
+          More
+          <MoreHorizontal className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Primary Nurse */}
+      <div className="w-60 rounded-xl bg-slate-50/70 p-3">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">
+          Primary Nurse
+        </p>
+
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-400">
+            <UserRound className="h-5 w-5" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-slate-900">
+              Sarah Johnson
+            </p>
+            <p className="text-xs text-slate-400">
+              Senior Nurse
             </p>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Gender</p>
-            <p className="text-sm font-medium text-slate-900 capitalize">{resident.gender ?? "Not recorded"}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Status</p>
-            <StatusPill status={resident.status} className="mt-0.5" />
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">Flags</p>
-            <div className="mt-1 flex items-center gap-2 text-slate-500">
-              {resident.dnacpr && (
-                <span title="DNACPR">
-                  <AlertTriangle className="h-4 w-4" />
-                </span>
-              )}
-              {resident.has_allergies && (
-                <span title="Allergies">
-                  <HeartPulse className="h-4 w-4" />
-                </span>
-              )}
-              {resident.diabetic && (
-                <span title="Diabetic">
-                  <Cookie className="h-4 w-4" />
-                </span>
-              )}
-              {!resident.dnacpr && !resident.has_allergies && !resident.diabetic && (
-                <span className="text-sm text-slate-300">None</span>
-              )}
-            </div>
-          </div>
         </div>
-      </Card>
+      </div>
+    </div>
+
+  </div>
+</div>
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} className="mb-5" />
 
       {tab === "Overview" && overview && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card>
-              <p className="text-sm text-slate-500">Mobility level</p>
-              <p className="mt-1 text-lg font-semibold capitalize text-slate-900">
-                {overview.mobility_level?.replace(/_/g, " ") ?? "Not assessed"}
-              </p>
+              <CardHeader title="At a Glance" />
+              <div className="divide-y divide-slate-100">
+                <GlanceRow
+                  icon={Accessibility}
+                  label="Mobility"
+                  value={overview.mobility_level?.replace(/_/g, " ") ?? "Not assessed"}
+                  tone="bg-slate-300"
+                />
+                <GlanceRow
+                  icon={TriangleAlert}
+                  label="Falls risk"
+                  value={overview.falls_risk_level ?? "Not assessed"}
+                  tone={riskDotClass(overview.falls_risk_level)}
+                />
+                <GlanceRow
+                  icon={Shield}
+                  label="Skin integrity risk"
+                  value={overview.skin_risk_level ?? "Not assessed"}
+                  tone={riskDotClass(overview.skin_risk_level)}
+                />
+                <GlanceRow icon={PillIcon} label="Active medications" value={String(overview.active_medication_count)} tone="bg-sky-500" />
+              </div>
             </Card>
+
             <Card>
-              <p className="text-sm text-slate-500">Falls risk</p>
-              <p className="mt-1 text-lg font-semibold capitalize text-slate-900">{overview.falls_risk_level ?? "Not assessed"}</p>
+              <CardHeader title="Vitals" subtitle={overview.latest_vitals ? formatDateTime(overview.latest_vitals.recorded_at) : undefined} />
+              {overview.latest_vitals ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <VitalTile
+                    label="Blood pressure"
+                    value={`${overview.latest_vitals.blood_pressure_systolic ?? "–"}/${overview.latest_vitals.blood_pressure_diastolic ?? "–"}`}
+                  />
+                  <VitalTile label="Heart rate" value={`${overview.latest_vitals.heart_rate_bpm ?? "–"} bpm`} />
+                  <VitalTile label="Oxygen sats" value={`${overview.latest_vitals.oxygen_saturation_pct ?? "–"}%`} />
+                  <VitalTile label="NEWS2" value={`${overview.latest_vitals.news2_score ?? "–"}`} />
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">No vitals recorded.</p>
+              )}
+              {overview.weight_trend.length > 0 && (
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Weight</p>
+                  <div className="flex flex-wrap gap-2">
+                    {overview.weight_trend.map((point) => (
+                      <div key={point.recorded_at} className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-center">
+                        <p className="text-sm font-semibold text-slate-900">{point.weight_kg}kg</p>
+                        <p className="text-[11px] text-slate-500">{formatDateTime(point.recorded_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
+
             <Card>
-              <p className="text-sm text-slate-500">Skin integrity risk</p>
-              <p className="mt-1 text-lg font-semibold capitalize text-slate-900">{overview.skin_risk_level ?? "Not assessed"}</p>
-            </Card>
-            <Card>
-              <p className="text-sm text-slate-500">Active medications</p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">{overview.active_medication_count}</p>
+              <CardHeader
+                title="Recent Activity"
+                action={
+                  activity.length > 0 ? (
+                    <button type="button" onClick={() => setTab("Activity")} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                      View all
+                    </button>
+                  ) : undefined
+                }
+              />
+              <div className="divide-y divide-slate-100">
+                {activity.slice(0, 4).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTab("Activity")}
+                    className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:bg-slate-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">{item.title}</p>
+                      <p className="truncate text-xs text-slate-400">{item.detail ?? formatDateTime(item.occurred_at)}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                  </button>
+                ))}
+                {activity.length === 0 && <p className="py-4 text-center text-sm text-slate-400">No activity recorded.</p>}
+              </div>
             </Card>
           </div>
 
-          {overview.latest_vitals && (
+          {allGoals.length > 0 && (
             <Card>
-              <CardHeader title="Latest Vital Signs" subtitle={formatDateTime(overview.latest_vitals.recorded_at)} />
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div>
-                  <p className="text-xs text-slate-500">Blood pressure</p>
-                  <p className="text-sm font-medium text-slate-900">
-                    {overview.latest_vitals.blood_pressure_systolic ?? "–"}/{overview.latest_vitals.blood_pressure_diastolic ?? "–"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Heart rate</p>
-                  <p className="text-sm font-medium text-slate-900">{overview.latest_vitals.heart_rate_bpm ?? "–"} bpm</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Oxygen sats</p>
-                  <p className="text-sm font-medium text-slate-900">{overview.latest_vitals.oxygen_saturation_pct ?? "–"}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">NEWS2</p>
-                  <p className="text-sm font-medium text-slate-900">{overview.latest_vitals.news2_score ?? "–"}</p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {overview.weight_trend.length > 0 && (
-            <Card>
-              <CardHeader title="Weight Trend" subtitle="Most recent recordings" />
-              <div className="flex flex-wrap gap-3">
-                {overview.weight_trend.map((point) => (
-                  <div key={point.recorded_at} className="rounded-lg bg-slate-50 px-3 py-2 text-center">
-                    <p className="text-sm font-semibold text-slate-900">{point.weight_kg}kg</p>
-                    <p className="text-xs text-slate-500">{formatDateTime(point.recorded_at)}</p>
+              <CardHeader
+                title="Care Plan Goals"
+                action={
+                  <button type="button" onClick={() => setTab("Care Plan")} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                    View all
+                  </button>
+                }
+              />
+              <div className="flex flex-wrap gap-2">
+                {allGoals.slice(0, 6).map((goal) => (
+                  <div key={goal.id} className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm">
+                    <span className="text-slate-700">{goal.goal_text}</span>
+                    <GoalStatusPill status={goal.status} />
                   </div>
                 ))}
               </div>
@@ -306,7 +479,7 @@ export function ResidentDetailPage() {
         <Card>
           <CardHeader
             title="Recent Care Records"
-            subtitle={`${careRecords.length} entries logged`}
+            subtitle={`${careEvents.length} entries logged`}
             action={
               <Link to={`/residents/${id}/care-records`}>
                 <Button>
@@ -316,19 +489,83 @@ export function ResidentDetailPage() {
               </Link>
             }
           />
-          <div className="divide-y divide-slate-100">
-            {careRecords.map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{entry.title}</p>
-                  {entry.detail && <p className="text-xs text-slate-500">{entry.detail}</p>}
-                </div>
-                <span className="text-xs text-slate-400">{formatDateTime(entry.recorded_at)}</span>
-              </div>
-            ))}
-            {careRecords.length === 0 && <p className="py-6 text-center text-sm text-slate-400">No records yet.</p>}
-          </div>
+          {careEvents.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-400">No records yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {careEvents.map((event) => {
+                const tone = statusTone(event.status);
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => setSelectedEvent(event)}
+                    className={clsx(
+                      "flex items-center gap-2.5 rounded-xl border-2 bg-white px-3.5 py-3 text-left transition-shadow hover:shadow-sm",
+                      tone.border,
+                    )}
+                  >
+                    <span className={clsx("h-2 w-2 shrink-0 rounded-full", tone.dot)} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">{event.template_name}</span>
+                    <span className="shrink-0 text-xs text-slate-400">{formatDateTime(event.occurred_at)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </Card>
+      )}
+
+      {selectedEvent && (
+        <Modal title={selectedEvent.template_name} onClose={() => setSelectedEvent(null)}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-500">{selectedEvent.category_name}</p>
+              <span className={clsx("rounded-full px-2.5 py-1 text-xs font-medium", statusTone(selectedEvent.status).badge)}>
+                {statusTone(selectedEvent.status).label}
+              </span>
+            </div>
+            <p className="text-sm text-slate-500">
+              {formatDateTime(selectedEvent.occurred_at)}
+              {selectedEvent.duration_minutes != null ? ` · ${selectedEvent.duration_minutes} min` : ""}
+            </p>
+            <p className="text-sm text-slate-500">Performed by {selectedEvent.recorded_by_name ?? "Unknown"}</p>
+
+            {selectedEvent.summary && (
+              <div className="rounded-lg bg-slate-50 px-3 py-2.5">
+                <p className="text-sm text-slate-700">{selectedEvent.summary}</p>
+              </div>
+            )}
+
+            {selectedEvent.options.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Recorded</p>
+                <div className="space-y-1.5">
+                  {selectedEvent.options.map((option: CareEventOptionSummary, i: number) => (
+                    <div key={i} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                      <p className="font-medium text-slate-900">{option.label}</p>
+                      {option.note && <p className="text-xs text-slate-500">{option.note}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedEvent.measurements.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Measurements</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedEvent.measurements.map((measurement: CareEventMeasurementSummary, i: number) => (
+                    <div key={i} className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-xs text-slate-500">{measurement.name}</p>
+                      <p className="text-sm font-semibold text-slate-900">{measurementValueText(measurement)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {tab === "Care Plan" && (

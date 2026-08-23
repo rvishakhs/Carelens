@@ -18,6 +18,7 @@ export interface Resident {
   diabetic: boolean;
   active_care_domains: string[];
   last_activity_at: string | null;
+  photo_url: string | null;
 }
 
 // GET /residents/{id}/overview -- mirrors ResidentOverview.
@@ -216,12 +217,12 @@ export interface CareEventCreate {
   occurred_at?: string | null;
   status: CareEventStatus;
   note?: string | null;
+  duration_minutes: number;
   options: CareEventOptionCreate[];
   measurements: CareEventMeasurementCreate[];
 }
 
-// POST /care-recording/events response, GET /care-recording/residents/{id}/events
-// -- mirrors CareEventRead.
+// POST /care-recording/events response -- mirrors CareEventRead.
 export interface CareEvent {
   id: string;
   resident_id: string;
@@ -231,6 +232,39 @@ export interface CareEvent {
   recorded_by: string | null;
   status: CareEventStatus;
   note: string | null;
+  duration_minutes: number | null;
+  summary: string | null;
+}
+
+// mirrors CareEventOptionSummary.
+export interface CareEventOptionSummary {
+  label: string;
+  note: string | null;
+}
+
+// mirrors CareEventMeasurementSummary.
+export interface CareEventMeasurementSummary {
+  name: string;
+  unit: string | null;
+  value_numeric: number | null;
+  value_text: string | null;
+  value_boolean: boolean | null;
+}
+
+// GET /care-recording/residents/{id}/events -- mirrors CareEventHistoryItem.
+export interface CareEventHistoryItem {
+  id: string;
+  template_name: string;
+  category_name: string;
+  category_icon: string | null;
+  occurred_at: string;
+  status: CareEventStatus;
+  note: string | null;
+  summary: string | null;
+  duration_minutes: number | null;
+  recorded_by_name: string | null;
+  options: CareEventOptionSummary[];
+  measurements: CareEventMeasurementSummary[];
 }
 
 // GET /residents/{id}/activity -- mirrors ActivityEntry.

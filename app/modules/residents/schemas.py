@@ -67,6 +67,7 @@ class ResidentListItem(BaseModel):
     diabetic: bool
     active_care_domains: list[str]
     last_activity_at: datetime | None
+    photo_url: str | None
 
 
 class DiagnosisRead(BaseModel):

@@ -7,6 +7,7 @@ from app.modules.care_recording.repository import CareRecordingRepository
 from app.modules.care_recording.schemas import (
     CareCategoryRead,
     CareEventCreate,
+    CareEventHistoryItem,
     CareEventRead,
     CareTemplateRead,
 )
@@ -73,11 +74,11 @@ async def record_care_event(
     return CareEventRead.model_validate(event)
 
 
-@router.get("/residents/{resident_id}/events", response_model=list[CareEventRead])
+@router.get("/residents/{resident_id}/events", response_model=list[CareEventHistoryItem])
 async def list_resident_events(
     resident_id: uuid.UUID,
     _: CurrentUser = Depends(require(Permission.RECORD_CARE_EVENT)),
     repository: CareRecordingRepository = Depends(get_care_recording_repository),
-) -> list[CareEventRead]:
-    events = await repository.list_for_resident(resident_id)
-    return [CareEventRead.model_validate(e) for e in events]
+) -> list[CareEventHistoryItem]:
+    items = await repository.list_history_for_resident(resident_id)
+    return [CareEventHistoryItem(**item) for item in items]

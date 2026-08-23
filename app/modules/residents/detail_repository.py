@@ -33,7 +33,7 @@ from app.modules.residents.schemas import (
 _LIST_SQL = """
 SELECT
     r.id, r.first_name, r.last_name, r.preferred_name, r.date_of_birth, r.gender,
-    r.room_number, r.floor_id, f.name AS floor_name, r.status,
+    r.room_number, r.floor_id, f.name AS floor_name, r.status, r.photo_url,
     EXISTS (
         SELECT 1 FROM advance_care_directives d
         WHERE d.resident_id = r.id AND d.directive_type = 'DNACPR' AND d.is_current

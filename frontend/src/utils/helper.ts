@@ -4,6 +4,7 @@ import type {
   CareCategory,
   CareEvent,
   CareEventCreate,
+  CareEventHistoryItem,
   CarePlan,
   CareRecordEntry,
   CareTemplate,
@@ -64,6 +65,11 @@ export async function fetchCareTemplateDetail(templateId: string): Promise<CareT
 
 export async function createCareEvent(payload: CareEventCreate): Promise<CareEvent> {
   const { data } = await api.post<CareEvent>("/care-recording/events", payload);
+  return data;
+}
+
+export async function fetchResidentCareEvents(residentId: string): Promise<CareEventHistoryItem[]> {
+  const { data } = await api.get<CareEventHistoryItem[]>(`/care-recording/residents/${residentId}/events`);
   return data;
 }
 

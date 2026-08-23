@@ -125,3 +125,284 @@ alembic upgrade head      # should succeed again — proves the round-trip is cl
 
 If any step fails, the error will point at the specific migration file and SQL
 statement — fix it there rather than editing the database by hand.
+
+
+### Personal care
+
+* Wash
+* Dress
+* Change clothes
+* Bath
+* Bath temperature
+* Shower
+* Denture care
+* Oral hygiene
+* Wash hands
+* Wash hair
+* Brush hair
+* Catheter care
+* Make-up
+* Shave
+* Menstruation
+* Cleaning
+* Check finger nails
+* Hairdresser
+* Chiropodist
+* Check toe nails
+* Check glasses
+* Check ears
+* Hearing aid
+* Check eye
+* Laundry
+* Other
+
+### Nutrition eating and drinking
+
+* Breakfast
+* Lunch
+* Tea (meal)
+* Snack
+* Supper
+* Jelly Drops
+* Soup
+* Pudding
+* Jelly
+* Ice lolly
+* Soft drink
+* Ice cream
+* Tea (drink)
+* Coffee
+* Hot chocolate
+* Drink
+* Water
+* Juice
+* Milk
+* Milkshake
+* Thick drink
+* Ensure
+* Wine
+* Alcoholic drink
+* Fluid watch
+* Nutrition
+* Weigh
+* Food order
+* Eat out
+* Cafe
+
+### Personal safety and environment
+
+* Fridge temperature
+* Check OK
+* Change bed
+* Check mattress
+* Check bedrails
+* Check chair
+* Action mat
+* Check wheelchair
+* Wheelchair belt
+* Check sling
+* Adjust curtains
+* Check room
+* Room temperature
+* Check footwear
+* Check equipment
+* Pendant alarm
+* Other
+
+### Activities 
+
+* Entertainer
+* Exercise
+* Fete
+* Film
+* Played game
+* Games console
+* Gardening
+* Housework
+* Horse riding
+* Knitting
+* Massage
+* Music
+* Outing
+* Party
+* Pets
+* Pub
+* Quiz
+* Relaxation
+* Reading
+* ReMe
+* Daily Sparkle
+* Sensory
+* Reminisce
+* Therapeutic
+* Digital Table
+* Shopping
+* Community
+* Singing
+* Indoor skittles
+* Swimming
+* Theatre
+* TV
+* Visit relatives
+* Visitor
+* Walk outside
+* Stayed in room
+* Sitting room
+* Returned to room
+* PEC Schedule
+* Magical
+* Other
+* Oomph! Calendar
+* Oomph! Explorer
+* Oomph! OnDemand
+* Oomph! Wireless
+* Oomph! Exercise
+* Oomph! Digest
+* Armchair exercises
+* Arts/Crafts
+* Ball games
+* BBQ
+* Bingo
+* Birthday
+* Bowling
+* Church
+* Cigarette
+* Vape
+* Cinema
+* Computer
+* Concert
+* Cooking
+* Dominoes
+* Crossword
+* Driving
+* Day centre
+* Drama
+
+### Communication
+* Chatted
+* Read letter
+* Newspaper
+* Write letter
+* Email
+* Bell
+* Phone
+* Can't communicate
+* Mentoring
+* Other
+
+### Toileting
+* Toilet help
+* Urine bottle
+* Bed pan
+* Commode
+* Pad check
+* Urinate
+* Bowels opened
+* Loose bowels
+* Emptied
+* Wet clothes
+* Soiled clothes
+* Other
+* Mobility
+* Onto chair
+* Up from chair
+* Into bed
+* Out of bed
+* Hoist 2 people
+* Standing hoist
+* Handling belt
+* Elevate legs
+* Moved
+* Walk
+* Stairs
+* Turn
+* Fall
+* Other
+
+### Medical
+* Medication
+* PRN medication
+* Doctor
+* Nurse
+* Professional
+* Specialist
+* In pain
+* Massage
+* Sick
+* Call doctor
+* Ambulance
+* Wound
+* Cream
+* Heat pack
+* Compression
+* Foot splint
+* Hand splint
+* Skin integrity
+* Blood sugar
+* Blood O2
+* Insulin
+* Blood pressure
+* Blood test
+* Blood INR
+* Neuro Obs
+* Temperature
+* Soft signs
+* Respiration
+* Pulse
+* Consciousness
+* PAP therapy
+* Coronavirus
+* Oxygen level
+* Choking intervention
+* NEWS2
+* SD Check
+* SD Setup / Change
+* New catheter
+* Washout
+* Add bag
+* Cleaned
+* Epileptic seizure
+* PEG
+* Stoma
+* Suction
+* Enema
+* Tracheostomy
+* IV line flush
+* Sample
+* Multistix
+* Ear syringe
+* Clinic
+* Hospital
+* Other 
+### Emotional Support
+* Agitated
+* Confused
+* Pacing
+* Upset
+* Distressed
+* Social worker
+* Repetitive
+* Paranoid
+* Hallucinate
+* Disinhibited
+* Wandering
+* Emotional support 
+### Sleeping
+* Check sleep
+* Check pad
+* Disturbed
+* Stay in bed
+* Monitoring
+* Other
+
+### Processes
+* Handover
+* Manager
+* Personal money
+* Suspended
+* Record height
+* Complaint
+* Relative
+* Compliment
+* Transport
+* Keyworker
