@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@carelens/icons": "file:src/components/carelens-icons-0.1.0.tgz",
     "axios": "^1.19.0",
     "clsx": "^2.1.1",
     "keycloak-js": "^26.2.4",

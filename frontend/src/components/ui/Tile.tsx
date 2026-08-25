@@ -1,10 +1,13 @@
 import { clsx } from "clsx";
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+
+// Accepts icons from either lucide-react or @carelens/icons -- both are components
+// that take at least a className, which is all this renders them with.
+type TileIcon = ComponentType<{ className?: string }>;
 
 interface TileProps {
   label: string;
-  icon?: LucideIcon;
+  icon?: TileIcon;
   selected?: boolean;
   alert?: boolean;
   size?: "md" | "sm";
@@ -30,7 +33,7 @@ export function Tile({ label, icon: Icon, selected, alert, size = "md", disabled
         className,
       )}
     >
-      {Icon && <Icon className={size === "md" ? "h-6 w-6" : "h-4 w-4"} />}
+      {Icon && <Icon className={size === "md" ? "h-10 w-10" : "h-6 w-6"} />}
       <span className={clsx("leading-tight font-medium", size === "md" ? "text-xs" : "text-[11px]")}>{label}</span>
     </button>
   );

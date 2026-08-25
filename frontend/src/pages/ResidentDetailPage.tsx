@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { GoalStatusPill, Pill, StatusPill } from "@/components/ui/Pill";
 import { TileGrid } from "@/components/ui/Tile";
 import { Tabs } from "@/components/ui/Tabs";
+import { careTemplateIconFor } from "@/lib/careIcons";
 import type { ActivityEntry, CareEventHistoryItem, CareEventStatus, CarePlan, Resident, ResidentOverview } from "@/types";
 import {
   avatarColorFor,
@@ -480,6 +481,7 @@ export function ResidentDetailPage() {
             <TileGrid>
               {careEvents.map((event) => {
                 const tone = statusTone(event.status);
+                const Icon = careTemplateIconFor(event.template_name);
                 return (
                   <button
                     key={event.id}
@@ -490,7 +492,14 @@ export function ResidentDetailPage() {
                       tone.border,
                     )}
                   >
-                    <span className={clsx("h-2 w-2 shrink-0 rounded-full", tone.dot)} />
+                    {Icon ? (
+                      <span className="relative">
+                        <Icon className="h-9 w-9" />
+                        <span className={clsx("absolute -right-1 -top-1 h-2 w-2 rounded-full ring-2 ring-white", tone.dot)} />
+                      </span>
+                    ) : (
+                      <span className={clsx("h-2 w-2 shrink-0 rounded-full", tone.dot)} />
+                    )}
                     <span className="line-clamp-2 text-xs font-medium leading-tight text-slate-900">{event.template_name}</span>
                     <span className="text-[11px] text-slate-400">{formatDateTime(event.occurred_at)}</span>
                   </button>

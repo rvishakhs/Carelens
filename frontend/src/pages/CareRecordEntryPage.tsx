@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Tile, TileGrid } from "@/components/ui/Tile";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { careIconFor } from "@/lib/careIcons";
+import { careIconFor, careTemplateIconFor } from "@/lib/careIcons";
 import type { CareCategory, CareEventCreate, CareEventStatus, CareTemplate, CareTemplateSection, Resident } from "@/types";
 import { createCareEvent, fetchCareCategories, fetchCareTemplateDetail, fetchCareTemplatesByCategory, fetchResidents } from "@/utils/helper";
 
@@ -425,6 +425,7 @@ export function CareRecordEntryPage() {
                             <Tile
                               key={template.id}
                               label={template.name}
+                              icon={careTemplateIconFor(template.name)}
                               selected={selection.some((t) => t.id === template.id)}
                               onClick={() => toggleTemplateSelection(template)}
                             />
