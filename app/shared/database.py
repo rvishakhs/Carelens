@@ -42,7 +42,13 @@ _session_factory: async_sessionmaker[AsyncSession] | None = None
 
 def init_engine(database_url: str, pool_size: int = 10) -> AsyncEngine:
     global _engine, _session_factory
-    _engine = create_async_engine(database_url, pool_pre_ping=True, pool_size=pool_size)
+    _engine = create_async_engine(
+        database_url,
+        pool_size=10,
+        max_overflow=0,
+        pool_timeout=30,
+        pool_pre_ping=True,
+    )
     _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
     return _engine
 
