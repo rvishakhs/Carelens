@@ -23,6 +23,14 @@ def get_redis() -> Redis:
 
     return _redis
 
+async def check_redis() -> bool:
+    redis = get_redis()
+
+    try:
+        return bool(await redis.ping())
+    except Exception:
+        return False
+
 
 async def close_redis() -> None:
     global _redis

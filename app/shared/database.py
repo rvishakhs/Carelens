@@ -24,6 +24,8 @@ class Base(DeclarativeBase):
     pass
 
 
+
+
 class TenantMixin:
     """Common columns for every tenant-scoped table. care_home_id is what RLS filters on."""
 
@@ -56,6 +58,17 @@ def init_engine(database_url: str, pool_size: int = 10) -> AsyncEngine:
 async def dispose_engine() -> None:
     if _engine is not None:
         await _engine.dispose()
+
+async def check_database() -> bool:
+
+    session_factory = get_session_factory()
+
+    try:
+        async with session_factory() as session:
+            await session.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
 
 
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
