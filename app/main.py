@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.container import Container, build_container
 from app.shared.database import init_engine
 from app.shared.exceptions import CareLensError
+from app.shared.redis import init_redis
 from app.shared.telemetry import configure_logging, get_logger
 
 logger = get_logger(__name__)
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=exc.status_code, content={"code": exc.code, "message": exc.message})
 
     init_engine(settings.database_url, pool_size=settings.db_pool_size)
+    init_redis(settings.redis_url)
     container = build_container(settings)
     app.state.container = container
 
