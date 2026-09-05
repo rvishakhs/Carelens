@@ -18,8 +18,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
+from app.shared.telemetry import get_logger
 
-from app.main import logger
+logger = get_logger(__name__)
+
 
 
 class Base(DeclarativeBase):
@@ -70,7 +72,7 @@ async def check_database() -> bool:
             await session.execute(text("SELECT 1"))
         return True
     except Exception:
-        logger.exception("Database_health_check_failed")
+        logger.exception("Database health check failed")
         return False
 
 

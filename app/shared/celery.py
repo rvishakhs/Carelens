@@ -17,3 +17,15 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+
+##### Auto Discovery of tasks #####
+# celery_app.autodiscover_tasks([
+#     "app.workers.tasks"
+# ])
+
+
+##### Manual Discovery of tasks #####
+celery_app.conf.imports = (
+    "app.workers.tasks.task1",
+)

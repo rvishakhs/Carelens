@@ -12,8 +12,8 @@ from app.config import get_settings
 from app.container import Container, build_container
 from app.shared.database import init_engine
 from app.shared.telemetry import configure_logging, get_logger
-from workers.jobs.retention_job import run_retention_job
-from workers.jobs.summary_job import run_summary_job
+from app.workers.jobs.retention_job import run_retention_job
+from app.workers.jobs.summary_job import run_summary_job
 
 logger = get_logger(__name__)
 
