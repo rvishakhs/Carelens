@@ -19,6 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql import func
 
+from app.main import logger
+
 
 class Base(DeclarativeBase):
     pass
@@ -68,6 +70,7 @@ async def check_database() -> bool:
             await session.execute(text("SELECT 1"))
         return True
     except Exception:
+        logger.exception("Database_health_check_failed")
         return False
 
 

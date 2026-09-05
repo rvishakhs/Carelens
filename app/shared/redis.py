@@ -1,5 +1,7 @@
 from redis.asyncio import Redis
 
+from app.main import logger
+
 _redis: Redis | None = None
 
 
@@ -29,6 +31,7 @@ async def check_redis() -> bool:
     try:
         return bool(await redis.ping())
     except Exception:
+        logger.exception("redis_health_check_failed")
         return False
 
 

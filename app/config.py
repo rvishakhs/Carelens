@@ -46,6 +46,8 @@ class Settings(BaseSettings):
 
     # --- Redis / jobs ---
     redis_url: str = Field(default="redis://localhost:6379/0")
+    celery_broker_url: str = Field(default="redis://localhost:6379/1")
+    celery_result_backend: str = Field(default="redis://localhost:6379/2")
 
     # --- Identity / OIDC (Keycloak) ---
     oidc_issuer: str = Field(default="http://localhost:8080/realms/CareLens")
