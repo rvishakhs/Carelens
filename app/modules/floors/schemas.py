@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel
 
-from app.modules.floors.models import FloorType
+from app import FloorType
 
 
 class FloorCreate(BaseModel):

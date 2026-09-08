@@ -1,7 +1,7 @@
 import uuid
 
-from app.modules.audit.models import AuditAction, AuditEvent
-from app.modules.audit.repository import AuditRepository
+from app import AuditAction, AuditEvent
+from app import AuditRepository
 
 
 class AuditService:

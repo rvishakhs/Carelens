@@ -1,12 +1,12 @@
 import uuid
 from datetime import UTC, datetime
 
-from app.modules.medications.events import MedicationEventRecorded
-from app.modules.medications.models import Medication, MedicationEvent
-from app.modules.medications.repository import MedicationRepository
-from app.modules.medications.schemas import MedicationCreate, MedicationEventCreate
-from app.shared.events import EventBus
-from app.shared.exceptions import NotFoundError
+from app import MedicationEventRecorded
+from app import Medication, MedicationEvent
+from app import MedicationRepository
+from app import MedicationCreate, MedicationEventCreate
+from app import EventBus
+from app import NotFoundError
 
 
 class MedicationService:

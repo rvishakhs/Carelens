@@ -4,7 +4,7 @@ summaries.repository or summaries.models."""
 import abc
 import uuid
 
-from app.modules.summaries.schemas import SummaryRead
+from app import SummaryRead
 
 
 class SummaryReader(abc.ABC):

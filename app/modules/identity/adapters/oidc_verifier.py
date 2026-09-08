@@ -20,9 +20,9 @@ import time
 import httpx
 from jose import jwt
 
-from app.modules.identity.models import Role
-from app.modules.identity.ports import TokenClaims, TokenVerifier
-from app.shared.exceptions import UnauthenticatedError
+from app import Role
+from app import TokenClaims, TokenVerifier
+from app import UnauthenticatedError
 
 _JWKS_CACHE_TTL_SECONDS = 3600
 

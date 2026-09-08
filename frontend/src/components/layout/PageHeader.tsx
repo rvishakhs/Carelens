@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { CareHomeSelector } from "@/components/layout/CareHomeSelector";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { SyncStatusBadge } from "@/components/layout/SyncStatusBadge";
 
 export function PageHeader({
   title,
@@ -20,6 +21,7 @@ export function PageHeader({
       </div>
       <div className="flex items-center gap-3">
         {actions}
+        <SyncStatusBadge />
         <CareHomeSelector />
         <NotificationBell />
       </div>

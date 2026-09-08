@@ -1,0 +1,1269 @@
+{
+  "captured_at": "2026-09-08T11:00:03.642965+00:00",
+  "head": "d55a6d116486b0f47c0b221d9ef78aee4135b123",
+  "branch": "main",
+  "scope": "Tracked and non-ignored untracked regular files excluding docs/. Ignored files, local databases and runtime state are excluded. Hash inventory only; not a recoverable backup.",
+  "status_before_phase_0_docs": [
+    " M README.md",
+    " M app/__init__.py",
+    " M app/container.py",
+    "A  app/events/__init__.py",
+    "AM app/events/handler.py",
+    " M app/main.py",
+    " M app/modules/ai_gateway/adapters/fake_llm.py",
+    " M app/modules/ai_gateway/adapters/local_llm.py",
+    " M app/modules/ai_gateway/adapters/real_llm.py",
+    " M app/modules/ai_gateway/dependencies.py",
+    " M app/modules/ai_gateway/models.py",
+    " M app/modules/ai_gateway/module.py",
+    " M app/modules/ai_gateway/pseudonymiser.py",
+    " M app/modules/ai_gateway/repository.py",
+    " M app/modules/ai_gateway/router.py",
+    " M app/modules/ai_gateway/service.py",
+    " M app/modules/ai_insights/dependencies.py",
+    " M app/modules/ai_insights/events.py",
+    " M app/modules/ai_insights/models.py",
+    " M app/modules/ai_insights/module.py",
+    " M app/modules/ai_insights/ports.py",
+    " M app/modules/ai_insights/repository.py",
+    " M app/modules/ai_insights/router.py",
+    " M app/modules/ai_insights/service.py",
+    " M app/modules/audit/models.py",
+    " M app/modules/audit/module.py",
+    " M app/modules/audit/repository.py",
+    " M app/modules/audit/router.py",
+    " M app/modules/audit/schemas.py",
+    " M app/modules/audit/service.py",
+    " M app/modules/care_recording/dependencies.py",
+    " M app/modules/care_recording/events.py",
+    " M app/modules/care_recording/models.py",
+    " M app/modules/care_recording/module.py",
+    " M app/modules/care_recording/ports.py",
+    " M app/modules/care_recording/repository.py",
+    " M app/modules/care_recording/router.py",
+    " M app/modules/care_recording/schemas.py",
+    " M app/modules/care_recording/service.py",
+    " M app/modules/floors/dependencies.py",
+    " M app/modules/floors/events.py",
+    " M app/modules/floors/models.py",
+    " M app/modules/floors/module.py",
+    " M app/modules/floors/repository.py",
+    " M app/modules/floors/router.py",
+    " M app/modules/floors/schemas.py",
+    " M app/modules/floors/service.py",
+    " M app/modules/handover/adapters/recency_ranker.py",
+    " M app/modules/handover/events.py",
+    " M app/modules/handover/module.py",
+    " M app/modules/handover/ports.py",
+    " M app/modules/handover/router.py",
+    " M app/modules/handover/schemas.py",
+    " M app/modules/handover/service.py",
+    " M app/modules/identity/adapters/keycloak_admin.py",
+    " M app/modules/identity/adapters/oidc_verifier.py",
+    " M app/modules/identity/dependencies.py",
+    " M app/modules/identity/events.py",
+    " M app/modules/identity/models.py",
+    " M app/modules/identity/module.py",
+    " M app/modules/identity/permission_registry.py",
+    " M app/modules/identity/permissions.py",
+    " M app/modules/identity/repository.py",
+    " M app/modules/identity/router.py",
+    " M app/modules/identity/schemas.py",
+    " M app/modules/identity/service.py",
+    " M app/modules/medications/events.py",
+    " M app/modules/medications/models.py",
+    " M app/modules/medications/module.py",
+    " M app/modules/medications/ports.py",
+    " M app/modules/medications/repository.py",
+    " M app/modules/medications/router.py",
+    " M app/modules/medications/schemas.py",
+    " M app/modules/medications/service.py",
+    " M app/modules/observations/adapters/rule_based_structurer.py",
+    " M app/modules/observations/dependencies.py",
+    " M app/modules/observations/events.py",
+    " M app/modules/observations/models.py",
+    " M app/modules/observations/module.py",
+    " M app/modules/observations/ports.py",
+    " M app/modules/observations/repository.py",
+    " M app/modules/observations/router.py",
+    " M app/modules/observations/schemas.py",
+    " M app/modules/observations/service.py",
+    " M app/modules/residents/dependencies.py",
+    " M app/modules/residents/detail_repository.py",
+    " M app/modules/residents/events.py",
+    " M app/modules/residents/models.py",
+    " M app/modules/residents/module.py",
+    " M app/modules/residents/ports.py",
+    " M app/modules/residents/repository.py",
+    " M app/modules/residents/router.py",
+    " M app/modules/residents/schemas.py",
+    " M app/modules/residents/service.py",
+    " M app/modules/summaries/dependencies.py",
+    " M app/modules/summaries/events.py",
+    " M app/modules/summaries/models.py",
+    " M app/modules/summaries/module.py",
+    " M app/modules/summaries/ports.py",
+    " M app/modules/summaries/repository.py",
+    " M app/modules/summaries/router.py",
+    " M app/modules/summaries/schemas.py",
+    " M app/modules/summaries/service.py",
+    " M app/shared/celery.py",
+    "AM app/shared/celery_events.py",
+    " M app/shared/database.py",
+    " M app/shared/events.py",
+    " M app/shared/redis.py",
+    "AM app/workers/tasks/events.py",
+    " M frontend/src/components/layout/AppLayout.tsx",
+    " M frontend/src/components/layout/PageHeader.tsx",
+    " M frontend/src/lib/api.ts",
+    " M frontend/src/pages/CareRecordEntryPage.tsx",
+    " M frontend/src/types/index.ts",
+    " M frontend/tsconfig.app.tsbuildinfo",
+    " M migrations/env.py",
+    " M migrations/versions/0018_permissions_schema.py",
+    " M pyproject.toml",
+    " M synthdata/cli.py",
+    " M synthdata/generator.py",
+    " M tests/conftest.py",
+    " M tests/rbac/test_identity_bootstrap.py",
+    " M tests/rbac/test_permission_matrix.py",
+    " M tests/rbac/test_rls_isolation.py",
+    " M tests/unit/test_observation_plausibility.py",
+    " M tests/unit/test_pseudonymiser.py",
+    " M tests/utils/helper.py",
+    " M uv.lock",
+    "?? docs/intelligence-implementation-plan.md",
+    "?? frontend/src/components/layout/SyncStatusBadge.tsx",
+    "?? frontend/src/lib/careEventQueue.ts",
+    "?? frontend/src/store/syncQueueStore.ts",
+    "?? migrations/README.md",
+    "?? migrations/versions/0029_care_event_idempotency_key.py"
+  ],
+  "index_sha256": "d65d39f10de4f1e4eb9dfbd27d477128957a6e5e7f824cba2fe4d35f09746b22",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "996022ae8c2f2836b2e0a5f387fddad67a6e045a8c13b1165fc1db3254cc5ab5"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "63b281b71eb2feefc6077f0e00017a2f4029c5717be6ec3abd3747402a7bce34"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "5ce385ade2aaf5e7815b008fc507d6d3c450e8e90bed343d28c483371acc394d"
+    },
+    {
+      "path": ".idea/.gitignore",
+      "sha256": "be4cc3de7958b6a973a8c1b41479eed7a40d1bf1a6b9e10402f3e3aead933fd4"
+    },
+    {
+      "path": ".idea/Carelens.iml",
+      "sha256": "8824a75b8d0db6fa2e3b811378081c5f13151139e9c614ea40f742ac274bf379"
+    },
+    {
+      "path": ".idea/inspectionProfiles/profiles_settings.xml",
+      "sha256": "6172c5997eeb3cd19c9ca2b5b97d6e2983cdd1fa60b2460d7bbb74055edcaa46"
+    },
+    {
+      "path": ".idea/modules.xml",
+      "sha256": "5bdc9d5bd67df108f0560405ced63f4422ad6be4345a8be8d0bd802bf41c399d"
+    },
+    {
+      "path": ".idea/vcs.xml",
+      "sha256": "55768f1f84fb117f1d0fc383e180b5d0aa5e5e6584c8c4a2995c15b4237f0972"
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "5edf795c98ffa337ff19662e79a7a69f97f2204b4d705db4d83dbc83db304438"
+    },
+    {
+      "path": "README.md",
+      "sha256": "f115f17258c067d88ff277017b34fa02b85c33b8879d54a3c152d3b1541d8d88"
+    },
+    {
+      "path": "alembic.ini",
+      "sha256": "a0430ac4bd0b9b4360e61e6e503b73274e62b9dfa9ac328d698b293cae6aaffd"
+    },
+    {
+      "path": "app/__init__.py",
+      "sha256": "5fca59e27dc4788253b27321aa2dd82f84ff396e8b76be9c6d09be07e9935e3e"
+    },
+    {
+      "path": "app/config.py",
+      "sha256": "46e2449402d140c9d2feb130d4b2a742aa91cbf9049c2420f9b68275d338aa8f"
+    },
+    {
+      "path": "app/container.py",
+      "sha256": "c26693b94de2e43fc519fcdd030c5665d1c04db1fe793b6e7bc19cd5e05daf1a"
+    },
+    {
+      "path": "app/events/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/events/handler.py",
+      "sha256": "91f4596e28bb2b60e401c64885c98ded821f0ae0fa96b4f51e09ad6feace6d9e"
+    },
+    {
+      "path": "app/main.py",
+      "sha256": "bdd9fe82f6b7d3684dfd783c9cef0842fb0ad22650fb58be9d750e2a5dd09870"
+    },
+    {
+      "path": "app/modules/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/ai_gateway/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/ai_gateway/adapters/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/ai_gateway/adapters/fake_llm.py",
+      "sha256": "e98c3d623fc6cbb21dc3170d91d1c15897eed9d4c86333c9eb5e1dce7b9fe7a1"
+    },
+    {
+      "path": "app/modules/ai_gateway/adapters/local_llm.py",
+      "sha256": "e6fab3d1a24ca73eca323ad53033f543ced31d1b6003c95953965a0c804107f1"
+    },
+    {
+      "path": "app/modules/ai_gateway/adapters/real_llm.py",
+      "sha256": "3a5b788080c7939e8eaa945a0cbb7f3efca35b63fa6cff1f21775558c755dbd1"
+    },
+    {
+      "path": "app/modules/ai_gateway/dependencies.py",
+      "sha256": "99fc7ef3e282686f79dafc3573d7c596c95d3aabd377ce52fc961497afc77e04"
+    },
+    {
+      "path": "app/modules/ai_gateway/events.py",
+      "sha256": "29c015b34d7160602c30ef157eeda9bf7b9ca02008a10b4389123552f1499247"
+    },
+    {
+      "path": "app/modules/ai_gateway/models.py",
+      "sha256": "57a43273a76e8ff0708e9a787dde822d01726c5c3d37e705065aecb575386438"
+    },
+    {
+      "path": "app/modules/ai_gateway/module.py",
+      "sha256": "c778d41867c29970eef676e01887736ed1bc32a4d050d3ba7acbf9be199dfc80"
+    },
+    {
+      "path": "app/modules/ai_gateway/ports.py",
+      "sha256": "c91802f87dbcc8e63bf497a3d5a2b6cb62cc43dcee9455c53682adf9f73efa41"
+    },
+    {
+      "path": "app/modules/ai_gateway/prompts/daily_summary/v1.md",
+      "sha256": "cd74dbd1a69088f88bc7e30a817b5211b56d731573ae9ef14295dfeb27804a77"
+    },
+    {
+      "path": "app/modules/ai_gateway/pseudonymiser.py",
+      "sha256": "128d155f861d44d903b38bbf79f7e6a81c711a26bf81da8ecb2c5d1072f33010"
+    },
+    {
+      "path": "app/modules/ai_gateway/repository.py",
+      "sha256": "ca327fcb089a9b50eeb8e29c456efd19bc7ef1c0905b5a43b9fac415664664a0"
+    },
+    {
+      "path": "app/modules/ai_gateway/router.py",
+      "sha256": "c567a8c18c61213573c1f1e7098b3c17581fbe8a88533e6110337c34d2f2a376"
+    },
+    {
+      "path": "app/modules/ai_gateway/schemas.py",
+      "sha256": "31539fa3f11da693e2cd4ff862913307447142c08eefbb30c4d9f286b6a32036"
+    },
+    {
+      "path": "app/modules/ai_gateway/service.py",
+      "sha256": "3d239c3522ce68d0716a7ef3e9593b9287ec668cc36c0e9eae8c3e78774c8f39"
+    },
+    {
+      "path": "app/modules/ai_insights/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/ai_insights/dependencies.py",
+      "sha256": "8ce658642af4746e8dcf96a8bed96bd50fdf00f0f3c3fca3b0433cfb83bd60f5"
+    },
+    {
+      "path": "app/modules/ai_insights/events.py",
+      "sha256": "0ff92f7d8e2b67e00fe81f3e42bee4366cde6686f7e0e2777c9a258a61df5a02"
+    },
+    {
+      "path": "app/modules/ai_insights/models.py",
+      "sha256": "577ea398ad44a6e4782a924a814bf3e444b93341e391a56ec8c62d812539ea74"
+    },
+    {
+      "path": "app/modules/ai_insights/module.py",
+      "sha256": "89cc5de6b7a287825d00877918eaf140eb2b3a33b627b44e29cdeeb7c03eb574"
+    },
+    {
+      "path": "app/modules/ai_insights/ports.py",
+      "sha256": "4cdfe56a5f3ce10ed0d4b435f5e93f3a358eaabd15a881c878f9a456073e2e82"
+    },
+    {
+      "path": "app/modules/ai_insights/repository.py",
+      "sha256": "33494cb448e896badd640bf672b7d474aeafde6614d126bbc683f0177d929097"
+    },
+    {
+      "path": "app/modules/ai_insights/router.py",
+      "sha256": "2e885a39c30bdb89ab8ee92d77ebd0e669d46bf8e685d9b187840090ce3ae5db"
+    },
+    {
+      "path": "app/modules/ai_insights/schemas.py",
+      "sha256": "689cf076e3109dfea7322e8a3010e079612f3b99b337ab5e5b057db6d015327a"
+    },
+    {
+      "path": "app/modules/ai_insights/service.py",
+      "sha256": "706e083e2ba4e061fa9429a19603cc527a9b86bb262d5a784f0b184e7eb62bd7"
+    },
+    {
+      "path": "app/modules/audit/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/audit/events.py",
+      "sha256": "e20d518a83adfabe743c55d169817ba4c764e73fe05685a0e23c641aaa619903"
+    },
+    {
+      "path": "app/modules/audit/models.py",
+      "sha256": "2f53e5b5eccad30bec25c4e62634d6533c58ea8deb2c3b5e97ee78eb819e1853"
+    },
+    {
+      "path": "app/modules/audit/module.py",
+      "sha256": "407dc1b7c82d26d3f49080a0d0935b6cabc2f8836209a5a1c38c5549cbcd632c"
+    },
+    {
+      "path": "app/modules/audit/ports.py",
+      "sha256": "e6ec143e92dcee8831e721f4bf012df7ec19bacd46b93d08e20cf22977b6a984"
+    },
+    {
+      "path": "app/modules/audit/repository.py",
+      "sha256": "4e5e2d362070aebf769ef70deae69628f0d9be5a865a5d28a93cc648c9d2f407"
+    },
+    {
+      "path": "app/modules/audit/router.py",
+      "sha256": "80ce6880e1be55d21d941948944d1471eca8beddbde5fb2bf8b4fed71133e5fc"
+    },
+    {
+      "path": "app/modules/audit/schemas.py",
+      "sha256": "7e0781e2df8f2501ab46504cccb1722d2f2b5005d21e2776f6f79acb3401a275"
+    },
+    {
+      "path": "app/modules/audit/service.py",
+      "sha256": "3993f8c7b4f05f3f4ba039d392e14183377e208fd6819f77f67d858657c02732"
+    },
+    {
+      "path": "app/modules/care_recording/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/care_recording/dependencies.py",
+      "sha256": "fdc1c0286748a5f6cc67343430ca714641077706ef993ef79359fcf161ccdaf1"
+    },
+    {
+      "path": "app/modules/care_recording/events.py",
+      "sha256": "790382efd7ba064eba06cbfb569ed1aece1a3e59006679cf18eaf88eee6b85ae"
+    },
+    {
+      "path": "app/modules/care_recording/models.py",
+      "sha256": "096bcdca37d6a186329ba9f771f1f524dd14711279355c8d1463196249b41a7c"
+    },
+    {
+      "path": "app/modules/care_recording/module.py",
+      "sha256": "fdb97e52f74662422fac252aa581c1c739d7a0546a590367d1c22c23046c3a98"
+    },
+    {
+      "path": "app/modules/care_recording/ports.py",
+      "sha256": "715c337a065a4b36b11bd306259f55e7e34ed4ca1a2d64aeb9adfee37638587a"
+    },
+    {
+      "path": "app/modules/care_recording/repository.py",
+      "sha256": "514ec5acca7e1315b6ca913ab032a58c9d5c418e6e7c3d2b5fe6cd80df5282a2"
+    },
+    {
+      "path": "app/modules/care_recording/router.py",
+      "sha256": "23f449b31efbf072b6b3d25894df412ffcd6e826d4db0ec66970ac2a1a3049ef"
+    },
+    {
+      "path": "app/modules/care_recording/schemas.py",
+      "sha256": "fa895d246b0aed4992d437b6bbec4e6b534536a3e7043036627fb64871e27678"
+    },
+    {
+      "path": "app/modules/care_recording/service.py",
+      "sha256": "e6fe2470c2f767d580bf1a653046ef380e7d6bbf69b9388976137c18b5e0614c"
+    },
+    {
+      "path": "app/modules/floors/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/floors/dependencies.py",
+      "sha256": "00887abc53cdb73131d1e0ecaf5156a3af494838a946b34a870ec6a5e102579f"
+    },
+    {
+      "path": "app/modules/floors/events.py",
+      "sha256": "79f2f0261ef39c1532857414fdcb5c7068b704ca8e0aaf26c4284c2bf954f21e"
+    },
+    {
+      "path": "app/modules/floors/models.py",
+      "sha256": "45a573ccca80cc41b00d5f29590f2b488a9df947e06f30994c2d0e41ab70a23d"
+    },
+    {
+      "path": "app/modules/floors/module.py",
+      "sha256": "87aedcb2d4ba92eeaf3ffcd57c636493904598434836e153f6d2242f52185b4f"
+    },
+    {
+      "path": "app/modules/floors/ports.py",
+      "sha256": "148a571f1386be101558a6764313c67f54174c143341118767e8c84da4e8ab9e"
+    },
+    {
+      "path": "app/modules/floors/repository.py",
+      "sha256": "571459abde3be12e0f4caf384f67ad297cd35f9b4d863cc51423a7e34bcbf003"
+    },
+    {
+      "path": "app/modules/floors/router.py",
+      "sha256": "1edb291fff881c925908b829260e441b902caac9c06d20c03eb0e289657658eb"
+    },
+    {
+      "path": "app/modules/floors/schemas.py",
+      "sha256": "bf503d1c6d06148db093fb77d8f0465b70b7c09c17053160def321dd29c4fa8d"
+    },
+    {
+      "path": "app/modules/floors/service.py",
+      "sha256": "69f55cc07f9a9257757f01165a0b5eacfd4ab9ed245681fb9c88d76e4322a97f"
+    },
+    {
+      "path": "app/modules/handover/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/handover/adapters/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/handover/adapters/recency_ranker.py",
+      "sha256": "f2f14b996351371ba6fad864ab2792f5ce9d1df90977ab1f67180c876542f799"
+    },
+    {
+      "path": "app/modules/handover/events.py",
+      "sha256": "7eb4fe516e09a656ae38d6d03485e564d038e00917f695045c25518ea1a53242"
+    },
+    {
+      "path": "app/modules/handover/module.py",
+      "sha256": "014f87d53d015595a6de243c3d9e8e01fe781ec809998c5c4317811478c7d968"
+    },
+    {
+      "path": "app/modules/handover/ports.py",
+      "sha256": "d55c28b5ef02d22f9fdf3beabca31710bb592e73d667586ee4a66ccca0c1df48"
+    },
+    {
+      "path": "app/modules/handover/router.py",
+      "sha256": "b46d0cfe1bce297bb4bd9396a703f2a183e02938eaa60100576a4d519af1a674"
+    },
+    {
+      "path": "app/modules/handover/schemas.py",
+      "sha256": "0a88a72020d399d48824c8db729fd8496df710a22d78467f52e36ad7bf12e553"
+    },
+    {
+      "path": "app/modules/handover/service.py",
+      "sha256": "91104546359fa65107d10ed19c7122a5295efde35ec20c040b1c41956c3f1af6"
+    },
+    {
+      "path": "app/modules/identity/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/identity/adapters/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/identity/adapters/keycloak_admin.py",
+      "sha256": "5f61998161b598b81cb76398f9f526a6e625571d006f8e271ed310b2bf9f9817"
+    },
+    {
+      "path": "app/modules/identity/adapters/oidc_verifier.py",
+      "sha256": "0bb049c1b5820f6dfc46818af2a456d0761bf8d60f3723e3752957589d5f7a37"
+    },
+    {
+      "path": "app/modules/identity/dependencies.py",
+      "sha256": "8e938791460f87de9ff936ce6dd74233cc58e2bd76169f761350ab3473f8d317"
+    },
+    {
+      "path": "app/modules/identity/events.py",
+      "sha256": "0b60cc775aff64ea2950dd0fc57307382976690e8679a2787c458cdc9afad4b5"
+    },
+    {
+      "path": "app/modules/identity/models.py",
+      "sha256": "01a81e0cc298ef24d29d1a5262b814ffba2f826099aedda455d190f7d83ddff6"
+    },
+    {
+      "path": "app/modules/identity/module.py",
+      "sha256": "109c7a88fd509c34a2d71d059b3a1c571f07530835853d9b16c36bd3609c7162"
+    },
+    {
+      "path": "app/modules/identity/permission_registry.py",
+      "sha256": "0a2db9f7605080c0d89c517ffd41b30d574c46d04f83ee8035664102998b1299"
+    },
+    {
+      "path": "app/modules/identity/permissions.py",
+      "sha256": "f770960830d91b375698ca0f6d47ca29a3de9c52329c7afbc8256d8d69b266cf"
+    },
+    {
+      "path": "app/modules/identity/ports.py",
+      "sha256": "a36a2a75f758c654e39788c7b210422e2791143bc3d7835914bc766c009549db"
+    },
+    {
+      "path": "app/modules/identity/repository.py",
+      "sha256": "cf43ebbe450b2d48ecf3f928fad2d0531073e003d97b4bd6dd1bb46c5c9d5693"
+    },
+    {
+      "path": "app/modules/identity/router.py",
+      "sha256": "3dd4c2fe6fe98aa968a14e5fe0c7d4ede8ae401d129c2349e1c93336a6456193"
+    },
+    {
+      "path": "app/modules/identity/schemas.py",
+      "sha256": "a06844d17d33c5c19f66f72c2e23ea1d13de92e5295a49dd3ebf534aa30241a9"
+    },
+    {
+      "path": "app/modules/identity/service.py",
+      "sha256": "f25b5b9bcbd8ce4988a8b7e7d2c1b78bd721030f4b54a176b49f0252d7e589be"
+    },
+    {
+      "path": "app/modules/medications/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/medications/events.py",
+      "sha256": "10225cd8f1e7a955c4b5af22d4b57b4703410b47718b9b495f33bcc605fe0069"
+    },
+    {
+      "path": "app/modules/medications/models.py",
+      "sha256": "10df8d87592cb3827a05983b43b81c579e37811e7b78e7ff0f78e96b3f141631"
+    },
+    {
+      "path": "app/modules/medications/module.py",
+      "sha256": "d8ec710ed812b4f8dd2e756e68b1a8627f6c7aec7acc068cadc757968632a0b9"
+    },
+    {
+      "path": "app/modules/medications/ports.py",
+      "sha256": "69f7d1379dc09bc019fe26793400469bc4fc3aefaad133acba0c10fbb821b67a"
+    },
+    {
+      "path": "app/modules/medications/repository.py",
+      "sha256": "eea07551c03031e58a87b8f518ed896f9374b6a3fe325effeae9788851d23b40"
+    },
+    {
+      "path": "app/modules/medications/router.py",
+      "sha256": "6f2165893381614926fef2a20a10c0a06f03673ee3107565217f982c6fd07f09"
+    },
+    {
+      "path": "app/modules/medications/schemas.py",
+      "sha256": "4991f009e078dd60221575a138511c604522466671ad7e8acbd53b79e8a6d368"
+    },
+    {
+      "path": "app/modules/medications/service.py",
+      "sha256": "d1035c805d818f6e229f6884b4ccdf21eea498eab8872239d455455e5eade8d5"
+    },
+    {
+      "path": "app/modules/observations/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/observations/adapters/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/observations/adapters/rule_based_structurer.py",
+      "sha256": "89170eaec058ad4a8cb81eecf7ba0201cc7bd69476124db71e08fa4a8226d338"
+    },
+    {
+      "path": "app/modules/observations/dependencies.py",
+      "sha256": "89598435765303a89326a5be94c70c78497012e842ddea11704e44c64ed92f00"
+    },
+    {
+      "path": "app/modules/observations/events.py",
+      "sha256": "1721006e3dcc8960fe9cb889b3bb8012a235a8fe2013eeadd372a7295019d25f"
+    },
+    {
+      "path": "app/modules/observations/models.py",
+      "sha256": "23ac6c2a7654b6b235328457e12761f81d5285374c8c5a6e3b3553ab3cea41e9"
+    },
+    {
+      "path": "app/modules/observations/module.py",
+      "sha256": "589dbd2470769437fd011ce64bb56b2023d1cffd4d491eff7f967ad6e999d7f4"
+    },
+    {
+      "path": "app/modules/observations/ports.py",
+      "sha256": "c51d367d736593ec513cddf05845ebfa19428c7188328b089f53e572ccb229ab"
+    },
+    {
+      "path": "app/modules/observations/repository.py",
+      "sha256": "2eb875791e969281764cec39b9c47a31bf2831448f040e7f8417c938c7002763"
+    },
+    {
+      "path": "app/modules/observations/router.py",
+      "sha256": "1865c4d89a3323cc58d18c7236f1b6322d99501ea6c976f8770c6f03baf10ac3"
+    },
+    {
+      "path": "app/modules/observations/schemas.py",
+      "sha256": "ae1b4ceb68279ba543d853b976eca6dbfbd189ba5837295c9ab728cee7280c7a"
+    },
+    {
+      "path": "app/modules/observations/service.py",
+      "sha256": "157af081c54a1928024d381d6d3f93d1f1d2b727c1a9ae5afce37baba2654a7d"
+    },
+    {
+      "path": "app/modules/residents/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/residents/dependencies.py",
+      "sha256": "c4f38ef2b48de738755646392294e28568f9ab38bc258d154337551278316995"
+    },
+    {
+      "path": "app/modules/residents/detail_repository.py",
+      "sha256": "533bd61b74968f306dc28ec60a6b30fdb4336daa160a66b284904d824600e422"
+    },
+    {
+      "path": "app/modules/residents/events.py",
+      "sha256": "fe3a9eb27865a80943962f2a2052f601379e22f39e0a6abb446d541f37e9ed23"
+    },
+    {
+      "path": "app/modules/residents/models.py",
+      "sha256": "8d74670b817c06a26af7343d332bc8e43702ce8535bc3c802d6d693787064fc6"
+    },
+    {
+      "path": "app/modules/residents/module.py",
+      "sha256": "9ebecb8a263f96f16b97b8ab336edc21a8800493f908d39e011ed2582021be00"
+    },
+    {
+      "path": "app/modules/residents/ports.py",
+      "sha256": "74b4173915c53148bae89513c3e5263d7c5fc42e179f9481197696093439e9ab"
+    },
+    {
+      "path": "app/modules/residents/repository.py",
+      "sha256": "25f0afd98d13f5151f469de8dc50eb733f140d1df4edf05467136310f9a9901e"
+    },
+    {
+      "path": "app/modules/residents/router.py",
+      "sha256": "078a6fa6c158b434bff64ec17f7edfdfcfd2c36ca0c974c29944fa1231095a59"
+    },
+    {
+      "path": "app/modules/residents/schemas.py",
+      "sha256": "803f3839300426e2f1d77e56c6f171d647f4859a17217399b777823888ad325c"
+    },
+    {
+      "path": "app/modules/residents/service.py",
+      "sha256": "98ac905e9b9c0f2cc5c2204892df7bd256562746cfe49cdd95a875517d34ff8b"
+    },
+    {
+      "path": "app/modules/summaries/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/modules/summaries/dependencies.py",
+      "sha256": "562c6544a0110033f1f9a48066547d1940de3c04786b1eb0da40a3674eb40a30"
+    },
+    {
+      "path": "app/modules/summaries/events.py",
+      "sha256": "ba3f802ca28f813f86362dc8674d5bb8a16a2e0e2aa09fee7d1bf4ccbadf9ff9"
+    },
+    {
+      "path": "app/modules/summaries/models.py",
+      "sha256": "a557bd5f95bad71aac6c9b8fa7e6dcd6d6f8fead43cd49b3ae1d8ee7a130e327"
+    },
+    {
+      "path": "app/modules/summaries/module.py",
+      "sha256": "e61a0955698e0631d884a6d41bcd48a083b90e8066d06ef613d7033ae02f70cd"
+    },
+    {
+      "path": "app/modules/summaries/ports.py",
+      "sha256": "d78347a04d995c6e5de73f336894a83272f44912c741e72e7104f3d7a61f120e"
+    },
+    {
+      "path": "app/modules/summaries/repository.py",
+      "sha256": "a5f78ae0779535e98e91c283aee243913de639794ca8b5db0c93ee70c11133bc"
+    },
+    {
+      "path": "app/modules/summaries/router.py",
+      "sha256": "0b13679bd3e14097191d9cc923997f179e719b53ae0988536cb0fcf66a703312"
+    },
+    {
+      "path": "app/modules/summaries/schemas.py",
+      "sha256": "a35ee4e071a1f4345fe256286906caa456d7f634eff2bb90433297d5cf3dfb9a"
+    },
+    {
+      "path": "app/modules/summaries/service.py",
+      "sha256": "ea4150dacf1198e9da4428a4a694c2a934a09dfe2c5e9c457e87d6b77f014c47"
+    },
+    {
+      "path": "app/shared/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/shared/celery.py",
+      "sha256": "519b4f8756cb07642eaed58d631f743a26c417dc6e81a11494e0fece97ca6669"
+    },
+    {
+      "path": "app/shared/celery_events.py",
+      "sha256": "9f375c70b232d815f7a0052b986167d209e096c987a918a1f1151e59a7dfe141"
+    },
+    {
+      "path": "app/shared/database.py",
+      "sha256": "ef42906a90f937c029ea04e1a0faa6bf9f7da3ac6dd4e1f505f500c8d19fa4c8"
+    },
+    {
+      "path": "app/shared/events.py",
+      "sha256": "f6344bc48f7d8f344e7162bdcd4a2e233a1dabee580b574e9d9df14663e68729"
+    },
+    {
+      "path": "app/shared/exceptions.py",
+      "sha256": "f579629f339a4392ccc9f6a89080c89775d4b241ba4ff7c87f6db00982194040"
+    },
+    {
+      "path": "app/shared/redis.py",
+      "sha256": "a260543f24496c0a6ea0cd77c524256dc229f17db3d179ad6a91395e79978c84"
+    },
+    {
+      "path": "app/shared/security.py",
+      "sha256": "773d5f4657cc63460f570a0b4ad693e48cb6d7df48fd95adb42a74379dece00e"
+    },
+    {
+      "path": "app/shared/telemetry.py",
+      "sha256": "13f99ffabfa3c3134403f2afef17cb0a9b4ee027c6930bd1cfa7da649ae054e6"
+    },
+    {
+      "path": "app/workers/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/workers/jobs/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/workers/jobs/retention_job.py",
+      "sha256": "2435ebe698c4bbbb498a026e3178e157efe3932a50ba98b601c5c2fc9c71b6cd"
+    },
+    {
+      "path": "app/workers/jobs/summary_job.py",
+      "sha256": "092def6ef27329f9f85aebfee0d11e043b285d39dd2122c86fa93f7264caf1e3"
+    },
+    {
+      "path": "app/workers/scheduler.py",
+      "sha256": "d72909ee10a12e09e4648a6fc04e9e5254e8f0779a8ea08566bbbb896ccf8a17"
+    },
+    {
+      "path": "app/workers/tasks/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/workers/tasks/events.py",
+      "sha256": "528f15f103e3899aeda4a94ef4db774e607d7669ee9590841a74ab3b4ed8b439"
+    },
+    {
+      "path": "app/workers/tasks/task1.py",
+      "sha256": "8898f304d38ccd0562753fdfed551f7d76a6de9facf2580343417457262d2ba4"
+    },
+    {
+      "path": "docker-compose.yml",
+      "sha256": "b389d6fe504b1902e8a35634126629e6a3ce796176bc989b7bdd9bbcc3f9daf4"
+    },
+    {
+      "path": "frontend/index.html",
+      "sha256": "0e1199a6d1f968e06fd9f19680923ccb6a9d10b594d566bc944571249cfa7896"
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "sha256": "0c3345f6a880a50179b5006b76f714eda850f0f7db88f015a02bde2cb907fe5a"
+    },
+    {
+      "path": "frontend/package.json",
+      "sha256": "381566f28de601d68dad8f68281397739bd7c77832e02b6ffaed984254a84a6e"
+    },
+    {
+      "path": "frontend/public/favicon.svg",
+      "sha256": "0db507e1e9dd94bcd2faba13104617e2c1466c5a0082bb7f832d32ce8708c3f7"
+    },
+    {
+      "path": "frontend/src/App.tsx",
+      "sha256": "e9a157170fac1878c3631a3eb154de6e382e9ec0491f11e7f939dd8973ec1948"
+    },
+    {
+      "path": "frontend/src/components/carelens-icons-0.1.0.tgz",
+      "sha256": "74c8c4c52887efd9fc7ec148ea7c28404ae99e75c7ce79876a0ac1e0f1607f89"
+    },
+    {
+      "path": "frontend/src/components/layout/AppLayout.tsx",
+      "sha256": "99baa53c6485ac1f36d5e040d726af574a531de94da66e6726b3599d000c3fc1"
+    },
+    {
+      "path": "frontend/src/components/layout/CareHomeSelector.tsx",
+      "sha256": "92d6482b42bcebd13ff22c6b8188687e04dac0ef36c390d3936bc4705a735e97"
+    },
+    {
+      "path": "frontend/src/components/layout/NotificationBell.tsx",
+      "sha256": "59b8cb7e6fd3ed58d1f594f8edfc01d0f29120a9a2ecfc9b1bbdd71b5b2a1ba6"
+    },
+    {
+      "path": "frontend/src/components/layout/PageHeader.tsx",
+      "sha256": "d5d40eb10fb1db61f765bfd125e2de204ad78d3bd3162abc5bb63b35918a8dcc"
+    },
+    {
+      "path": "frontend/src/components/layout/ProtectedRoute.tsx",
+      "sha256": "86509a83db40443bbfe5dede4fc00b0d386c970dec1e4de7f7c687309226fbd7"
+    },
+    {
+      "path": "frontend/src/components/layout/Sidebar.tsx",
+      "sha256": "327144e67b12ad0044a68d9ae9517c1f72be6d40d949fdb756fcde0cefec43e9"
+    },
+    {
+      "path": "frontend/src/components/layout/SyncStatusBadge.tsx",
+      "sha256": "41b38bf511794606869b618a6fcb8bb9299afb35703fbe644e3608713dfab457"
+    },
+    {
+      "path": "frontend/src/components/ui/Avatar.tsx",
+      "sha256": "29f52000a3ce4bf0f2bac0550593330cebb2557a70e320af81a13347dd104c75"
+    },
+    {
+      "path": "frontend/src/components/ui/Button.tsx",
+      "sha256": "1f5bd1ad7b8016955a9647afcc8ee750dee91b78a53caa819b5b54039d2acef8"
+    },
+    {
+      "path": "frontend/src/components/ui/Card.tsx",
+      "sha256": "2373e15e5cf9cb95ea7a0b411de9d39af52361b4922186dfe0e4d9fb0a5b664b"
+    },
+    {
+      "path": "frontend/src/components/ui/Modal.tsx",
+      "sha256": "b62165b93866a0095ad09308075b5975e3539d46b9977bfd7b43c9405de86a45"
+    },
+    {
+      "path": "frontend/src/components/ui/Pill.tsx",
+      "sha256": "1eab583eec2816e6eb9318bb50d4a411ec98205fcbfaa4f2381089a6b9fb7874"
+    },
+    {
+      "path": "frontend/src/components/ui/StatCard.tsx",
+      "sha256": "63753a0225e9cbed48f761574e6e0f03920cd86547ae35cba604d0b9393d00fc"
+    },
+    {
+      "path": "frontend/src/components/ui/Tabs.tsx",
+      "sha256": "bf540381c2d8b8de636e21bb1d8ec94e0394fca846da67ad74db866f99375a47"
+    },
+    {
+      "path": "frontend/src/components/ui/Tile.tsx",
+      "sha256": "99a4cd0f53167cbccb103bee02e2364a8f075c19cb8673aa85397b82a1a6199b"
+    },
+    {
+      "path": "frontend/src/index.css",
+      "sha256": "eb56d96d145667319af3b20bcbbc5f8533cde656891478e896d74fa365b34d14"
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "sha256": "71de80941064190f28120f60df139b5d919bcab9839075bac349dee8892cde67"
+    },
+    {
+      "path": "frontend/src/lib/careEventQueue.ts",
+      "sha256": "7f673584338209e51a078cd7d21b3bbafcadf5f5e9b67e36c625b247ed9eadca"
+    },
+    {
+      "path": "frontend/src/lib/careIcons.tsx",
+      "sha256": "a5604ced813782080f50e10aa3e0855238933793bf6a58cdd80ebb2f530b58ad"
+    },
+    {
+      "path": "frontend/src/lib/errors.ts",
+      "sha256": "5cababe4a1362d0a2ebac75adf4856c0463806e75ec43cc8bde36b1f7efb5ee4"
+    },
+    {
+      "path": "frontend/src/lib/format.ts",
+      "sha256": "8989c7dd2fc70db43e8f0b7616a89e2fe96784f914197b2b4a23ac9dd93c47c6"
+    },
+    {
+      "path": "frontend/src/lib/keycloak.ts",
+      "sha256": "9a9d2111b9e11cf992d196234a25abc09180905c8982682938e9ed790cca2463"
+    },
+    {
+      "path": "frontend/src/lib/mockData.ts",
+      "sha256": "dc052344926e50605f93664a7423cb0a26efbc2da4942b4ebb0ce2466fd051fd"
+    },
+    {
+      "path": "frontend/src/lib/roles.ts",
+      "sha256": "de351cabafef1e9091670f886499c2aee424dc1be99166483d11c17e3a5fa35f"
+    },
+    {
+      "path": "frontend/src/main.tsx",
+      "sha256": "02c6dce7bd81d4b59445e759a85762bdc59af670256c13c09a45bcd7c7cb1733"
+    },
+    {
+      "path": "frontend/src/pages/AiInsightsPage.tsx",
+      "sha256": "bc1b2549921c5fa385d22adc6a88e2923e09337a39ad1d9adb5f8a0c85218378"
+    },
+    {
+      "path": "frontend/src/pages/CalendarPage.tsx",
+      "sha256": "f0a686fa988ae18903572234583d391760af262b629d7d9ced7a97302ddfdb48"
+    },
+    {
+      "path": "frontend/src/pages/CarePlansPage.tsx",
+      "sha256": "affd021678cdbcb1123cc302be78aba19c56c2284963dd8b9405c15be5c32122"
+    },
+    {
+      "path": "frontend/src/pages/CareRecordEntryPage.tsx",
+      "sha256": "c8aee86e4fd90a838c9b2146ea07af82c04a0b37ccf017f34dca15df103827b6"
+    },
+    {
+      "path": "frontend/src/pages/CareRecordsPage.tsx",
+      "sha256": "e302913b9e2aadea4efed83bbdef76aa78c7145df83a83e4d43e76ff5c994e8a"
+    },
+    {
+      "path": "frontend/src/pages/DashboardPage.tsx",
+      "sha256": "8fa4fbb7f86482ed6c443903dbaa6d3d7f657212936dfa955948c234bde42aa6"
+    },
+    {
+      "path": "frontend/src/pages/MedicationsPage.tsx",
+      "sha256": "8a238db84503626ba3e8d03cfb93b37151f1c550c1e9fc4b6649807428a31543"
+    },
+    {
+      "path": "frontend/src/pages/ReportsPage.tsx",
+      "sha256": "8f4243aa0720764ccedf5a4410130dbf60cbfc0a40de2ad59f1750c235d67098"
+    },
+    {
+      "path": "frontend/src/pages/ResidentDetailPage.tsx",
+      "sha256": "a9d55434159abacdecf6797be1e53f4da4688341325fdbbe0ffe2892de5a1a74"
+    },
+    {
+      "path": "frontend/src/pages/ResidentsPage.tsx",
+      "sha256": "67dfb6e857ff079ca38ee7b0fb44f16a061da95178ee732ed7f828ed3603b6d4"
+    },
+    {
+      "path": "frontend/src/pages/SettingsPage.tsx",
+      "sha256": "85a24a4fe012990a097dabe758243d656ee06683cf1d30416b9cd0198d29f8a4"
+    },
+    {
+      "path": "frontend/src/pages/StaffPage.tsx",
+      "sha256": "dcdbafa7dc5bde9b473a844cb610ed585b766e2741a07581b5e1231d294d7dfe"
+    },
+    {
+      "path": "frontend/src/store/authStore.ts",
+      "sha256": "f72d6173007e86a5b7c70dc8eecd55956d1ffb510b93929db5b6f0d797f122d7"
+    },
+    {
+      "path": "frontend/src/store/staffStore.ts",
+      "sha256": "338ea96c218147913618b91565080fe8652c4475381be65fa3f8105814e70a33"
+    },
+    {
+      "path": "frontend/src/store/syncQueueStore.ts",
+      "sha256": "3fed20d76f114153cec3a904c730efe713aca6ca7b65e29360e54c77e8199d30"
+    },
+    {
+      "path": "frontend/src/store/uiStore.ts",
+      "sha256": "4c490045d580cb5635313d04d5d68ba57f039106f629a54ece02dd5565cfb634"
+    },
+    {
+      "path": "frontend/src/types/index.ts",
+      "sha256": "e65236bf5ae7f98e661732744ccda1142936f132c49f50e690d32e2c94f5cca5"
+    },
+    {
+      "path": "frontend/src/utils/helper.ts",
+      "sha256": "342461a4fdd9b88afb0f94c775fbe0cd015899fe64cf51bf486b63021dcb43ab"
+    },
+    {
+      "path": "frontend/src/vite-env.d.ts",
+      "sha256": "2915b3b2cf51ad8947d18228e5803b330158e8ccad933dac67312dd85b3459c6"
+    },
+    {
+      "path": "frontend/tsconfig.app.json",
+      "sha256": "32aca9f7843b34c997f72b0f2f390b487b158b0e6772acd2aa656ab1e7d31550"
+    },
+    {
+      "path": "frontend/tsconfig.app.tsbuildinfo",
+      "sha256": "1167bf1d269bcf289ac45dc21f3b71473bc85d909b66c6f130d22aa1d1dd4e4f"
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "sha256": "770b4140bbb581e2dfd9ea9946ffc9c75a1d86ba7d2db5f77c83e37cbdf9d808"
+    },
+    {
+      "path": "frontend/tsconfig.node.json",
+      "sha256": "423b8b3d854f57b8b012fbe93098e6211b326862f6e5837c13712447fc404d38"
+    },
+    {
+      "path": "frontend/tsconfig.node.tsbuildinfo",
+      "sha256": "e8dd9e113517e3b0c8342873ebd8bde559a18f6c014c9e8c8c5e30d357114027"
+    },
+    {
+      "path": "frontend/vite.config.js",
+      "sha256": "71c2ef66b17cb99b3e9bfb8ea4d52a773788dfab932fad1d43498048a021eb00"
+    },
+    {
+      "path": "frontend/vite.config.ts",
+      "sha256": "1b5398ac1d3b7b57861d910b27bccdaca975b201af7073ef16b6635eb4a0e906"
+    },
+    {
+      "path": "governance/decision-log.md",
+      "sha256": "b6f8eb21f1341c85eb5a6e2f1ee86d131e0e5a44cdfa5dc96e5c7fabf44b91ad"
+    },
+    {
+      "path": "governance/dpia-draft.md",
+      "sha256": "f3b32b4a5ae20637a3351ecf2909e29a11aa798b2a7070784d0f1af5a47b14f3"
+    },
+    {
+      "path": "governance/hazard-log.md",
+      "sha256": "9c9518d7e1ab33b76837fc21994f7502ed3e308109f2921be7c73f98c851450c"
+    },
+    {
+      "path": "keycloak/realm-export.json",
+      "sha256": "b25e3b7573ffda58e16b24252417763e155b0b23bf66007cebbe43e1072731c0"
+    },
+    {
+      "path": "migrations/README.md",
+      "sha256": "3f3a5ec1856e77c573e3493345e872647f1f130e9b1ceb17755bf9d97bc04477"
+    },
+    {
+      "path": "migrations/env.py",
+      "sha256": "1c0dee4181bef1a424c768b6064eda847ba01563b3885506bb2211ee5fc2dbc3"
+    },
+    {
+      "path": "migrations/script.py.mako",
+      "sha256": "304a8bfb6a804e5493f5300e79882c70c9f5bb2e87512f4d16f0e097dddd323f"
+    },
+    {
+      "path": "migrations/versions/0001_extensions_enums_helpers.py",
+      "sha256": "c44637f4a39b694783ec5eb8f21bf62653c702433a6ba10b63eabac673685aec"
+    },
+    {
+      "path": "migrations/versions/0002_tenancy_and_identity.py",
+      "sha256": "c997d1b1e9be575d8f6e0c0d49182dc89b3eb04a91484aa657cc63a741bfe475"
+    },
+    {
+      "path": "migrations/versions/0003_residents_core.py",
+      "sha256": "7fa3bc03a48f997ba671e33c2ffcda081162802eca3b2fef02686e8b064242d2"
+    },
+    {
+      "path": "migrations/versions/0004_person_centred_and_clinical_foundation.py",
+      "sha256": "5a2f8262da54c63818e659ef4f697af438e195de956473f52b0a50732c6c8119"
+    },
+    {
+      "path": "migrations/versions/0005_care_planning.py",
+      "sha256": "34360c4abc4fe540d367344f6fea464e70769524ed07f911ca85213bcd4af652"
+    },
+    {
+      "path": "migrations/versions/0006_daily_care_domains.py",
+      "sha256": "1edb0fef52d0df6b128b3740c7c0b8556c2aac1cf11eeff574133665030c1e05"
+    },
+    {
+      "path": "migrations/versions/0007_medications.py",
+      "sha256": "e38f4340305904c470f294d1a57d8f55a78e4a4abbf10e94c8087ccb750dd168"
+    },
+    {
+      "path": "migrations/versions/0008_activities_visits_incidents.py",
+      "sha256": "ffc12092f72b9f4fff66630b215b98f46abdbcbf7533099f52fcf6a11d5d87bd"
+    },
+    {
+      "path": "migrations/versions/0009_ai_outputs_and_audit_log.py",
+      "sha256": "7f02cb6e318ffb74d56269140ff6ab43f21ab056a276125c1b9e347ac2c60237"
+    },
+    {
+      "path": "migrations/versions/0010_row_level_security.py",
+      "sha256": "8ba285a360888705765d24377364d458447391c1fd960aa263db6b9b14c9ef20"
+    },
+    {
+      "path": "migrations/versions/0011_updated_at_triggers_and_indexes.py",
+      "sha256": "e8be60c6f9b4af0993707158ce50b0dc03ca2a9e65624715e63211fe8ae278a7"
+    },
+    {
+      "path": "migrations/versions/0012_care_homes_insert_update_policy.py",
+      "sha256": "ec0cc398f44e7093cffa84b8aa6414f6dfe0873f43deb99967dbadf2fe05f07c"
+    },
+    {
+      "path": "migrations/versions/0013_floors_and_floor_scoped_access.py",
+      "sha256": "c7d0fdd90c17b047ea37693a40042fe0e2e161c1a2c8a86f06502e533f34a05c"
+    },
+    {
+      "path": "migrations/versions/0014_care_template_and_event_engine.py",
+      "sha256": "d48515a5c840d29677722dcf77a2bf42d417328f4e0a08e8ce084ab2b2111034"
+    },
+    {
+      "path": "migrations/versions/0015_seed_care_template_library.py",
+      "sha256": "8f90fdba764059500f98c168385a828664305209d2c30873e14b4182c6d08bcf"
+    },
+    {
+      "path": "migrations/versions/0016_ai_knowledge_layer.py",
+      "sha256": "59ce50acc77bde0eb7c51a9d81c85f04d2ac2ce428b517ead56123c7bf9e18fe"
+    },
+    {
+      "path": "migrations/versions/0017_delete_policies_tenant_and_floor.py",
+      "sha256": "52c2c1f1bf06b54cd9146e30829b37313a30d6a0761c2806e57adfc0a25ba677"
+    },
+    {
+      "path": "migrations/versions/0018_permissions_schema.py",
+      "sha256": "e3bae9d9525652cedd91fab6808cce83e2059f4813653f04c7e5be52597b49c9"
+    },
+    {
+      "path": "migrations/versions/0019_identity_bootstrap_select_policy.py",
+      "sha256": "0a7637726bbb03f3c36027de7a47c835834a5f1be7cff9f92edf1d40ea3e0e0f"
+    },
+    {
+      "path": "migrations/versions/0020_care_plan_goals_and_appointments.py",
+      "sha256": "201e0d9c3969e44fbabc004833368f74a9d1a45279a62dc76cff1dd0d5e80042"
+    },
+    {
+      "path": "migrations/versions/0021_care_event_duration_minutes.py",
+      "sha256": "74c223c50ad882146f6d09ba078604c5369d011247ad929bfe30202abfcfe345"
+    },
+    {
+      "path": "migrations/versions/0022_care_event_summary.py",
+      "sha256": "7fb96177e3dc87bdac8c2050c0079c14fba77b3f3ba39f619ea3621888d6691a"
+    },
+    {
+      "path": "migrations/versions/0023_care_template_section_allow_multiple.py",
+      "sha256": "e34f5c216d9cb1f4d5e9e39fc274727e56256ab024f3f3119e32eeec49f54e4f"
+    },
+    {
+      "path": "migrations/versions/0024_nutrition_offered_sizes.py",
+      "sha256": "a5c1a079ad3d9d8854e80f6f0c407f874ee9c2fd20c78362319a84b66b1b8857"
+    },
+    {
+      "path": "migrations/versions/0025_personal_care_detail_sections.py",
+      "sha256": "ef91fdfa7ab6ab8ecfef8792e5436a6b79b8c89332f467eb0088c288fb969ab3"
+    },
+    {
+      "path": "migrations/versions/0026_toileting_mobility_detail_sections.py",
+      "sha256": "c1c3b4e3e97112db3a3780a4f6dd8c09e7d181ed4279e7545de014336c2a8ee6"
+    },
+    {
+      "path": "migrations/versions/0027_reorder_personal_safety_category.py",
+      "sha256": "7c5a879227924d87591ae8f562a2c150391bd9875c7e966f259b86cc6cfdc0e5"
+    },
+    {
+      "path": "migrations/versions/0028_safety_and_behaviour_detail_sections.py",
+      "sha256": "287c2d8370ddef8e3c26cd21dffa6aa23159392971af6cb9f82d71c6a87e4e14"
+    },
+    {
+      "path": "migrations/versions/0029_care_event_idempotency_key.py",
+      "sha256": "352b285f61e9dc966def5dda3798644beae9a71728b7599b89921bf03c338a14"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "efeb66cae347a8f780e83ae120427d453b0c21f8e63c96463ce263a35da405fa"
+    },
+    {
+      "path": "synthdata/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "synthdata/ai_insights.py",
+      "sha256": "adb0399b20cfbaad0ca9056a7b0e06a7adc43e4153263d667c358496ef740b9b"
+    },
+    {
+      "path": "synthdata/cli.py",
+      "sha256": "6a3891189977826545dd60e7fb42fdb392bfae4906cda9ddf1cfae37dd6b11d8"
+    },
+    {
+      "path": "synthdata/daily_records.py",
+      "sha256": "47abff6aa34c2f221340f3a200acdf4db9568128093d46473a03653f73b7e19d"
+    },
+    {
+      "path": "synthdata/db.py",
+      "sha256": "a6f37a667843d002877e80c638e65ab978881f6eeccadf8bc5e39b047463ed8f"
+    },
+    {
+      "path": "synthdata/generator.py",
+      "sha256": "58797fcbf3e93122f63f7d54d09efa496d876382aa03abaf6834629bd7f41823"
+    },
+    {
+      "path": "synthdata/home_setup.py",
+      "sha256": "43a616d811a6af814a6280687acbe5be0bee63d9c5a0ae076b776e370d6c71f3"
+    },
+    {
+      "path": "synthdata/ids.py",
+      "sha256": "97d1764921771582cda8d5d7b7ca8984eb553f63bbf41a0f405173730dc4dbf8"
+    },
+    {
+      "path": "synthdata/keycloak_sync.py",
+      "sha256": "6ae1bf800af31a1f7321f1085faf2bee78b0f0ccd3a2631e39fbb1a92ffbea2a"
+    },
+    {
+      "path": "synthdata/notes.py",
+      "sha256": "07b52ebbbb67308df586275bd9c20185f02bd42855308937be0095effcfc387c"
+    },
+    {
+      "path": "synthdata/personas.py",
+      "sha256": "f0673bb995ac0d6945d9589963da7b0d27b1f9d90b5531bae24ab3f365d4d3c2"
+    },
+    {
+      "path": "synthdata/reference_data.py",
+      "sha256": "aad1a2de4d390f75fd30da75977500cf510d7738acb4bffb539ba6b1073b0ed0"
+    },
+    {
+      "path": "synthdata/setup_records.py",
+      "sha256": "a41cc69e650e58d7c5991228b97a26f81d4b723bc47a0b514a6f2eaf2a00d1ad"
+    },
+    {
+      "path": "synthdata/trajectories.py",
+      "sha256": "00b22352b6bea7e202ead4b4627b5e60e695ace4cc0f5380bc440b008508a9ff"
+    },
+    {
+      "path": "test_main.http",
+      "sha256": "18c332a323ab07fd8b08faf6cbae14906b9c95e7f03740657bf04cc252e329ae"
+    },
+    {
+      "path": "tests/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/conftest.py",
+      "sha256": "e2b398d2a70508e428c04f7b41b3accb4cc82a07a1f97497a1d062a920b1700b"
+    },
+    {
+      "path": "tests/e2e/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/e2e/test_smoke.py",
+      "sha256": "e9f848a1ecdf80b0ea479c7782f9e09fc488a83e2262018b37c331ec08c63994"
+    },
+    {
+      "path": "tests/integration/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/integration/conftest.py",
+      "sha256": "eed43b56911042316fc7302960369c0ef70e7af5033aba8122a9965c3c6a8b2b"
+    },
+    {
+      "path": "tests/rbac/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/rbac/test_identity_bootstrap.py",
+      "sha256": "93ca94d24a61c6698c468421cc2d37352479dc689fd2ad4bc3e24e9864ad7e41"
+    },
+    {
+      "path": "tests/rbac/test_permission_matrix.py",
+      "sha256": "feb2c62b73ebdb836354c0cf1571868c41e16836e87bf948e1454e40f3d4b907"
+    },
+    {
+      "path": "tests/rbac/test_rls_isolation.py",
+      "sha256": "b6be2c642dc827faf82f2bd38e4578a1a24dff4dd05b8602b087ea1cc22b6256"
+    },
+    {
+      "path": "tests/unit/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/unit/test_observation_plausibility.py",
+      "sha256": "60b89db4ad956e0ddc9b7713c465e045530e8f48e73a7b3f3362f4272cb09256"
+    },
+    {
+      "path": "tests/unit/test_pseudonymiser.py",
+      "sha256": "b8b1f0de5582e35a5e462bb5d78e2def9e6de48d09c48c5be865b2d5a9f087eb"
+    },
+    {
+      "path": "tests/utils/helper.py",
+      "sha256": "e539d8a4b0713aa9921456797f6901f4769351dda708480ef99d7f2e145923c3"
+    },
+    {
+      "path": "uv.lock",
+      "sha256": "68d0180c63b80ac36f6dcf76ddd42a95e8666e82ec5865e7c91e52c6695cec57"
+    }
+  ]
+}

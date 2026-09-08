@@ -6,7 +6,7 @@ from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.database import Base, TenantMixin
+from app import Base, TenantMixin
 
 
 class ObservationType(str, enum.Enum):

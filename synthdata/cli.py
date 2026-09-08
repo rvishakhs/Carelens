@@ -6,7 +6,7 @@ this writes directly into the live Postgres schema your Alembic migrations built
 
 import typer
 
-from app.config import get_settings
+from app import get_settings
 from synthdata.generator import generate
 
 app = typer.Typer(help="CareLens synthetic data generator")

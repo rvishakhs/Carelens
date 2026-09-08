@@ -6,7 +6,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.database import Base, TenantMixin
+from app import Base, TenantMixin
 
 
 class FloorType(str, enum.Enum):

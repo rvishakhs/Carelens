@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import INET, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from app.shared.database import Base
+from app import Base
 
 
 class AuditAction(str, enum.Enum):

@@ -1,7 +1,7 @@
 import uuid
 
-from app.modules.observations.models import ObservationType
-from app.shared.events import DomainEvent
+from app import ObservationType
+from app import DomainEvent
 
 
 class ObservationRecorded(DomainEvent):

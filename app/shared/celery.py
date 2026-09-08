@@ -1,6 +1,7 @@
 from celery import Celery
+from kombu import Queue
 
-from app.config import get_settings
+from app import get_settings
 
 settings = get_settings()
 
@@ -18,6 +19,12 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
+celery_app.conf.task_queues = (
+    Queue("carelens.default"),
+    Queue("carelens.notifications"),
+    Queue("carelens.documents"),
+    Queue("carelens.ai"),
+)
 
 ##### Auto Discovery of tasks #####
 # celery_app.autodiscover_tasks([

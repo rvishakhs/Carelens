@@ -5,11 +5,11 @@ from collections.abc import AsyncIterator
 
 from fastapi import Depends
 
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.schemas import CurrentUser
-from app.modules.observations.ports import ObservationReader
-from app.modules.observations.repository import ObservationRepository
-from app.shared.database import rls_session
+from app import get_current_user
+from app import CurrentUser
+from app import ObservationReader
+from app import ObservationRepository
+from app import rls_session
 
 
 async def get_observation_reader(

@@ -15,7 +15,6 @@ from typing import TypeVar
 
 from pydantic import BaseModel, Field
 
-
 class DomainEvent(BaseModel):
     """Base for all domain events. Payloads must stay IDs + metadata -- events flow
     into the audit log verbatim, so never put clinical text or PII in a payload."""

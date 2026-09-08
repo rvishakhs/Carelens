@@ -6,7 +6,7 @@ off" rather than assume its presence."""
 import abc
 import uuid
 
-from app.modules.medications.schemas import MedicationRead
+from app import MedicationRead
 
 
 class MedicationReader(abc.ABC):

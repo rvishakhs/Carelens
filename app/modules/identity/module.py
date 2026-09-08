@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.container import Container
+from app import Container
 from app.modules.identity.router import router
 
 

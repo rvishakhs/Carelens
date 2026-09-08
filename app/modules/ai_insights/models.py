@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import JSON, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from app.shared.database import Base
+from app import Base
 
 _JSONB = JSONB().with_variant(JSON(), "sqlite")
 

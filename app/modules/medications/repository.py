@@ -4,9 +4,9 @@ from datetime import date
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.medications.models import Medication, MedicationEvent
-from app.modules.medications.ports import MedicationReader
-from app.modules.medications.schemas import MedicationRead, MedicationScheduleEntry
+from app import Medication, MedicationEvent
+from app import MedicationReader
+from app import MedicationRead, MedicationScheduleEntry
 
 # administered/self_administered read as "given"; anything the resident didn't
 # actually receive reads as "missed" -- collapsing the DB's 6-value status into the

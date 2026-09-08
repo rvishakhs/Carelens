@@ -4,19 +4,19 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.modules.medications.repository import MedicationRepository
-from app.modules.medications.schemas import (
+from app import get_current_user
+from app import Permission, require
+from app import CurrentUser
+from app import MedicationRepository
+from app import (
     MedicationCreate,
     MedicationEventCreate,
     MedicationEventRead,
     MedicationRead,
     MedicationSchedule,
 )
-from app.modules.medications.service import MedicationService
-from app.shared.database import rls_session
+from app import MedicationService
+from app import rls_session
 
 router = APIRouter(prefix="/medications", tags=["medications"])
 

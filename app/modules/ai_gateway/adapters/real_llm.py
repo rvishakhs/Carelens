@@ -3,7 +3,7 @@ prove the gateway path end-to-end -- provider selection + DPA review is Phase 2 
 governance/decision-log.md). Swapping providers here is a config change in
 container.py, not a refactor of any consuming module."""
 
-from app.modules.ai_gateway.ports import LLMProvider
+from app import LLMProvider
 
 
 class RealLLMProvider(LLMProvider):

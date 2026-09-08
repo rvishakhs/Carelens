@@ -5,7 +5,7 @@ care_recording.repository or care_recording.models directly."""
 import abc
 import uuid
 
-from app.modules.care_recording.schemas import CareEventRead
+from app import CareEventRead
 
 
 class CareEventReader(abc.ABC):

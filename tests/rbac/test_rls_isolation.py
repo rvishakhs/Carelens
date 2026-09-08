@@ -10,11 +10,11 @@ from datetime import date
 import pytest
 from sqlalchemy import text
 
-from app.modules.floors.models import Floor
-from app.modules.identity.models import CareHome
-from app.modules.residents.models import Resident, ResidentStatus
-from app.modules.residents.repository import ResidentRepository
-from app.shared.database import rls_session, system_session
+from app import Floor
+from app import CareHome
+from app import Resident, ResidentStatus
+from app import ResidentRepository
+from app import rls_session, system_session
 from synthdata.home_setup import build_care_home
 
 # pytestmark = pytest.mark.skip(reason="requires testcontainers Postgres + applied Alembic migrations")

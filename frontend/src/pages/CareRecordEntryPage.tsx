@@ -8,8 +8,10 @@ import { Pill } from "@/components/ui/Pill";
 import { Tile, TileGrid } from "@/components/ui/Tile";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { careIconFor, careTemplateIconFor } from "@/lib/careIcons";
+import { saveCareEventDurable } from "@/lib/careEventQueue";
+import { useSyncQueueStore } from "@/store/syncQueueStore";
 import type { CareCategory, CareEventCreate, CareEventStatus, CareTemplate, CareTemplateSection, Resident } from "@/types";
-import { createCareEvent, fetchCareCategories, fetchCareTemplateDetail, fetchCareTemplatesByCategory, fetchResidents } from "@/utils/helper";
+import { fetchCareCategories, fetchCareTemplateDetail, fetchCareTemplatesByCategory, fetchResidents } from "@/utils/helper";
 
 type Stage = "select" | "review";
 
@@ -104,6 +106,7 @@ function buildGeneratedNote(template: CareTemplate, form: TemplateFormState): st
 export function CareRecordEntryPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const refreshSyncQueue = useSyncQueueStore((s) => s.refresh);
 
   const [resident, setResident] = useState<Resident | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -309,14 +312,21 @@ export function CareRecordEntryPage() {
       selection.map((t) => {
         const form = formStates[t.id] ?? defaultFormState();
         const detail = templateDetailCache[t.id] ?? t;
-        return createCareEvent(buildPayload(id, detail, form, durationValue)).then(() => t.id);
+        return saveCareEventDurable(buildPayload(id, detail, form, durationValue));
       }),
     );
     setSubmitting(false);
 
     const failed = selection.filter((_, i) => results[i].status === "rejected");
+    const queuedCount = results.filter((r) => r.status === "fulfilled" && r.value.queued).length;
+    if (queuedCount > 0) refreshSyncQueue();
+
     if (failed.length === 0) {
-      setSuccessMessage(`${selection.length} ${selection.length === 1 ? "entry" : "entries"} logged`);
+      const loggedCount = selection.length - queuedCount;
+      const parts = [];
+      if (loggedCount > 0) parts.push(`${loggedCount} logged`);
+      if (queuedCount > 0) parts.push(`${queuedCount} saved offline — will sync automatically`);
+      setSuccessMessage(parts.join(", "));
       setSelection([]);
       setFormStates({});
       setDurationMinutes("");

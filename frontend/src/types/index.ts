@@ -219,6 +219,10 @@ export interface CareEventCreate {
   status: CareEventStatus;
   note?: string | null;
   duration_minutes: number;
+  // Generated once per entry client-side and resent unchanged on retry -- lets the
+  // offline queue (careEventQueue.ts) retry a POST whose response was lost without
+  // risking a duplicate care event.
+  idempotency_key?: string;
   options: CareEventOptionCreate[];
   measurements: CareEventMeasurementCreate[];
 }

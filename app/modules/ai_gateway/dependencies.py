@@ -5,12 +5,12 @@ from collections.abc import AsyncIterator
 
 from fastapi import Depends, Request
 
-from app.modules.ai_gateway.pseudonymiser import Pseudonymiser
-from app.modules.ai_gateway.repository import PseudonymMappingRepository
-from app.modules.ai_gateway.service import AIGatewayService
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import rls_session
+from app import Pseudonymiser
+from app import PseudonymMappingRepository
+from app import AIGatewayService
+from app import get_current_user
+from app import CurrentUser
+from app import rls_session
 
 
 async def get_ai_gateway_service(

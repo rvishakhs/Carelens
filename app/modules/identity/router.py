@@ -3,12 +3,12 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import CurrentUser, StaffCreate, StaffCreated, StaffCredentials, StaffUpdate, UserRead
-from app.modules.identity.service import IdentityService
-from app.shared.database import rls_session
+from app import get_current_user
+from app import Permission, require
+from app import UserRepository
+from app import CurrentUser, StaffCreate, StaffCreated, StaffCredentials, StaffUpdate, UserRead
+from app import IdentityService
+from app import rls_session
 
 router = APIRouter(prefix="/identity", tags=["identity"])
 

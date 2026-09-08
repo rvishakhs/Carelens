@@ -4,7 +4,7 @@ covering names embedded in free text ("Mrs T. was visited by her daughter Susan"
 partial names, and other NER-only cases the regex layer can't catch -- before Phase 1
 is considered done."""
 
-from app.modules.ai_gateway.pseudonymiser import Pseudonymiser
+from app import Pseudonymiser
 
 
 class _FakeMappingRepository:

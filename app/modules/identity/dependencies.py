@@ -7,12 +7,12 @@ import uuid
 from fastapi import Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.modules.floors.dependencies import get_floor_reader_for
-from app.modules.identity.models import CareHome
-from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import bootstrap_session, rls_session
-from app.shared.exceptions import PermissionDeniedError, UnauthenticatedError
+from app import get_floor_reader_for
+from app import CareHome
+from app import UserRepository
+from app import CurrentUser
+from app import bootstrap_session, rls_session
+from app import PermissionDeniedError, UnauthenticatedError
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 

@@ -1,6 +1,6 @@
 import uuid
 
-from app.shared.events import DomainEvent
+from app import DomainEvent
 
 
 class RecordViewed(DomainEvent):

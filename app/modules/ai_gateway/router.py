@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 
-from app.modules.ai_gateway.dependencies import get_ai_gateway_service
-from app.modules.ai_gateway.schemas import GatewayTestRequest, GatewayTestResponse
-from app.modules.ai_gateway.service import AIGatewayService
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
+from app import get_ai_gateway_service
+from app import GatewayTestRequest, GatewayTestResponse
+from app import AIGatewayService
+from app import Permission, require
+from app import CurrentUser
 
 router = APIRouter(prefix="/ai-gateway", tags=["ai_gateway"])
 

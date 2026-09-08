@@ -3,13 +3,13 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.modules.observations.repository import ObservationRepository
-from app.modules.observations.schemas import ObservationCreate, ObservationRead
-from app.modules.observations.service import ObservationService
-from app.shared.database import rls_session
+from app import get_current_user
+from app import Permission, require
+from app import CurrentUser
+from app import ObservationRepository
+from app import ObservationCreate, ObservationRead
+from app import ObservationService
+from app import rls_session
 
 router = APIRouter(prefix="/observations", tags=["observations"])
 

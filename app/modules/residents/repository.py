@@ -3,9 +3,9 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.residents.models import Resident, ResidentStatus
-from app.modules.residents.ports import ResidentReader
-from app.modules.residents.schemas import ResidentSummary
+from app import Resident, ResidentStatus
+from app import ResidentReader
+from app import ResidentSummary
 
 
 class ResidentRepository(ResidentReader):

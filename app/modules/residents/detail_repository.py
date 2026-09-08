@@ -13,7 +13,7 @@ from collections import defaultdict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.residents.schemas import (
+from app import (
     ActivityEntry,
     AdvanceDirectiveRead,
     AllergyRead,

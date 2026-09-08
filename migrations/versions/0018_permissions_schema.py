@@ -53,7 +53,7 @@ CREATE INDEX idx_role_permissions_role ON role_permissions (role);
     # Seed from the same source of truth the app already uses -- see this file's
     # docstring for why importing application code from a migration is deliberate
     # here, not an oversight.
-    from app.modules.identity.permissions import ROLE_PERMISSIONS, Permission
+    from app import ROLE_PERMISSIONS, Permission
 
     connection = op.get_bind()
 

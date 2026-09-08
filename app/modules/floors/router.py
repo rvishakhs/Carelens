@@ -3,13 +3,13 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.floors.repository import FloorRepository
-from app.modules.floors.schemas import FloorCreate, FloorRead, UserFloorLinkCreate
-from app.modules.floors.service import FloorService
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import rls_session
+from app import FloorRepository
+from app import FloorCreate, FloorRead, UserFloorLinkCreate
+from app import FloorService
+from app import get_current_user
+from app import Permission, require
+from app import CurrentUser
+from app import rls_session
 
 router = APIRouter(prefix="/floors", tags=["floors"])
 

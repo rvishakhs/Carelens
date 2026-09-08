@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.modules.audit.models import AuditAction
+from app import AuditAction
 
 
 class AuditEventRead(BaseModel):

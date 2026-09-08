@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.ai_insights.models import ResidentAIAlert, ResidentAIReport, ResidentAISummary, ResidentPrediction
-from app.modules.ai_insights.ports import AIInsightReader
-from app.modules.ai_insights.schemas import ResidentAIAlertRead, ResidentAISummaryRead
+from app import ResidentAIAlert, ResidentAIReport, ResidentAISummary, ResidentPrediction
+from app import AIInsightReader
+from app import ResidentAIAlertRead, ResidentAISummaryRead
 
 
 class AIInsightRepository(AIInsightReader):

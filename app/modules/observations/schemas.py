@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, model_validator
 
-from app.modules.observations.models import ObservationType
+from app import ObservationType
 
 # Clinical safety starts at input validation: implausible values are flagged, not
 # silently accepted -- but never rejected outright, since a false-negative bound would

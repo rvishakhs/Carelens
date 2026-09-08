@@ -1,7 +1,7 @@
 import uuid
 
-from app.modules.medications.models import MedicationEventStatus
-from app.shared.events import DomainEvent
+from app import MedicationEventStatus
+from app import DomainEvent
 
 
 class MedicationEventRecorded(DomainEvent):

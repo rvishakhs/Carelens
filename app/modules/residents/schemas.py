@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.modules.residents.models import ResidentStatus
+from app import ResidentStatus
 
 
 class ResidentCreate(BaseModel):

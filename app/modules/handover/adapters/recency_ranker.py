@@ -5,8 +5,8 @@ Deliberately crude -- Phase 2 replaces this with the real change-detection engin
 import uuid
 from datetime import UTC, datetime
 
-from app.modules.handover.ports import AttentionRanker
-from app.modules.observations.schemas import ObservationSummary
+from app import AttentionRanker
+from app import ObservationSummary
 
 _MIN_HOURS_AGO = 0.1
 

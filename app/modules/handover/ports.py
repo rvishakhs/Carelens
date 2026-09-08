@@ -9,7 +9,7 @@ that nothing else in the app depends on."""
 import abc
 import uuid
 
-from app.modules.observations.schemas import ObservationSummary
+from app import ObservationSummary
 
 
 class AttentionRanker(abc.ABC):

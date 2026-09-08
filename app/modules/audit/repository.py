@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.audit.models import AuditEvent
+from app import AuditEvent
 
 
 class AuditRepository:

@@ -1,7 +1,7 @@
 """Deterministic canned adapter for tests and default dev config -- never calls out to
 a network. This is what LLM_PROVIDER=fake selects."""
 
-from app.modules.ai_gateway.ports import LLMProvider
+from app import LLMProvider
 
 
 class FakeLLMProvider(LLMProvider):

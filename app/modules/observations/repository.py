@@ -5,10 +5,10 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.observations.models import Observation
-from app.modules.observations.ports import ObservationReader
-from app.modules.observations.schemas import ObservationSummary
-from app.shared.exceptions import ConflictError
+from app import Observation
+from app import ObservationReader
+from app import ObservationSummary
+from app import ConflictError
 
 
 class ObservationRepository(ObservationReader):

@@ -4,7 +4,7 @@ get_ai_insight_reader from dependencies.py, never ai_insights.repository directl
 import abc
 import uuid
 
-from app.modules.ai_insights.schemas import ResidentAIAlertRead, ResidentAISummaryRead
+from app import ResidentAIAlertRead, ResidentAISummaryRead
 
 
 class AIInsightReader(abc.ABC):

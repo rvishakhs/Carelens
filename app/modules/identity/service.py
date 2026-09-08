@@ -1,13 +1,13 @@
 import uuid
 
-from app.modules.identity.events import StaffMemberCreated, StaffMemberUpdated, StaffPasswordReset, UserLoggedIn
-from app.modules.identity.models import Role
-from app.modules.identity.ports import IdentityProviderAdmin
-from app.modules.identity.repository import UserRepository
-from app.modules.identity.schemas import CurrentUser, StaffCreate, StaffCreated, StaffCredentials, StaffUpdate, UserRead
-from app.shared.events import EventBus
-from app.shared.exceptions import NotFoundError, ValidationError
-from app.shared.security import generate_opaque_token
+from app import StaffMemberCreated, StaffMemberUpdated, StaffPasswordReset, UserLoggedIn
+from app import Role
+from app import IdentityProviderAdmin
+from app import UserRepository
+from app import CurrentUser, StaffCreate, StaffCreated, StaffCredentials, StaffUpdate, UserRead
+from app import EventBus
+from app import NotFoundError, ValidationError
+from app import generate_opaque_token
 
 _STAFF_CREATABLE_ROLES = frozenset({Role.CARER, Role.NURSE})
 

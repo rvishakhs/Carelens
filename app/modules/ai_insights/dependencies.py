@@ -5,11 +5,11 @@ from collections.abc import AsyncIterator
 
 from fastapi import Depends
 
-from app.modules.ai_insights.ports import AIInsightReader
-from app.modules.ai_insights.repository import AIInsightRepository
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import rls_session
+from app import AIInsightReader
+from app import AIInsightRepository
+from app import get_current_user
+from app import CurrentUser
+from app import rls_session
 
 
 async def get_ai_insight_reader(

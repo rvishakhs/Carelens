@@ -11,8 +11,8 @@ tracked as an open item in governance/hazard-log.md.
 import re
 import uuid
 
-from app.modules.ai_gateway.ports import RESIDENT_PLACEHOLDER
-from app.modules.ai_gateway.repository import PseudonymMappingRepository
+from app import RESIDENT_PLACEHOLDER
+from app import PseudonymMappingRepository
 
 _NHS_NUMBER = re.compile(r"\b\d{3}[ -]?\d{3}[ -]?\d{4}\b")
 _UK_PHONE = re.compile(r"\b0\d{3,4}[ -]?\d{3}[ -]?\d{3,4}\b")

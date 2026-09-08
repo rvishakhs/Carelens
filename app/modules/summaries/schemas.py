@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.modules.summaries.models import SummaryFeedbackRating
+from app import SummaryFeedbackRating
 
 
 class SummaryRead(BaseModel):

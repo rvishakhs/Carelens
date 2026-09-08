@@ -3,20 +3,20 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.ai_insights.repository import AIInsightRepository
-from app.modules.ai_insights.schemas import (
+from app import AIInsightRepository
+from app import (
     AlertAcknowledgeRequest,
     ResidentAIAlertRead,
     ResidentAIReportRead,
     ResidentAISummaryRead,
     ResidentPredictionRead,
-    SummaryFeedbackCreate,
 )
-from app.modules.ai_insights.service import AIInsightService
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import rls_session
+from app.modules.ai_insights.schemas import SummaryFeedbackCreate
+from app import AIInsightService
+from app import get_current_user
+from app import Permission, require
+from app import CurrentUser
+from app import rls_session
 
 router = APIRouter(prefix="/ai-insights", tags=["ai_insights"])
 

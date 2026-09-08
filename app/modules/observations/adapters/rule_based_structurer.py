@@ -3,7 +3,7 @@ ingestion path. Swapping in an LLM-backed structurer later is a container.py cha
 
 import re
 
-from app.modules.observations.ports import NoteStructurer
+from app import NoteStructurer
 
 _MOOD_KEYWORDS = {
     "low": ["tearful", "withdrawn", "low mood", "upset"],

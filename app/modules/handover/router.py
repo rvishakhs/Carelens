@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.handover.schemas import HandoverResidentCard
-from app.modules.handover.service import HandoverService
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.modules.observations.dependencies import get_observation_reader
-from app.modules.observations.ports import ObservationReader
-from app.modules.residents.dependencies import get_scoped_resident_reader
-from app.modules.residents.ports import ResidentReader
-from app.modules.summaries.dependencies import get_summary_reader
-from app.modules.summaries.ports import SummaryReader
+from app import HandoverResidentCard
+from app import HandoverService
+from app import Permission, require
+from app import CurrentUser
+from app import get_observation_reader
+from app import ObservationReader
+from app import get_scoped_resident_reader
+from app import ResidentReader
+from app import get_summary_reader
+from app import SummaryReader
 
 router = APIRouter(prefix="/handover", tags=["handover"])
 

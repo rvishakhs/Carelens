@@ -8,17 +8,17 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.modules.ai_gateway.service import AIGatewayService
-from app.modules.observations.models import ObservationType
-from app.modules.observations.ports import ObservationReader
-from app.modules.observations.schemas import ObservationSummary
-from app.modules.residents.ports import ResidentReader
-from app.modules.summaries.events import SummaryGenerated, SummaryReviewed
-from app.modules.summaries.models import AIOutput
-from app.modules.summaries.repository import SummaryRepository
+from app import AIGatewayService
+from app import ObservationType
+from app import ObservationReader
+from app import ObservationSummary
+from app import ResidentReader
+from app import SummaryGenerated, SummaryReviewed
+from app import AIOutput
+from app import SummaryRepository
 from app.modules.summaries.schemas import SummaryFeedbackCreate
-from app.shared.events import EventBus
-from app.shared.exceptions import NotFoundError
+from app import EventBus
+from app import NotFoundError
 
 PROMPT_TEMPLATE_VERSION = "v1"
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "ai_gateway" / "prompts" / "daily_summary"

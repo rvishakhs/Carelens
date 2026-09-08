@@ -1,5 +1,5 @@
 from redis.asyncio import Redis
-from app.shared.telemetry import get_logger
+from app import get_logger
 
 logger = get_logger(__name__)
 

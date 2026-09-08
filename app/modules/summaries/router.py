@@ -2,11 +2,12 @@ import uuid
 
 from fastapi import APIRouter, Depends
 
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.modules.summaries.dependencies import get_summary_service
-from app.modules.summaries.schemas import SummaryFeedbackCreate, SummaryRead
-from app.modules.summaries.service import SummaryService
+from app import Permission, require
+from app import CurrentUser
+from app import get_summary_service
+from app import SummaryRead
+from app.modules.summaries.schemas import SummaryFeedbackCreate
+from app import SummaryService
 
 router = APIRouter(prefix="/summaries", tags=["summaries"])
 

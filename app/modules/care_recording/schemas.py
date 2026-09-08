@@ -80,6 +80,11 @@ class CareEventCreate(BaseModel):
     # Required, not just DB-nullable (migration 0021): staff time spent on this
     # entry, so resident-level human-resource-need reporting has something to sum.
     duration_minutes: int = Field(gt=0)
+    # Client-generated once per entry, resent unchanged on every retry (migration
+    # 0029) -- lets an offline-durable client retry a POST whose response was lost
+    # without risking a duplicate care event. Optional so non-durable callers
+    # (scripts, tests) aren't forced to supply one.
+    idempotency_key: str | None = None
     options: list[CareEventOptionCreate] = []
     measurements: list[CareEventMeasurementCreate] = []
 

@@ -6,14 +6,14 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
-from app.modules.audit.models import AuditAction
-from app.modules.audit.repository import AuditRepository
-from app.modules.audit.schemas import AuditEventRead
-from app.modules.audit.service import AuditService
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import rls_session
+from app import AuditAction
+from app import AuditRepository
+from app import AuditEventRead
+from app import AuditService
+from app import get_current_user
+from app import Permission, require
+from app import CurrentUser
+from app import rls_session
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 

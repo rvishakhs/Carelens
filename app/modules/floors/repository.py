@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.floors.models import Floor, UserFloorLink
-from app.modules.floors.ports import FloorReader
+from app import Floor, UserFloorLink
+from app import FloorReader
 
 
 class FloorRepository(FloorReader):

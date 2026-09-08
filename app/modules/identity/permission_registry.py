@@ -14,9 +14,9 @@ from collections import defaultdict
 
 from sqlalchemy import select
 
-from app.modules.identity.models import PermissionDefinition, Role, RolePermission
-from app.modules.identity.permissions import Permission
-from app.shared.database import system_session
+from app import PermissionDefinition, Role, RolePermission
+from app import Permission
+from app import system_session
 
 
 class PermissionRegistry:

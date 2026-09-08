@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, EmailStr
 
-from app.modules.identity.models import Role
+from app import Role
 
 
 class CurrentUser(BaseModel):

@@ -3,12 +3,12 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, Request
 
-from app.modules.identity.dependencies import get_current_user, get_floor_scope
-from app.modules.identity.permissions import Permission, require
-from app.modules.identity.schemas import CurrentUser
-from app.modules.residents.detail_repository import ResidentDetailRepository
-from app.modules.residents.repository import ResidentRepository
-from app.modules.residents.schemas import (
+from app import get_current_user, get_floor_scope
+from app import Permission, require
+from app import CurrentUser
+from app import ResidentDetailRepository
+from app import ResidentRepository
+from app import (
     ActivityEntry,
     CarePlanRead,
     CareRecordEntry,
@@ -17,9 +17,9 @@ from app.modules.residents.schemas import (
     ResidentOverview,
     ResidentRead,
 )
-from app.modules.residents.service import ResidentService
-from app.shared.database import rls_session
-from app.shared.exceptions import NotFoundError
+from app import ResidentService
+from app import rls_session
+from app import NotFoundError
 
 router = APIRouter(prefix="/residents", tags=["residents"])
 care_plans_router = APIRouter(prefix="/care-plans", tags=["residents"])

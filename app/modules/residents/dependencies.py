@@ -7,11 +7,11 @@ from collections.abc import AsyncIterator
 
 from fastapi import Depends
 
-from app.modules.identity.dependencies import get_current_user, get_floor_scope
-from app.modules.identity.schemas import CurrentUser
-from app.modules.residents.ports import ResidentReader
-from app.modules.residents.repository import ResidentRepository
-from app.shared.database import rls_session
+from app import get_current_user, get_floor_scope
+from app import CurrentUser
+from app import ResidentReader
+from app import ResidentRepository
+from app import rls_session
 
 
 async def get_resident_reader(

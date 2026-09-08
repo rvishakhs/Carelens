@@ -4,7 +4,7 @@ from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.database import Base, TenantMixin
+from app import Base, TenantMixin
 
 
 class PseudonymMapping(Base, TenantMixin):

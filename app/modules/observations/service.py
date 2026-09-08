@@ -1,11 +1,11 @@
 import uuid
 
-from app.modules.observations.events import ObservationRecorded
-from app.modules.observations.models import Observation, ObservationType
-from app.modules.observations.ports import NoteStructurer
-from app.modules.observations.repository import ObservationRepository
-from app.modules.observations.schemas import ObservationCreate, is_plausible
-from app.shared.events import EventBus
+from app import ObservationRecorded
+from app import Observation, ObservationType
+from app import NoteStructurer
+from app import ObservationRepository
+from app import ObservationCreate, is_plausible
+from app import EventBus
 
 
 class ObservationService:

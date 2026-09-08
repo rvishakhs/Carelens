@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from app.shared.database import Base, TenantMixin
+from app import Base, TenantMixin
 
 
 class MedicationRoute(str, enum.Enum):

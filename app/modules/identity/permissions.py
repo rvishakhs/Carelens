@@ -10,10 +10,10 @@ from collections.abc import Iterable
 
 from fastapi import Depends, Request
 
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.models import Role
-from app.modules.identity.schemas import CurrentUser
-from app.shared.exceptions import PermissionDeniedError
+from app import get_current_user
+from app import Role
+from app import CurrentUser
+from app import PermissionDeniedError
 
 
 class Permission(str, enum.Enum):

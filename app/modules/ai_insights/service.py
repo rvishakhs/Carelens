@@ -1,11 +1,12 @@
 import uuid
 
-from app.modules.ai_insights.events import AIAlertAcknowledged
-from app.modules.ai_insights.models import ResidentAIAlert, ResidentAISummary
-from app.modules.ai_insights.repository import AIInsightRepository
-from app.modules.ai_insights.schemas import AlertAcknowledgeRequest, SummaryFeedbackCreate
-from app.shared.events import EventBus
-from app.shared.exceptions import NotFoundError
+from app import AIAlertAcknowledged
+from app import ResidentAIAlert, ResidentAISummary
+from app import AIInsightRepository
+from app import AlertAcknowledgeRequest
+from app.modules.ai_insights.schemas import SummaryFeedbackCreate
+from app import EventBus
+from app import NotFoundError
 
 
 class AIInsightService:

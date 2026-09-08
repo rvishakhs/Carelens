@@ -6,7 +6,7 @@ from sqlalchemy import Date, Enum, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.database import Base, TenantMixin
+from app import Base, TenantMixin
 
 
 class ResidentStatus(str, enum.Enum):

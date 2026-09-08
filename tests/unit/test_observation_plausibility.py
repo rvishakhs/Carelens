@@ -1,8 +1,8 @@
 """Clinical safety starts at input validation -- implausible values are flagged, not
 rejected. See app/modules/observations/schemas.py."""
 
-from app.modules.observations.models import ObservationType
-from app.modules.observations.schemas import is_plausible
+from app import ObservationType
+from app import is_plausible
 
 
 def test_fluid_within_bounds_is_plausible():

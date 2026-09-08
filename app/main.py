@@ -10,12 +10,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import get_settings
-from app.container import Container, build_container
-from app.shared.database import init_engine, dispose_engine, check_database
-from app.shared.exceptions import CareLensError
-from app.shared.redis import init_redis, close_redis, check_redis
-from app.shared.telemetry import configure_logging, get_logger
+from app import get_settings
+from app import Container, build_container
+from app import init_engine, dispose_engine, check_database
+from app import CareLensError
+from app import init_redis, close_redis, check_redis
+from app import configure_logging, get_logger
 
 logger = get_logger(__name__)
 

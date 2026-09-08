@@ -4,7 +4,7 @@ ResidentReader; they must never import residents.repository or residents.models.
 import abc
 import uuid
 
-from app.modules.residents.schemas import ResidentSummary
+from app import ResidentSummary
 
 
 class ResidentReader(abc.ABC):

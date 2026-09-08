@@ -3,7 +3,7 @@ the machine while iterating on prompts. Selected via LLM_PROVIDER=local."""
 
 import httpx
 
-from app.modules.ai_gateway.ports import LLMProvider
+from app import LLMProvider
 
 
 class LocalLLMProvider(LLMProvider):

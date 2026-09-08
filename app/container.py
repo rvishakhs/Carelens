@@ -7,13 +7,13 @@ that consume the port.
 
 from dataclasses import dataclass
 
-from app.config import Settings
-from app.modules.ai_gateway.ports import LLMProvider
-from app.modules.handover.ports import AttentionRanker
-from app.modules.identity.permission_registry import PermissionRegistry
-from app.modules.identity.ports import IdentityProviderAdmin, TokenVerifier
-from app.modules.observations.ports import NoteStructurer
-from app.shared.events import EventBus, InMemoryEventBus
+from app import Settings
+from app import LLMProvider
+from app import AttentionRanker
+from app import PermissionRegistry
+from app import IdentityProviderAdmin, TokenVerifier
+from app import NoteStructurer
+from app import EventBus, InMemoryEventBus
 
 
 @dataclass
@@ -52,25 +52,25 @@ def build_container(settings: Settings) -> Container:
 
 
 def _build_attention_ranker() -> AttentionRanker:
-    from app.modules.handover.adapters.recency_ranker import RecencyAttentionRanker
+    from app import RecencyAttentionRanker
 
     return RecencyAttentionRanker()
 
 
 def _build_note_structurer(settings: Settings) -> NoteStructurer:
-    from app.modules.observations.adapters.rule_based_structurer import RuleBasedNoteStructurer
+    from app import RuleBasedNoteStructurer
 
     return RuleBasedNoteStructurer()
 
 
 def _build_token_verifier(settings: Settings) -> TokenVerifier:
-    from app.modules.identity.adapters.oidc_verifier import KeycloakTokenVerifier
+    from app import KeycloakTokenVerifier
 
     return KeycloakTokenVerifier(issuer=settings.oidc_issuer, audience=settings.oidc_audience)
 
 
 def _build_identity_provider_admin(settings: Settings) -> IdentityProviderAdmin:
-    from app.modules.identity.adapters.keycloak_admin import KeycloakAdminClient
+    from app import KeycloakAdminClient
 
     return KeycloakAdminClient(
         server_url=settings.KEYCLOAK_SERVER,
@@ -82,15 +82,15 @@ def _build_identity_provider_admin(settings: Settings) -> IdentityProviderAdmin:
 
 def _build_llm_provider(settings: Settings) -> LLMProvider:
     if settings.llm_provider == "fake":
-        from app.modules.ai_gateway.adapters.fake_llm import FakeLLMProvider
+        from app import FakeLLMProvider
 
         return FakeLLMProvider()
 
     if settings.llm_provider == "local":
-        from app.modules.ai_gateway.adapters.local_llm import LocalLLMProvider
+        from app import LocalLLMProvider
 
         return LocalLLMProvider(model=settings.llm_model)
 
-    from app.modules.ai_gateway.adapters.real_llm import RealLLMProvider
+    from app import RealLLMProvider
 
     return RealLLMProvider(api_key=settings.llm_api_key, model=settings.llm_model)

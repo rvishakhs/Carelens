@@ -1,11 +1,11 @@
 import uuid
 
-from app.modules.care_recording.events import CareEventRecorded
-from app.modules.care_recording.models import CareEvent, CareTemplate
-from app.modules.care_recording.repository import CareRecordingRepository
-from app.modules.care_recording.schemas import CareEventCreate
-from app.shared.events import EventBus
-from app.shared.exceptions import NotFoundError
+from app import CareEventRecorded
+from app import CareEvent, CareTemplate
+from app import CareRecordingRepository
+from app import CareEventCreate
+from app import EventBus
+from app import NotFoundError
 
 
 def _measurement_value_text(value_numeric: float | None, value_text: str | None, value_boolean: bool | None, unit: str | None) -> str | None:
@@ -82,6 +82,7 @@ class CareRecordingService:
             note=data.note,
             duration_minutes=data.duration_minutes,
             summary=_build_summary(template, data),
+            idempotency_key=data.idempotency_key,
             **({"occurred_at": data.occurred_at} if data.occurred_at else {}),
         )
         event = await self._repository.create_event(

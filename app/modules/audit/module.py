@@ -14,27 +14,27 @@ import uuid
 
 from fastapi import FastAPI
 
-from app.container import Container
-from app.modules.ai_insights.events import AIAlertAcknowledged, AIAlertRaised
-from app.modules.audit.models import AuditAction
-from app.modules.audit.repository import AuditRepository
+from app import Container
+from app import AIAlertAcknowledged, AIAlertRaised
+from app import AuditAction
+from app import AuditRepository
 from app.modules.audit.router import router
-from app.modules.audit.service import AuditService
-from app.modules.care_recording.events import CareEventRecorded
-from app.modules.floors.events import FloorCreated, UserFloorAccessGranted, UserFloorAccessRevoked
-from app.modules.handover.events import RecordViewed
-from app.modules.identity.events import (
+from app import AuditService
+from app import CareEventRecorded
+from app import FloorCreated, UserFloorAccessGranted, UserFloorAccessRevoked
+from app import RecordViewed
+from app import (
     MfaChallengeFailed,
     StaffMemberCreated,
     StaffMemberUpdated,
     StaffPasswordReset,
     UserLoggedIn,
 )
-from app.modules.observations.events import ObservationRecorded
-from app.modules.residents.events import ResidentCreated
-from app.modules.summaries.events import SummaryGenerated, SummaryReviewed
-from app.shared.database import rls_session
-from app.shared.events import DomainEvent
+from app import ObservationRecorded
+from app import ResidentCreated
+from app import SummaryGenerated, SummaryReviewed
+from app import rls_session
+from app import DomainEvent
 
 # Placeholder actor for the RLS `app.user_id` GUC when an event carries no actor
 # (e.g. a scheduled job). Not a real user row -- RLS only keys off care_home_id.

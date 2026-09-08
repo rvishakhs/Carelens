@@ -3,9 +3,9 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.identity.models import Role, User
-from app.modules.identity.ports import TokenClaims
-from app.shared.exceptions import UnauthenticatedError
+from app import Role, User
+from app import TokenClaims
+from app import UnauthenticatedError
 
 
 class UserRepository:

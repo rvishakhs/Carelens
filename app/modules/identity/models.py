@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, Unique
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.database import Base, TenantMixin
+from app import Base, TenantMixin
 
 
 class Role(str, enum.Enum):

@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
-from app.modules.observations.schemas import ObservationSummary
-from app.modules.residents.schemas import ResidentSummary
-from app.modules.summaries.schemas import SummaryRead
+from app import ObservationSummary
+from app import ResidentSummary
+from app import SummaryRead
 
 
 class HandoverResidentCard(BaseModel):

@@ -8,8 +8,8 @@ This file is meant to be pasted into the DPIA / DSPT evidence largely verbatim o
 the endpoint sweep is filled in -- keep it exhaustive, not just illustrative.
 """
 
-from app.modules.identity.models import Role
-from app.modules.identity.permissions import ROLE_PERMISSIONS, Permission, role_has_permission
+from app import Role
+from app import ROLE_PERMISSIONS, Permission, role_has_permission
 
 
 def test_every_role_has_a_matrix_entry():

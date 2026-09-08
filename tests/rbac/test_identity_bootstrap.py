@@ -8,11 +8,11 @@ silently creates an account for a subject with no local row.
 import random
 import uuid
 
-from app.modules.identity.models import CareHome, Role
-from app.modules.identity.ports import TokenClaims
-from app.modules.identity.repository import UserRepository
-from app.shared.database import bootstrap_session, rls_session, system_session
-from app.shared.exceptions import UnauthenticatedError
+from app import CareHome, Role
+from app import TokenClaims
+from app import UserRepository
+from app import bootstrap_session, rls_session, system_session
+from app import UnauthenticatedError
 from synthdata.home_setup import build_care_home
 
 

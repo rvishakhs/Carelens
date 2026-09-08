@@ -1,10 +1,10 @@
 import uuid
 
-from app.modules.floors.events import FloorCreated, UserFloorAccessGranted, UserFloorAccessRevoked
-from app.modules.floors.models import Floor
-from app.modules.floors.repository import FloorRepository
-from app.modules.floors.schemas import FloorCreate
-from app.shared.events import EventBus
+from app import FloorCreated, UserFloorAccessGranted, UserFloorAccessRevoked
+from app import Floor
+from app import FloorRepository
+from app import FloorCreate
+from app import EventBus
 
 
 class FloorService:

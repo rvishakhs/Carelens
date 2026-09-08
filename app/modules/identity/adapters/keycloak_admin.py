@@ -8,7 +8,7 @@ they're the only places this app talks to Keycloak directly.
 
 from keycloak import KeycloakAdmin, KeycloakOpenIDConnection
 
-from app.modules.identity.ports import IdentityProviderAdmin
+from app import IdentityProviderAdmin
 
 
 class KeycloakAdminClient(IdentityProviderAdmin):

@@ -5,7 +5,7 @@ from sqlalchemy import bindparam, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.care_recording.models import (
+from app import (
     CareCategory,
     CareEvent,
     CareEventMeasurement,
@@ -15,8 +15,9 @@ from app.modules.care_recording.models import (
     CareTemplateOption,
     CareTemplateSection,
 )
-from app.modules.care_recording.ports import CareEventReader
-from app.modules.care_recording.schemas import CareEventRead
+from app import CareEventReader
+from app import CareEventRead
+from app import ConflictError
 
 
 class CareRecordingRepository(CareEventReader):
@@ -69,6 +70,11 @@ class CareRecordingRepository(CareEventReader):
         option_ids: list[tuple[uuid.UUID, str | None]],
         measurements: list[tuple[uuid.UUID, float | None, str | None, bool | None]],
     ) -> CareEvent:
+        if event.idempotency_key is not None:
+            existing = await self._get_by_idempotency_key(event.idempotency_key)
+            if existing is not None:
+                raise ConflictError(f"care event with idempotency_key {event.idempotency_key!r} already exists")
+
         self._session.add(event)
         await self._session.flush()
 
@@ -94,6 +100,10 @@ class CareRecordingRepository(CareEventReader):
             )
         await self._session.flush()
         return event
+
+    async def _get_by_idempotency_key(self, key: str) -> CareEvent | None:
+        result = await self._session.execute(select(CareEvent).where(CareEvent.idempotency_key == key))
+        return result.scalar_one_or_none()
 
     async def get_recent_for_resident(self, resident_id: uuid.UUID, hours: int = 24) -> list[CareEventRead]:
         since = datetime.now(UTC) - timedelta(hours=hours)

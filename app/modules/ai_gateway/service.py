@@ -9,8 +9,8 @@ summaries --> ai_gateway.complete() --> pseudonymiser --> LLMProvider port --> a
 
 import uuid
 
-from app.modules.ai_gateway.ports import LLMProvider
-from app.modules.ai_gateway.pseudonymiser import Pseudonymiser
+from app import LLMProvider
+from app import Pseudonymiser
 
 
 class AIGatewayService:

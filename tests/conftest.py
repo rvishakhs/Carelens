@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import create_engine, text
 from testcontainers.postgres import PostgresContainer
 
-from app.shared.database import dispose_engine, init_engine
+from app import dispose_engine, init_engine
 
 
 @pytest.fixture(scope="session", autouse=True)

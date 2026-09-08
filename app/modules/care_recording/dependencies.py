@@ -5,11 +5,11 @@ from collections.abc import AsyncIterator
 
 from fastapi import Depends
 
-from app.modules.care_recording.ports import CareEventReader
-from app.modules.care_recording.repository import CareRecordingRepository
-from app.modules.identity.dependencies import get_current_user
-from app.modules.identity.schemas import CurrentUser
-from app.shared.database import rls_session
+from app import CareEventReader
+from app import CareRecordingRepository
+from app import get_current_user
+from app import CurrentUser
+from app import rls_session
 
 
 async def get_care_event_reader(

@@ -12,9 +12,9 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from app.modules.floors.ports import FloorReader
-from app.modules.floors.repository import FloorRepository
-from app.shared.database import rls_session
+from app import FloorReader
+from app import FloorRepository
+from app import rls_session
 
 
 @asynccontextmanager

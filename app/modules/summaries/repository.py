@@ -3,9 +3,9 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.summaries.models import AIOutput
-from app.modules.summaries.ports import SummaryReader
-from app.modules.summaries.schemas import SummaryRead
+from app import AIOutput
+from app import SummaryReader
+from app import SummaryRead
 
 
 class SummaryRepository(SummaryReader):

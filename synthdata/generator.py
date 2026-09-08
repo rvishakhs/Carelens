@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 from sqlalchemy import text, update
 
-from app.shared.security import generate_opaque_token
+from app import generate_opaque_token
 from synthdata.ai_insights import build_prompt_versions, build_resident_ai_outputs
 from synthdata.daily_records import ResidentContext, ResidentDailyState, generate_daily_rows
 from synthdata.db import Schema, build_engine, insert_many, insert_rows, tenant_transaction

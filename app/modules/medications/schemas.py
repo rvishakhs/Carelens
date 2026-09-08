@@ -3,7 +3,7 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel
 
-from app.modules.medications.models import MedicationEventStatus, MedicationRoute
+from app import MedicationEventStatus, MedicationRoute
 
 
 class MedicationCreate(BaseModel):

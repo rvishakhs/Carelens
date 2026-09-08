@@ -1,8 +1,8 @@
-from app.modules.residents.events import ResidentCreated
-from app.modules.residents.models import Resident
-from app.modules.residents.repository import ResidentRepository
-from app.modules.residents.schemas import ResidentCreate
-from app.shared.events import EventBus
+from app import ResidentCreated
+from app import Resident
+from app import ResidentRepository
+from app import ResidentCreate
+from app import EventBus
 
 
 class ResidentService:

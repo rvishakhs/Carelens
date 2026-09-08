@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.ai_gateway.models import PseudonymMapping
-from app.shared.security import hmac_pseudonym
+from app import PseudonymMapping
+from app import hmac_pseudonym
 
 
 class PseudonymMappingRepository:

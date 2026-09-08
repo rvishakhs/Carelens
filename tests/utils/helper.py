@@ -1,5 +1,5 @@
 
-from app.modules.residents.models import Resident, ResidentStatus
+from app import Resident, ResidentStatus
 
 
 async def seed_home_a_resident(session, home_id):

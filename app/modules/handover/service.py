@@ -7,13 +7,13 @@ Every resident rendered here fires RecordViewed, which audit subscribes to."""
 
 import uuid
 
-from app.modules.handover.events import RecordViewed
-from app.modules.handover.ports import AttentionRanker
-from app.modules.handover.schemas import HandoverResidentCard
-from app.modules.observations.ports import ObservationReader
-from app.modules.residents.ports import ResidentReader
-from app.modules.summaries.ports import SummaryReader
-from app.shared.events import EventBus
+from app import RecordViewed
+from app import AttentionRanker
+from app import HandoverResidentCard
+from app import ObservationReader
+from app import ResidentReader
+from app import SummaryReader
+from app import EventBus
 
 
 class HandoverService:
