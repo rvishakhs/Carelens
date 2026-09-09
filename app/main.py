@@ -2,24 +2,48 @@
 ENABLED_MODULES removes its routes, jobs, and event handlers with zero code
 changes elsewhere."""
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import get_settings
-from app import Container, build_container
-from app import init_engine, dispose_engine, check_database
-from app import CareLensError
-from app import init_redis, close_redis, check_redis
-from app import configure_logging, get_logger
+from app import (
+    CareLensError,
+    Container,
+    build_container,
+    check_database,
+    check_redis,
+    close_redis,
+    configure_logging,
+    dispose_engine,
+    get_logger,
+    get_settings,
+    init_engine,
+    init_redis,
+)
 
 logger = get_logger(__name__)
 
 ModuleRegistrar = Callable[[FastAPI, Container], None]
+# Probes run concurrently; a stalled dependency must not hold readiness open.
+READINESS_TIMEOUT_SECONDS = 2.0
+
+
+async def _check_readiness_dependency(name: str, check: Callable[[], Awaitable[bool]]) -> bool:
+    try:
+        async with asyncio.timeout(READINESS_TIMEOUT_SECONDS):
+            return await check()
+    except TimeoutError:
+        logger.warning("readiness_dependency_timeout", dependency=name)
+        return False
+    except Exception:
+        # Includes uninitialised clients, whose accessors may raise before a probe's
+        # internal exception handler. Do not expose connection details to callers.
+        logger.warning("readiness_dependency_failed", dependency=name)
+        return False
 
 
 def _load_module_registry() -> dict[str, ModuleRegistrar]:
@@ -141,19 +165,21 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     @app.get("/readyz", tags=["system"])
-    async def readyz() -> dict[str, str]:
-        database_ok = check_database()
-        redis_ok = check_redis()
+    async def readyz() -> JSONResponse:
+        database_ok, redis_ok = await asyncio.gather(
+            _check_readiness_dependency("Database", check_database),
+            _check_readiness_dependency("Redis", check_redis),
+        )
 
         ready = database_ok and redis_ok
 
         return JSONResponse(
-            status_code = 200 if ready else 503,
-            content = {
+            status_code=200 if ready else 503,
+            content={
                 "status": "ready" if ready else "not_ready",
                 "dependencies": {
-                    "Redis" : "available" if redis_ok else "unavailable",
-                    "Database" : "available" if database_ok else "unavailable",
+                    "Redis": "available" if redis_ok else "unavailable",
+                    "Database": "available" if database_ok else "unavailable",
                 },
             },
         )

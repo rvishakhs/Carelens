@@ -1,11 +1,15 @@
 import uuid
 
-from app import ObservationRecorded
-from app import Observation, ObservationType
-from app import NoteStructurer
-from app import ObservationRepository
-from app import ObservationCreate, is_plausible
-from app import EventBus
+from app import (
+    EventBus,
+    NoteStructurer,
+    Observation,
+    ObservationCreate,
+    ObservationRecorded,
+    ObservationRepository,
+    ObservationType,
+    is_plausible,
+)
 
 
 class ObservationService:
@@ -39,7 +43,7 @@ class ObservationService:
                 actor_user_id=actor_user_id,
                 observation_id=observation.id,
                 resident_id=observation.resident_id,
-                type=observation.type,
+                type=ObservationType(observation.type),
                 is_implausible=observation.is_implausible,
             )
         )

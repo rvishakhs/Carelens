@@ -5,6 +5,32 @@ a hazard -- this file should never lag the code by more than one commit.
 
 Format per entry: **Cause -> Harm -> Mitigation -> Status**.
 
+9 September 2026: entries H-001–H-005 retain historical implementation claims;
+they are not proof of the new separate service's controls. Current pilot
+requirements and evidence limits are in the
+[P0-06 data policy](intelligence-pilot-data-policy.md).
+
+## H-006: Derived data remains accessible after restriction or deletion
+
+- **Cause**: An index, cached answer, queued job or restored backup retains resident data after source correction, deletion or access/eligibility changes.
+- **Harm**: Unauthorised disclosure or reliance on obsolete information.
+- **Proposed mitigation**: Current-scope checks on retrieval and display, scoped jobs, source invalidation, deletion propagation and restore reconciliation; preserve signed evidence only under its approved retention and access policy.
+- **Status**: Open; separate-service controls and measurable removal deadlines are not implemented or agreed.
+
+## H-007: Unapproved provider, location or diagnostic disclosure
+
+- **Cause**: Notes or questions reach a generation/embedding vendor, support tool, log or fallback region outside the approved processing arrangements.
+- **Harm**: Disclosure of resident and third-party information to unintended recipients.
+- **Proposed mitigation**: Explicit vendor/region allowlist, minimised inputs, metadata-only telemetry, no unapproved fallback, contract and subprocessor assessment, synthetic leakage tests covering questions as well as source notes.
+- **Status**: Open; hosting/provider selection and assessment remain pending. H-003 also remains open.
+
+## H-008: Handover signed with unreviewed edits or changed evidence
+
+- **Cause**: Concurrent edits, regeneration, late records or source corrections invalidate what the reviewer saw.
+- **Harm**: Incoming staff rely on an inaccurate signed handover.
+- **Proposed mitigation**: Version-conditional sign-off, source freshness rechecks, explicit designated-reviewer permission, preserved staff edits and reviewed amendments after finalisation.
+- **Status**: Open; P0-05 policy agreed, review lifecycle and evidence-version integration not yet implemented.
+
 ---
 
 ## H-001: Wrong-resident data displayed

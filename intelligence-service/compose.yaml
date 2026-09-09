@@ -1,0 +1,21 @@
+name: care-intelligence
+services:
+  api:
+    build: .
+    env_file: .env
+    ports:
+      - "127.0.0.1:8100:8100"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/readyz')"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+# Deliberately no shared CareLens network, database, secrets or volumes.
+# PostgreSQL/Temporal are delivery milestones, not unused running dependencies.

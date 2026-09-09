@@ -1,6 +1,6 @@
 # CareLens intelligence implementation plan
 
-Status: proposed roadmap; implementation has not started under this plan.
+Status: roadmap in progress. The independently packaged [intelligence-service skeleton](../intelligence-service/README.md) now implements a synthetic-only API/agent/gateway path. Live integration, durable storage/workflows and real-data activation remain future milestones.
 
 Created: 8 September 2026.
 
@@ -16,6 +16,7 @@ The first release is **authorised resident-history search and draft handover sum
 - Use synthetic data for engineering; representative care data requires appropriate governance and access arrangements.
 - Build one modular intelligence service with separately runnable workers, rather than a service per agent.
 - Keep model, speech, email and workflow integrations behind interfaces.
+- Agreed 9 September 2026: the separate intelligence layer includes a mandatory AI gateway for minimisation, pseudonymisation, LLM dispatch and authorised re-identification. See the [gateway design](../governance/intelligence-ai-gateway-design.md). CareLens currently runs locally; future AWS/Azure hosting and regions remain undecided.
 - Core recording, structured handover and existing clinical escalation must work during intelligence outages.
 - Initial communications, extracted appointments and voice entries require staff review before external delivery or authoritative recording.
 - No production deployment, external messaging or clinical automation is authorised by this planning document.
@@ -118,13 +119,16 @@ Clinical intended-use work starts in Phase 0, even though detection is delivered
 P0-01 progress: source review completed on 8 September 2026. See the [baseline review](phase-0/baseline-review.md) and [file manifest](phase-0/baseline-manifest.json). Current working tree is the recommended candidate baseline; acceptance, runtime verification and physical implementation isolation remain outstanding. No application code was changed by the review.
 
 - [ ] **P0-01:** Review the existing uncommitted work and agree which changes form the baseline. Preserve current work; isolate intelligence implementation changes.
-- [ ] **P0-02:** Run existing backend tests and frontend checks; record failures and infrastructure prerequisites separately from new work.
-- [ ] **P0-03:** Address the readiness endpoint's unawaited dependency checks before relying on it for service health.
-- [ ] **P0-04:** Inventory actual API coverage for care events, observations, medications, appointments, tasks and permission checks. Distinguish implemented endpoints from planned ones.
-- [ ] **P0-05:** Agree two pilot stories: resident-history enquiry and end-of-shift handover review.
-- [ ] **P0-06:** Define allowed data, recipients, retention, processing locations and intended clinical use. Extend existing governance documents as needed.
-- [ ] **P0-07:** Draft at least 20 representative search questions and 10 handover scenarios, including missing data, corrections, late records and permission denials. This is a starter set, not sufficient clinical validation.
-- [ ] **P0-08:** Agree latency, freshness, cost and quality targets and named reviewers before choosing models or accepting output.
+- [x] **P0-02:** Run existing backend tests and frontend checks; record failures and infrastructure prerequisites separately from new work. Completed 8 September 2026: [verification report](phase-0/verification-report.md). Backend: 25 passed, 1 skipped; frontend build passed; static-check failures and coverage gaps recorded.
+- [x] **P0-03:** Address the readiness endpoint's unawaited dependency checks before relying on it for service health. Completed 8 September 2026: concurrent awaited probes, two-second timeouts and HTTP contract tests; full suite 35 passed, 1 skipped. See [verification](phase-0/readiness-verification.md).
+- [x] **P0-04:** Inventory actual API coverage for care events, observations, medications, appointments, tasks and permission checks. Completed 8 September 2026: [API coverage matrix and minimum integration backlog](phase-0/api-inventory.md), cross-checked with 43 registered OpenAPI operations. Generic observation storage, complete history retrieval, service authorisation and change tracking require work.
+- P0-04 follow-up: [historical clinical mapping resolved](phase-0/clinical-feed-resolution.md), including native observation storage, 14 source projections, period/type filters, source detail, and summary/gateway schema alignment. Apply migrations 0030–0031 before using against the application database. Service authorisation, durable export and other inventory gaps remain separate work.
+- [x] **P0-05:** Agree two pilot stories: resident-history enquiry and end-of-shift handover review. [Pilot specification](phase-0/pilot-specification.md): care events plus 14 connected clinical sources; authorised carers, nurses and care managers edit drafts. After review the user confirmed only the designated nurse in charge can finalise, including drafts they edited, superseding the earlier broader policy. Preserve the original AI draft separately from the signed final handover; corrections require reviewed amendments. Workflow implementation and pilot operating details remain outstanding.
+- [ ] **P0-06:** Define allowed data, recipients, retention, processing locations and intended clinical use. [Data-policy/DPIA addendum](../governance/intelligence-pilot-data-policy.md): UK/local-only baseline and separate intelligence gateway direction recorded; conversation (24-hour maximum), inactive draft (30-day) and operational audit (90-day) defaults agreed on 9 September 2026, alongside temporary mapping cleanup and source-aligned derived-data retention. Hosting regions, accountable owners, eligibility and remaining retention details are still open; deletion controls are not implemented.
+- [x] **P0-07:** Draft at least 20 representative search questions and 10 handover scenarios, including missing data, corrections, late records and permission denials. Completed 9 September 2026: [synthetic case pack](phase-0/pilot-evaluation-cases.md) and [Glenrose's review sheet](phase-0/pilot-evaluation-review.md). All 14 clinical sources plus care events covered, with expected outcomes and workflow/gateway cases. Drafting is complete; nurse review, executable fixtures and output evaluation remain outstanding. This is a starter set, not sufficient clinical validation.
+- [x] **P0-08:** Agree latency, freshness, cost and quality targets and named reviewers before choosing models or accepting output. [Headline acceptance targets agreed](phase-0/pilot-acceptance-targets.md): evidence-supported accuracy and no unauthorised disclosures in tests; p95 search ≤10 seconds, handover ≤60 seconds and source freshness ≤60 seconds; average model cost ≤£0.05/search and ≤£0.50/floor handover. Reviewers assigned: Glenrose for care accuracy/usefulness and the user (project developer) for technical evaluation. Operational incident ownership and detailed runtime settings remain implementation decisions. No benchmark results or paid runs are implied.
+- P0-07 review follow-up: [feedback incorporated](phase-0/pilot-review-feedback.md) into case-pack revision 2: offered/consumed and partial drinks, optional BMI, mobility issues, post-fall evidence window, recorded-time fallback and separate original/final handovers. S15 execution deferred to retrieval work; completeness remains a gate. Wound vision is a future request. All AI output tests remain unrun.
+- Pilot representative recorded on 9 September 2026: **Glenrose (nurse)**, for workflow input and search/handover evaluation. The user is the technical developer/reviewer. Organisational/privacy ownership and formal clinical safety responsibility remain unassigned; P0-06 remains open, while P0-08 planning is complete.
 
 **Deliverables:** baseline report, short architecture decision record, pilot specification, data-access matrix and initial evaluation cases.
 
@@ -279,6 +283,8 @@ Apply these throughout delivery, not as an end-of-project checklist.
 Track retrieval recall, citation correctness, unsupported claims, important omissions, staff edit rates, workflow latency and cost. Define thresholds per use case before each pilot; do not use model-generated confidence percentages as a substitute for validation.
 
 ## 15. First implementation sprint
+
+Skeleton delivered: see the standalone [architecture and stack](../intelligence-service/docs/architecture.md), [agent extension guide](../intelligence-service/docs/adding-agents.md), [delivery plan](../intelligence-service/docs/delivery-plan.md) and [verification](../intelligence-service/docs/verification.md). The project sits in `intelligence-service/` with its own package, lockfile and environment; it has not yet been moved into a separate Git repository. This does not mark production Phase 1 identity or durability gates complete.
 
 Treat this as the first roughly two-week planning box, subject to baseline findings and team capacity. It is not a promised completion date.
 

@@ -1,15 +1,21 @@
 import uuid
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import AwareDatetime
 
-from app import get_current_user
-from app import Permission, require
-from app import CurrentUser
-from app import ObservationRepository
-from app import ObservationCreate, ObservationRead
-from app import ObservationService
-from app import rls_session
+from app import (
+    CurrentUser,
+    ObservationCreate,
+    ObservationRead,
+    ObservationRepository,
+    ObservationService,
+    Permission,
+    get_current_user,
+    require,
+    rls_session,
+)
+from app.modules.observations.models import ObservationType
 
 router = APIRouter(prefix="/observations", tags=["observations"])
 
@@ -51,8 +57,35 @@ async def create_observations_batch(
 @router.get("", response_model=list[ObservationRead])
 async def list_observations(
     resident_id: uuid.UUID,
+    type: ObservationType | None = None,
+    since: AwareDatetime | None = None,
+    until: AwareDatetime | None = None,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     _: CurrentUser = Depends(require(Permission.VIEW_OBSERVATION)),
     repository: ObservationRepository = Depends(get_observation_repository),
 ) -> list[ObservationRead]:
-    observations = await repository.list_for_resident(resident_id)
-    return [ObservationRead.model_validate(o) for o in observations]
+    if since is not None and until is not None and since >= until:
+        raise HTTPException(status_code=422, detail="since must be earlier than until")
+    return await repository.list_for_resident(
+        resident_id,
+        limit,
+        offset=offset,
+        since=since,
+        until=until,
+        observation_type=type,
+    )
+
+
+@router.get("/sources/{source_type}/{source_id}", response_model=ObservationRead)
+async def get_observation_source(
+    source_type: str,
+    source_id: uuid.UUID,
+    resident_id: uuid.UUID,
+    _: CurrentUser = Depends(require(Permission.VIEW_OBSERVATION)),
+    repository: ObservationRepository = Depends(get_observation_repository),
+) -> ObservationRead:
+    source = await repository.get_source(resident_id, source_type, source_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="observation source not found")
+    return source

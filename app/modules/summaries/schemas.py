@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app import SummaryFeedbackRating
 
@@ -13,6 +13,7 @@ class SummaryRead(BaseModel):
     prompt_template_version: str
     model_version: str
     source_observation_ids: list[uuid.UUID]
+    input_record_refs: list[dict[str, str]] = Field(default_factory=list)
     generated_at: datetime
     feedback_rating: SummaryFeedbackRating | None
     feedback_comment: str | None

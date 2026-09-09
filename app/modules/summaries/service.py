@@ -8,19 +8,22 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app import AIGatewayService
-from app import ObservationType
-from app import ObservationReader
-from app import ObservationSummary
-from app import ResidentReader
-from app import SummaryGenerated, SummaryReviewed
-from app import AIOutput
-from app import SummaryRepository
+from app import (
+    AIGatewayService,
+    AIOutput,
+    EventBus,
+    NotFoundError,
+    ObservationReader,
+    ObservationSummary,
+    ObservationType,
+    ResidentReader,
+    SummaryGenerated,
+    SummaryRepository,
+    SummaryReviewed,
+)
 from app.modules.summaries.schemas import SummaryFeedbackCreate
-from app import EventBus
-from app import NotFoundError
 
-PROMPT_TEMPLATE_VERSION = "v1"
+PROMPT_TEMPLATE_VERSION = "v2"
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "ai_gateway" / "prompts" / "daily_summary"
 _PROMPT_PATH = _PROMPT_DIR / f"{PROMPT_TEMPLATE_VERSION}.md"
 
@@ -64,7 +67,7 @@ class SummaryService:
             prompt_template_version=PROMPT_TEMPLATE_VERSION,
             model_version="unknown",  # TODO: surface provider/model string from LLMProvider
             content=content,
-            source_observation_ids=[o.id for o in observations],
+            input_record_refs=[{"table": o.source_type, "id": str(o.id)} for o in observations],
             generated_at=datetime.now(UTC),
         )
         output = await self._repository.create(output)
@@ -76,8 +79,13 @@ class SummaryService:
 
     def _render_prompt(self, structured: list[ObservationSummary], notes: list[ObservationSummary]) -> str:
         template = _PROMPT_PATH.read_text()
-        structured_text = "\n".join(f"- {o.type.value}: {o.value}" for o in structured) or "(none recorded)"
-        notes_text = "\n".join(f"- {o.value.get('text', '')}" for o in notes) or "(none recorded)"
+
+        def line(o: ObservationSummary, content: object) -> str:
+            when = f"{o.source_date} (date only)" if o.time_precision == "date" else o.recorded_at.isoformat()
+            return f"- [{o.source_type}/{o.id}] {when} {o.type.value}: {content}"
+
+        structured_text = "\n".join(line(o, o.value) for o in structured) or "(none recorded)"
+        notes_text = "\n".join(line(o, o.value.get("text", "")) for o in notes) or "(none recorded)"
         return template.replace("{{structured_observations}}", structured_text).replace("{{notes}}", notes_text)
 
     async def submit_feedback(

@@ -1,7 +1,6 @@
 import uuid
 
-from app import ObservationType
-from app import DomainEvent
+from app import DomainEvent, ObservationType
 
 
 class ObservationRecorded(DomainEvent):

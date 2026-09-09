@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 
 from app import ObservationType
 
@@ -36,11 +36,20 @@ class ObservationCreate(BaseModel):
     resident_id: uuid.UUID
     type: ObservationType
     value: dict[str, Any]
-    recorded_at: datetime
-    idempotency_key: str | None = None
+    recorded_at: AwareDatetime
+    idempotency_key: str | None = Field(default=None, max_length=255)
 
     @model_validator(mode="after")
     def note_requires_text(self) -> "ObservationCreate":
+        if self.type not in {
+            ObservationType.FLUID_INTAKE,
+            ObservationType.WEIGHT,
+            ObservationType.VITALS,
+            ObservationType.MEAL,
+            ObservationType.MOBILITY,
+            ObservationType.NOTE,
+        }:
+            raise ValueError("this observation type is read-only domain history")
         if self.type is ObservationType.NOTE and not isinstance(self.value.get("text"), str):
             raise ValueError("note observations require value.text")
         return self
@@ -52,16 +61,17 @@ class ObservationRead(BaseModel):
     type: ObservationType
     value: dict[str, Any]
     recorded_at: datetime
-    recorded_by: uuid.UUID
+    recorded_by: uuid.UUID | None
     is_implausible: bool
+    source_type: str = "observations"
+    time_precision: Literal["timestamp", "date"] = "timestamp"
+    source_date: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 class ObservationSummary(BaseModel):
-    """Cross-module read shape via ObservationReader -- structured data only, no note
-    free-text, so consumers like summaries/handover don't need pseudonymisation
-    reasoning duplicated at the call site."""
+    """Source-backed read shape. Values may contain clinical free text; use the AI gateway."""
 
     id: uuid.UUID
     resident_id: uuid.UUID
@@ -69,5 +79,8 @@ class ObservationSummary(BaseModel):
     value: dict[str, Any]
     recorded_at: datetime
     is_implausible: bool
+    source_type: str = "observations"
+    time_precision: Literal["timestamp", "date"] = "timestamp"
+    source_date: str | None = None
 
     model_config = {"from_attributes": True}

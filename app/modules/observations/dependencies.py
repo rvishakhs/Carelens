@@ -5,11 +5,7 @@ from collections.abc import AsyncIterator
 
 from fastapi import Depends
 
-from app import get_current_user
-from app import CurrentUser
-from app import ObservationReader
-from app import ObservationRepository
-from app import rls_session
+from app import CurrentUser, ObservationReader, ObservationRepository, get_current_user, rls_session
 
 
 async def get_observation_reader(

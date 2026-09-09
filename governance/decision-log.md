@@ -1,5 +1,26 @@
 # Decision Log
 
+## Independent intelligence service — skeleton decision
+
+The user requested a separate reusable intelligence service. Implemented an
+independently packaged `intelligence-service/` folder with no CareLens imports or
+shared credentials, own dependency lock, local API/container entry points and
+synthetic tests. It can move into its own repository; no nested Git repository or
+remote was created. The earlier modular-monolith decision continues to describe
+CareLens itself, not the deployment boundary for this new service.
+
+Stack: Python/FastAPI/Pydantic with explicit bounded agents and a mandatory gateway.
+Current adapters are synthetic evidence, fake provider and bounded in-memory
+results. Planned production components are separate PostgreSQL/pgvector and
+Temporal-backed workers, subject to integration and failure-recovery gates.
+See the [architecture](../intelligence-service/docs/architecture.md) and
+[milestone plan](../intelligence-service/docs/delivery-plan.md).
+
+No real resident data, paid models or cloud deployment was used. The structured
+demo gateway is not a complete clinical free-text pseudonymiser. Only the nurse
+in charge may finalise future pilot handovers; this skeleton has no finalisation
+endpoint. P0-06 real-data decisions remain outstanding.
+
 Dated records of architectural/security decisions and the reasoning behind them.
 Keeps assessors, buyers, and future-me honest about why the codebase looks the way it
 does.

@@ -1,0 +1,38 @@
+[project]
+name = "care-intelligence-service"
+version = "0.1.0"
+description = "Independent, evidence-backed intelligence service; synthetic-only skeleton"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi==0.140.0",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.14.2",
+  "uvicorn==0.51.0",
+]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "httpx==0.28.1", "ruff==0.16.0", "mypy==2.3.0"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/intelligence"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "--strict-markers"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true

@@ -8,6 +8,18 @@ to verbatim from the source.
 
 **Status: draft, Phase 1 in progress. Not yet reviewed by a DPO or submitted anywhere.**
 
+**9 September 2026 update:** the original phase labels below describe the earlier
+application roadmap. The separate intelligence pilot now has an agreed
+[P0-05 specification](../docs/phase-0/pilot-specification.md) and a draft
+[P0-06 data-policy addendum](intelligence-pilot-data-policy.md). The addendum
+extends this DPIA with the 14 clinical sources plus care events, recipients,
+processing locations, retention proposals and intended use. The pilot country is
+confirmed as the United Kingdom. CareLens is currently local-only; future AWS or
+Azure hosting and exact regions remain undecided. A separate intelligence layer
+with a mandatory [AI gateway](intelligence-ai-gateway-design.md) is the agreed
+direction. Accountable owners and remaining policy approval are outstanding. No real-data
+activation or technical control implementation is established by these documents.
+
 ---
 
 ## 1. Nature of processing
@@ -40,10 +52,12 @@ Family access is explicitly deferred to Phase 5 pending consent machinery
 ## 4. Row-Level Security (technical control evidence)
 
 Pattern and rationale: `migrations/README.md`. Runtime enforcement:
-`app/shared/database.py` (`rls_session()` docstring explains the zero-rows-by-default
-property). Test evidence goes here once `tests/rbac/test_rls_isolation.py` is
-implemented against a real Postgres instance -- currently skipped, tracked as a
-blocker.
+`app/shared/database.py` (`rls_session()` documents scoped sessions). Updated
+evidence: `tests/integration/test_clinical_observation_feed.py` exercises the 14
+clinical sources and native storage against PostgreSQL under a non-superuser
+application role, including tenant/floor denial. See the
+[clinical mapping report](../docs/phase-0/clinical-feed-resolution.md). Broader
+endpoint/role coverage and the future intelligence service still need validation.
 
 ## 5. Pseudonymisation (AI gateway)
 
@@ -60,8 +74,9 @@ keys, synthetic data only) until H-003 is closed.**
 
 Full matrix: `app/modules/identity/permissions.py` (`ROLE_PERMISSIONS`). Structural
 tests: `tests/rbac/test_permission_matrix.py`. The endpoint x role sweep proving the
-matrix matches actual route behaviour is a TODO in that file, blocked on the same
-Postgres/migrations dependency as section 4.
+matrix matches actual route behaviour remains broader work; the clinical feed
+integration evidence in section 4 covers a bounded subset. Live grants are
+DB-backed and cached, so seed-role tests alone do not prove runtime revocation.
 
 ## 7. Audit trail
 
@@ -73,10 +88,18 @@ itself audited -- see `app/modules/handover/service.py`). Export is itself audit
 
 ## 8. Retention
 
-Soft delete (`deleted_at`) exists on every tenant table via `TenantMixin`
-(`app/shared/database.py`). Actual retention policy (how long, what triggers purge)
-is **not yet decided** -- `workers/jobs/retention_job.py` is a deliberate no-op stub
-until it is.
+Many records expose soft deletion; it is not a purge policy. On 9 September 2026
+the user agreed product defaults: session-only conversations with a 24-hour
+server-side maximum, unfinalised drafts after 30 days without activity (subject to
+review/hold), and operational audit metadata for 90 days. Temporary gateway
+mappings expire after processing and permitted retries; derived data remains only
+while needed and follows source changes. Finalised handovers and signed-review
+history follow the care home's approved record schedule. Exact derived-data
+horizon, retry/hold limits, official record periods and other details remain open.
+`app/workers/jobs/retention_job.py` remains a deliberate no-op stub; no deletion
+controls were implemented by the agreement. See the
+[P0-06 addendum](intelligence-pilot-data-policy.md#4-retention-schedule--agreed-defaults-and-remaining-decisions)
+for agreed defaults, unapproved proposals and responsible-owner validation.
 
 ## 9. Open items before this DPIA can be considered complete
 
