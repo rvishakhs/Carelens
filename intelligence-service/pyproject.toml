@@ -4,9 +4,14 @@ version = "0.1.0"
 description = "Independent, evidence-backed intelligence service; synthetic-only skeleton"
 requires-python = ">=3.12,<3.14"
 dependencies = [
+  "alembic>=1.20.0",
+  "celery>=5.6.3",
   "fastapi==0.140.0",
+  "httpx>=0.28.1",
   "pydantic==2.13.4",
   "pydantic-settings==2.14.2",
+  "redis>=8.1.0",
+  "sqlalchemy>=2.0.52",
   "uvicorn==0.51.0",
 ]
 
