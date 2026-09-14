@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID, uuid4
+from datetime import date,datetime ,time
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
@@ -43,22 +44,79 @@ class RunRequest(Contract):
 
 
 class SourceRef(Contract):
-    source_system: Literal["synthetic"] = "synthetic"
+    source_system: Literal["synthetic", "Carelens_connector"] = "synthetic"
     source_type: str
     source_id: UUID
     version: str
+    # Fingerprint will help to indentify the changes after the draft is made
+    fingerprint: str | None = None
 
+class ExecutionContext(Contract):
+    tenant_id: UUID
+
+    # Set for a manual request; absent for a scheduled request.
+    initiating_actor_id: UUID | None = None
+
+    # Identity of the service executing the job.
+    service_identity: str
+
+    trigger: Literal["manual", "scheduled"]
+    purpose: Literal["handover_generation"] = "handover_generation"
+
+    authorised_resident_ids: frozenset[UUID]
+    permissions: frozenset[str]
+
+    @model_validator(mode="after")
+    def validate_actor(self) -> "ExecutionContext":
+        if self.trigger == "manual" and self.initiating_actor_id is None:
+            raise ValueError("manual execution requires initiating_actor_id")
+
+        if self.trigger == "scheduled" and self.initiating_actor_id is not None:
+            raise ValueError("scheduled execution must not impersonate a staff member")
+
+        return self
 
 class Evidence(Contract):
     tenant_id: UUID
     resident_id: UUID
     reference: SourceRef
-    effective_at: AwareDatetime
-    recorded_at: AwareDatetime
-    time_basis: Literal["effective", "recorded"] = "effective"
-    kind: Literal["fluid", "care"]
+
+    effective_at: AwareDatetime | None = None
+    source_date: date | None = None
+    recorded_at: AwareDatetime | None = None
+
+    time_basis: Literal["effective", "recorded", "unknown"]
+    time_precision: Literal["timestamp", "date", "unknown"]
+
+    kind: str
+
+
     consumed_ml: int | None = Field(default=None, ge=0)
     offered_ml: int | None = Field(default=None, ge=0)
+
+    # Internal clinical narrative; NOT safe to send directly to a model.
+    narrative: str | None = None
+
+    @model_validator(mode="after")
+    def validate_time(self) -> "Evidence":
+        if self.time_precision == "date":
+            if self.source_date is None or self.effective_at is not None:
+                raise ValueError(
+                    "date-only evidence requires source_date "
+                    "and must not invent an effective timestamp"
+                )
+
+        if self.time_precision == "timestamp":
+            if self.time_basis == "effective" and self.effective_at is None:
+                raise ValueError("effective timestamp is required")
+
+            if self.time_basis == "recorded" and self.recorded_at is None:
+                raise ValueError("recorded timestamp is required")
+
+            if self.time_basis == "unknown":
+                raise ValueError("timestamp evidence requires a known time basis")
+
+        return self
 
 
 class EvidenceBundle(Contract):
