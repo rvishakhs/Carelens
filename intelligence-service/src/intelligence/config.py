@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="INTELLIGENCE_", env_file=".env", extra="ignore")
+    database_url: SecretStr
     mode: Literal["synthetic"] = "synthetic"
     provider: Literal["fake"] = "fake"
     demo_token: SecretStr
