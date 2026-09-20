@@ -49,7 +49,7 @@ Alternatively, after configuring `.env`:
 docker compose up --build
 ```
 
-The service binds host port 8100 on loopback, independently of CareLens on port 8000. Compose runs only the API; no database or worker dependency is falsely presented as integrated. Do not run multiple API processes against the in-memory result adapter: results would differ per process.
+The service binds host port 8100 on loopback, independently of CareLens on port 8000. Compose runs only the API. Supply a reachable independent PostgreSQL URL; localhost inside the container is not the host database. Do not run multiple API processes against the in-memory result adapter: results would differ per process.
 
 ## Test
 
@@ -75,7 +75,7 @@ uv run --frozen mypy src
 
 ## What does not exist yet
 
-Live CareLens connector/delegated OIDC, persistent storage/RLS, Temporal jobs/workers, outbox ingestion, full 14-source mapping, hybrid search, free-text pseudonymisation, real models, clinical evaluations, signed review/amendment APIs, scheduled deletion and cloud deployment. `mode=production` and real providers fail configuration validation. The fake provider has no network calls.
+Live CareLens connector/delegated OIDC, complete persistent submission API, Celery dispatch/workers, outbox delivery, full 14-source mapping, hybrid search, free-text pseudonymisation, real models, clinical evaluations, signed review/amendment APIs, scheduled deletion and cloud deployment. `mode=production` and real providers fail configuration validation. The fake provider has no network calls.
 
 The current alias resolution restores internal source references and attaches the authorised resident ID to the response; it does **not** demonstrate name redaction/re-identification of arbitrary clinical text. That gateway upgrade is a separate milestone with leakage tests.
 
@@ -84,3 +84,44 @@ The current alias resolution restores internal source references and attaches th
 This directory is a self-contained project placed here because the current writable workspace is CareLens. It is **not yet a separate Git repository**. It can be copied/moved into an independent checkout: all build/runtime imports, tests and dependency files are local. Copy the approved CareLens governance/evaluation documents as a reviewed snapshot when making that move; do not copy real data, `.env`, `.venv`, caches or application credentials. There is no need to copy the CareLens `app/` directory.
 
 Technical developer/reviewer: project owner (you). Care reviewer: Glenrose. Finalisation policy: only the designated nurse in charge; implementation deferred to the CareLens review integration milestone.
+
+## Persistence layout and local checks
+
+- `src/intelligence/`: installed application package.
+- `src/intelligence/persistence/`: engine/session lifecycle and ORM models.
+- `src/intelligence/handover/`: handover contracts and submission insertion primitive.
+- `migrations/versions/`: active schema history, including tenant policies and permissions.
+- `migration_backups/`: inactive migration text retained for reference only.
+- `scripts/`: explicitly invoked local checks and demos.
+- `tests/`: automated tests, with PostgreSQL checks opt-in.
+
+Runtime/API and tenant checks read `INTELLIGENCE_DATABASE_URL` using the
+`intelligence_app` role. Alembic reads only `INTELLIGENCE_MIGRATION_DATABASE_URL`,
+using `intelligence_migrator`; it does not require the API demo token.
+Store credentials in `.env`, never in tracked files.
+
+```sh
+uv run python scripts/check_tenant_access.py
+# Equivalent opt-in pytest entry point:
+INTELLIGENCE_RUN_DB_TESTS=1 uv run pytest --confcutdir=tests tests/test_tenant_access.py -s
+```
+
+The check uses synthetic UUIDs and rolls back its transaction. It checks tenant
+visibility, denied inserts and immutable request mappings as the runtime role.
+The regular synthetic API tests stub database startup/readiness and do not prove
+PostgreSQL connectivity; use the integration check for that.
+
+Psycopg includes its binary driver so local checks do not depend on a system
+libpq installation. `requirements.lock` is exported from `uv.lock` for the
+existing Dockerfile; refresh it after dependency changes with:
+
+```sh
+uv export --frozen --no-dev --no-emit-project -o requirements.lock
+```
+
+Container execution has not been verified.
+
+Persistence tables/RLS exist, but the submission insertion primitive is not a
+complete endpoint: request replay, concurrent duplicate handling, shift/eligibility
+validation and worker dispatch still need implementation. Existing `/v1/runs`
+results remain in memory.

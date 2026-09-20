@@ -1,8 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID, uuid4
-from datetime import date,datetime ,time
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
@@ -51,6 +50,7 @@ class SourceRef(Contract):
     # Fingerprint will help to indentify the changes after the draft is made
     fingerprint: str | None = None
 
+
 class ExecutionContext(Contract):
     tenant_id: UUID
 
@@ -76,6 +76,7 @@ class ExecutionContext(Contract):
 
         return self
 
+
 class Evidence(Contract):
     tenant_id: UUID
     resident_id: UUID
@@ -90,7 +91,6 @@ class Evidence(Contract):
 
     kind: str
 
-
     consumed_ml: int | None = Field(default=None, ge=0)
     offered_ml: int | None = Field(default=None, ge=0)
 
@@ -102,8 +102,7 @@ class Evidence(Contract):
         if self.time_precision == "date":
             if self.source_date is None or self.effective_at is not None:
                 raise ValueError(
-                    "date-only evidence requires source_date "
-                    "and must not invent an effective timestamp"
+                    "date-only evidence requires source_date and must not invent an effective timestamp"
                 )
 
         if self.time_precision == "timestamp":

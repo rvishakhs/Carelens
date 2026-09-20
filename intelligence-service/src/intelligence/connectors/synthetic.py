@@ -31,6 +31,8 @@ def fixture_records() -> tuple[Evidence, ...]:
             ),
             effective_at=datetime(2026, 9, 8, hour, tzinfo=UTC),
             recorded_at=datetime(2026, 9, 8, hour, tzinfo=UTC),
+            time_basis="effective",
+            time_precision="timestamp",
             kind="fluid",
             consumed_ml=consumed,
             offered_ml=offered,
@@ -47,7 +49,9 @@ class SyntheticEvidenceReader:
         rows = tuple(
             r
             for r in fixture_records()
-            if r.resident_id == resident_id and period.start <= r.effective_at < period.end
+            if r.resident_id == resident_id
+            and r.effective_at is not None
+            and period.start <= r.effective_at < period.end
         )
         return EvidenceBundle(
             records=rows,

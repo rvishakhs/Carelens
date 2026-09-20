@@ -1,23 +1,23 @@
 from datetime import datetime
-from uuid import UUID, uuid4
 from typing import Any
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKeyConstraint,
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     Uuid,
     func,
-    Text,
     text,
-    Boolean
 )
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 from intelligence.persistence.database import Base
 
@@ -57,10 +57,7 @@ class HandoverJob(TimestampMixin, Base):
                 "handover_jobs.shift_end",
                 "handover_jobs.id",
             ],
-            name=(
-                "handover_jobs_tenant_id_resident_id_"
-                "shift_start_shift_end__fkey"
-            ),
+            name=("handover_jobs_tenant_id_resident_id_shift_start_shift_end__fkey"),
         ),
         UniqueConstraint(
             "tenant_id",
@@ -115,8 +112,7 @@ class HandoverJob(TimestampMixin, Base):
             name="valid_trigger",
         ),
         CheckConstraint(
-            "state IN "
-            "('queued', 'running', 'draft_ready', 'failed', 'cancelled')",
+            "state IN ('queued', 'running', 'draft_ready', 'failed', 'cancelled')",
             name="valid_state",
         ),
         CheckConstraint(
@@ -135,25 +131,20 @@ class HandoverJob(TimestampMixin, Base):
             "trigger_type <> 'manual' OR requested_by IS NOT NULL",
             name="manual_request_has_actor",
         ),
-
         # A running job must have a worker lease.
         CheckConstraint(
-            "(state = 'running') = "
-            "(lease_token IS NOT NULL AND lease_expires_at IS NOT NULL)",
+            "(state = 'running') = (lease_token IS NOT NULL AND lease_expires_at IS NOT NULL)",
             name="running_has_lease",
         ),
         CheckConstraint(
             "(lease_token IS NULL) = (lease_expires_at IS NULL)",
             name="lease_fields_paired",
         ),
-
         # A terminal job must have a completion timestamp.
         CheckConstraint(
-            "(state IN ('draft_ready', 'failed', 'cancelled')) = "
-            "(completed_at IS NOT NULL)",
+            "(state IN ('draft_ready', 'failed', 'cancelled')) = (completed_at IS NOT NULL)",
             name="completion_matches_state",
         ),
-
         # Only subsequent generations reference a previous job.
         CheckConstraint(
             "(generation_number = 1 AND previous_job_id IS NULL) OR "
@@ -241,26 +232,16 @@ class HandoverJob(TimestampMixin, Base):
     )
 
     # Worker ownership and recovery.
-    lease_token: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), nullable=True
-    )
+    lease_token: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
-    lease_expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    heartbeat_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Execution timestamps.
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     timezone: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -284,19 +265,16 @@ class HandoverJob(TimestampMixin, Base):
     )
 
     # Retry tracking.
-    attempts: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default=text("0")
-    )
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
 
-    max_attempts: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default=text("3")
-    )
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("3"))
 
     next_attempt_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
+
 
 class DispatchOutbox(TimestampMixin, Base):
     __tablename__ = "dispatch_outbox"
@@ -330,8 +308,7 @@ class DispatchOutbox(TimestampMixin, Base):
             name="nonnegative_attempts",
         ),
         CheckConstraint(
-            "(state = 'publishing') = "
-            "(lease_token IS NOT NULL AND lease_expires_at IS NOT NULL)",
+            "(state = 'publishing') = (lease_token IS NOT NULL AND lease_expires_at IS NOT NULL)",
             name="publishing_has_lease",
         ),
         CheckConstraint(
@@ -417,6 +394,7 @@ class DispatchOutbox(TimestampMixin, Base):
         nullable=True,
     )
 
+
 class IdempotencyRecord(Base):
     __tablename__ = "idempotency_records"
 
@@ -427,7 +405,6 @@ class IdempotencyRecord(Base):
             name="fk_idempotency_tenant_job",
             ondelete="RESTRICT",
         ),
-
         CheckConstraint(
             "length(idempotency_key) > 0",
             name="nonempty_idempotency_key",
@@ -475,6 +452,7 @@ class IdempotencyRecord(Base):
         nullable=False,
         server_default=func.now(),
     )
+
 
 class EvidenceManifest(Base):
     __tablename__ = "evidence_manifests"
@@ -529,41 +507,23 @@ class EvidenceManifest(Base):
         server_default=text("gen_random_uuid()"),
     )
 
-    tenant_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    tenant_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    resident_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    resident_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    job_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    job_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    attempt_token: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    attempt_token: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    retrieved_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    evidence_cutoff: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    evidence_cutoff: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    coverage_complete: Mapped[bool] = mapped_column(
-        Boolean, nullable=False
-    )
+    coverage_complete: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
-    source_checkpoint: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONB(none_as_null=True), nullable=True
-    )
+    source_checkpoint: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
 
-    sources: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSONB, nullable=False
-    )
+    sources: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
 
     warnings: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB,
@@ -576,6 +536,7 @@ class EvidenceManifest(Base):
         nullable=False,
         server_default=func.now(),
     )
+
 
 class HandoverDraftVersion(Base):
     __tablename__ = "handover_draft_versions"
@@ -601,10 +562,7 @@ class HandoverDraftVersion(Base):
                 "evidence_manifests.job_id",
                 "evidence_manifests.id",
             ],
-            name=(
-                "handover_draft_versions_tenant_id_resident_id_"
-                "job_id_manif_fkey"
-            ),
+            name=("handover_draft_versions_tenant_id_resident_id_job_id_manif_fkey"),
         ),
         ForeignKeyConstraint(
             ["tenant_id", "job_id", "previous_version_id"],
@@ -613,10 +571,7 @@ class HandoverDraftVersion(Base):
                 "handover_draft_versions.job_id",
                 "handover_draft_versions.id",
             ],
-            name=(
-                "handover_draft_versions_tenant_id_job_id_"
-                "previous_version__fkey"
-            ),
+            name=("handover_draft_versions_tenant_id_job_id_previous_version__fkey"),
         ),
         CheckConstraint(
             "version_number > 0",
@@ -665,41 +620,23 @@ class HandoverDraftVersion(Base):
         server_default=text("gen_random_uuid()"),
     )
 
-    tenant_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    tenant_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    resident_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    resident_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    job_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    job_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    manifest_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), nullable=False
-    )
+    manifest_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), nullable=False)
 
-    version_number: Mapped[int] = mapped_column(
-        Integer, nullable=False
-    )
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    version_kind: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    version_kind: Mapped[str] = mapped_column(Text, nullable=False)
 
-    previous_version_id: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), nullable=True
-    )
+    previous_version_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
-    authored_by: Mapped[UUID | None] = mapped_column(
-        Uuid(as_uuid=True), nullable=True
-    )
+    authored_by: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
 
-    sections: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSONB, nullable=False
-    )
+    sections: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
 
     warnings: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB,
@@ -707,29 +644,17 @@ class HandoverDraftVersion(Base):
         server_default=text("'[]'::jsonb"),
     )
 
-    agent_version: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    agent_version: Mapped[str] = mapped_column(Text, nullable=False)
 
-    prompt_version: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    prompt_version: Mapped[str] = mapped_column(Text, nullable=False)
 
-    gateway_version: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    gateway_version: Mapped[str] = mapped_column(Text, nullable=False)
 
-    provider: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    provider: Mapped[str] = mapped_column(Text, nullable=False)
 
-    model_version: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )
+    model_version: Mapped[str] = mapped_column(Text, nullable=False)
 
-    generated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

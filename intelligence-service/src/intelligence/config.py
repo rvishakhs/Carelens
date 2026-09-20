@@ -4,9 +4,17 @@ from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
+class DatabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="INTELLIGENCE_", env_file=".env", extra="ignore")
     database_url: SecretStr
+
+
+class MigrationSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="INTELLIGENCE_", env_file=".env", extra="ignore")
+    migration_database_url: SecretStr
+
+
+class Settings(DatabaseSettings):
     mode: Literal["synthetic"] = "synthetic"
     provider: Literal["fake"] = "fake"
     demo_token: SecretStr

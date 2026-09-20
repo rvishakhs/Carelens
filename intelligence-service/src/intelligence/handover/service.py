@@ -1,53 +1,141 @@
-from uuid import uuid4
+"""Insertion primitive; request replay and concurrent-generation handling are still pending."""
 
-from intelligence.persistence.models import (
-    DispatchOutbox,
-    HandoverJob,
-    IdempotencyRecord,
-)
+from datetime import datetime, UTC
+from typing import Protocol
+from uuid import UUID, uuid4
+
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
+
+from intelligence.core.contracts import ExecutionContext, Scope
+from intelligence.core.errors import AccessDenied, SubmissionBusy
+from .contracts import HandoverSubmissionRequest, HandoverSubmissionResponse
+from .authorization import authorise_manual_handover
+from .idempotency import submission_fingerprint
+from .validation import validate_completed_shift
+from intelligence.persistence.database import Database
+from intelligence.persistence.models import DispatchOutbox, HandoverJob, IdempotencyRecord
+from intelligence.persistence.repositories import create_handover_job, find_existing_handover, add_idempotency_record, find_replayed_handover
 
 
-async def insert_new_submission(
-    db,
-    context,
-    request,
+class SubmissionRequest(Protocol):
+    @property
+    def resident_id(self) -> UUID: ...
+    @property
+    def shift_start(self) -> datetime: ...
+    @property
+    def shift_end(self) -> datetime: ...
+    @property
+    def timezone(self) -> str: ...
+
+# These match the existing PostgreSQL constraint names.
+RETRYABLE_UNIQUE_CONSTRAINTS = {
+    "pk_idempotency_records",
+    "handover_jobs_tenant_id_resident_id_shift_start_shift_end_g_key",
+}
+
+async def submit_manual_handover(
+    db: Database,
+    *,
+    scope: Scope,
+    request: HandoverSubmissionRequest,
     idempotency_key: str,
-    fingerprint: str,
-):
-    job_id = uuid4()
+    care_home_timezone: str,
+    service_identity: str,
+) -> HandoverSubmissionResponse:
+    # These values must come from trusted authentication/configuration.
+    context = authorise_manual_handover(
+        scope,
+        resident_id=request.resident_id,
+        service_identity=service_identity,
+    )
 
-    async with db.session() as session:
-        async with session.begin():
-            job = HandoverJob(
-                id=job_id,
-                tenant_id=context.tenant_id,
-                resident_id=request.resident_id,
-                requested_by=context.actor_id,
-                trigger="manual",
-                shift_start=request.shift_start,
-                shift_end=request.shift_end,
-                generation_revision=1,
-            )
-            session.add(job)
+    validate_completed_shift(
+        request,
+        care_home_timezone=care_home_timezone,
+        now=datetime.now(UTC),
+    )
 
-            # Ensure the parent row exists before inserting its dependants.
-            # flush() sends SQL; it does not commit.
-            await session.flush()
+    if not idempotency_key.strip() or len(idempotency_key) > 128:
+        raise ValueError(
+            "Idempotency-Key must be nonblank and at most 128 characters"
+        )
 
-            session.add_all([
-                DispatchOutbox(
-                    tenant_id=context.tenant_id,
-                    job_id=job_id,
-                ),
-                IdempotencyRecord(
-                    tenant_id=context.tenant_id,
-                    actor_id=context.actor_id,
-                    idempotency_key=idempotency_key,
-                    request_fingerprint=fingerprint,
-                    job_id=job_id,
-                ),
-            ])
+    fingerprint = submission_fingerprint(request)
 
-        # Successful exit from session.begin() commits all three rows.
+    for attempt in range(3):
+        try:
+            async with db.session() as session:
+                async with session.begin():
+                    await session.execute(
+                        text(
+                            "SELECT set_config("
+                            "'intelligence.tenant_id', :tenant_id, true)"
+                        ),
+                        {"tenant_id": str(context.tenant_id)},
+                    )
 
-    return job_id
+                    job = await find_replayed_handover(
+                        session,
+                        tenant_id=context.tenant_id,
+                        actor_id=scope.actor_id,
+                        idempotency_key=idempotency_key,
+                        fingerprint=fingerprint,
+                    )
+
+                    if job is None:
+                        job = await find_existing_handover(
+                            session,
+                            tenant_id=context.tenant_id,
+                            resident_id=request.resident_id,
+                            shift_start=request.shift_start,
+                            shift_end=request.shift_end,
+                        )
+
+                        if job is None:
+                            job = await create_handover_job(
+                                session,
+                                context=context,
+                                request=request,
+                                care_home_timezone=care_home_timezone,
+                            )
+
+                        await add_idempotency_record(
+                            session,
+                            tenant_id=context.tenant_id,
+                            actor_id=scope.actor_id,
+                            idempotency_key=idempotency_key,
+                            fingerprint=fingerprint,
+                            job_id=job.id,
+                        )
+
+                    response = HandoverSubmissionResponse.model_validate(
+                        {
+                            "job_id": job.id,
+                            "state": job.state,
+                            "status_url": f"/v1/handovers/{job.id}",
+                        }
+                    )
+
+                # Exiting session.begin() successfully commits the transaction.
+
+            return response
+
+        except IntegrityError as exc:
+            # The failed transaction has already been rolled back.
+            sqlstate = getattr(exc.orig, "sqlstate", None)
+            diagnostic = getattr(exc.orig, "diag", None)
+            constraint = getattr(diagnostic, "constraint_name", None)
+
+            if (
+                sqlstate != "23505"
+                or constraint not in RETRYABLE_UNIQUE_CONSTRAINTS
+            ):
+                raise
+
+            if attempt == 2:
+                raise SubmissionBusy from None
+
+            # A concurrent request won. Retry the lookups in a fresh transaction.
+
+    raise SubmissionBusy

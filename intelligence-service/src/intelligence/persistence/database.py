@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 
-
 # Consistent names make constraints easier to manage in migrations.
 NAMING_CONVENTION = {
     "ix": "ix_%(table_name)s_%(column_0_name)s",

@@ -8,3 +8,9 @@ class GatewayRejected(Exception):
 
 class CapacityExceeded(Exception):
     pass
+
+class IdempotencyConflict(Exception):
+    pass
+
+class SubmissionBusy(Exception):
+    pass

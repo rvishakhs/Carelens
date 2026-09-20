@@ -42,13 +42,11 @@ async def check_database(database: Database) -> None:
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    config = settings if settings is not None else Settings()
+    config = settings if settings is not None else Settings()  # type: ignore[call-arg]
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        database = Database(
-            database_url=config.database_url.get_secret_value()
-        )
+        database = Database(database_url=config.database_url.get_secret_value())
 
         try:
             await check_database(database)
@@ -153,9 +151,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             status_code=200 if database_available else 503,
             content={
                 "status": "ready" if database_available else "not_ready",
-                "database": (
-                    "available" if database_available else "unavailable"
-                ),
+                "database": ("available" if database_available else "unavailable"),
                 "mode": "synthetic",
                 "provider": "fake",
                 "durable": False,

@@ -8,7 +8,7 @@ dependencies = [
   "celery>=5.6.3",
   "fastapi==0.140.0",
   "httpx>=0.28.1",
-  "psycopg>=3.3.5",
+  "psycopg[binary]>=3.3.5",
   "pydantic==2.13.4",
   "pydantic-settings==2.14.2",
   "redis>=8.1.0",
@@ -28,12 +28,14 @@ packages = ["src/intelligence"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 addopts = "--strict-markers"
+markers = ["integration: requires local PostgreSQL and explicit opt-in"]
 
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+extend-exclude = ["migration_backups"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

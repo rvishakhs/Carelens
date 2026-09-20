@@ -1,7 +1,8 @@
 from typing import Literal, Protocol
-from pydantic import Field
-from intelligence.core.contracts import Contract
 
+from pydantic import Field
+
+from intelligence.core.contracts import Contract
 
 HandoverSection = Literal[
     "care_delivered",
@@ -72,3 +73,27 @@ class HandoverProvider(Protocol):
         self,
         payload: HandoverPayload,
     ) -> HandoverOutput: ...
+
+
+# Existing structured demo contracts remain separate from free-text handover contracts.
+class SafePayload(Contract):
+    resident_alias: str = "RESIDENT_A"
+    intent: Literal["history", "handover"]
+    source_aliases: tuple[str, ...]
+    consumed_ml: int | None = Field(ge=0)
+    offered_ml: int | None = Field(ge=0)
+
+
+class ProviderClaim(Contract):
+    resident_alias: str
+    source_aliases: tuple[str, ...]
+    metric: Literal["consumed_ml", "offered_ml", "no_records"]
+    value: int | None
+
+
+class ProviderOutput(Contract):
+    claims: tuple[ProviderClaim, ...]
+
+
+class Provider(Protocol):
+    async def generate(self, payload: SafePayload) -> ProviderOutput: ...

@@ -23,8 +23,34 @@ HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 PERIOD = {"start": "2026-09-08T00:00:00+01:00", "end": "2026-09-09T00:00:00+01:00"}
 
 
+@pytest.fixture(autouse=True)
+def stub_database_probe(monkeypatch: pytest.MonkeyPatch) -> None:
+    # These tests exercise the synthetic API; PostgreSQL is tested separately.
+    async def available(database: object) -> None:
+        pass
+
+    class FakeDatabase:
+        def __init__(self, database_url: str) -> None:
+            pass
+
+        async def close(self) -> None:
+            pass
+
+    monkeypatch.setattr("intelligence.api.app.Database", FakeDatabase)
+    monkeypatch.setattr("intelligence.api.app.check_database", available)
+
+
 def client(capacity: int = 100) -> TestClient:
-    return TestClient(create_app(Settings(demo_token=SecretStr(TOKEN), max_results=capacity, _env_file=None)))
+    return TestClient(
+        create_app(
+            Settings(
+                database_url=SecretStr("postgresql+psycopg://unused:unused@127.0.0.1/unused"),
+                demo_token=SecretStr(TOKEN),
+                max_results=capacity,
+                _env_file=None,
+            )
+        )
+    )
 
 
 def request(agent: str = "resident_history") -> dict[str, object]:
