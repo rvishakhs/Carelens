@@ -13,6 +13,15 @@ class MigrationSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="INTELLIGENCE_", env_file=".env", extra="ignore")
     migration_database_url: SecretStr
 
+class CareLensSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="CARELENS_",
+        env_file=".env",
+        extra="ignore",
+    )
+
+    base_url: str
+    timeout_seconds: float = Field(default=10.0, gt=0, le=60)
 
 class Settings(DatabaseSettings):
     mode: Literal["synthetic"] = "synthetic"

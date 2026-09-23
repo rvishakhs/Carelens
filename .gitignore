@@ -101,3 +101,6 @@ build/
 .env
 .env.local
 /docs/
+/backup.sql
+/backups.zip
+/keycloak_data.tar.gz
