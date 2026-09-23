@@ -28,6 +28,8 @@ from intelligence.core.results import MemoryResults
 from intelligence.gateway.fake import FakeProvider
 from intelligence.gateway.service import Gateway
 from intelligence.persistence.database import Database
+from intelligence.api.dependencies import actor
+from intelligence.api.handover import router as handover_router
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +69,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    app.state.settings = config
+
     registry = default_registry()
 
     context = AgentContext(
@@ -79,32 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         config.max_results,
     )
 
-    bearer = HTTPBearer(auto_error=False)
-
-    def actor(
-        credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    ) -> Scope:
-        if credentials is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid demo credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        valid_token = compare_digest(
-            credentials.credentials.encode(),
-            config.demo_token.get_secret_value().encode(),
-        )
-
-        if not valid_token:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid demo credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-        # Scope comes from the server, never from request fields.
-        return demo_scope()
+    app.include_router(handover_router)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(

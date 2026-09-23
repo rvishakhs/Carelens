@@ -18,6 +18,8 @@ class Settings(DatabaseSettings):
     mode: Literal["synthetic"] = "synthetic"
     provider: Literal["fake"] = "fake"
     demo_token: SecretStr
+    care_home_timezone: str = "Europe/London"
+    service_identity: str = "intelligence-api"
     result_ttl_seconds: int = Field(default=900, ge=1, le=86400)
     max_results: int = Field(default=100, ge=1, le=1000)
 
@@ -28,3 +30,14 @@ class Settings(DatabaseSettings):
         if len(token) < 24 or token.startswith("replace-with"):
             raise ValueError("Set a random local demo token of at least 24 characters")
         return value
+
+
+class WorkerSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="INTELLIGENCE_",
+        env_file=".env",
+        extra="ignore",
+    )
+
+    broker_url: SecretStr
+    handover_queue: str = "intelligence.handover"

@@ -62,3 +62,14 @@ class HandoverDraft(Contract):
     gateway_version: str
     provider: str
     model_version: str
+
+class HandoverStatusResponse(Contract):
+    job_id: UUID
+    resident_id: UUID
+    state: HandoverJobState
+    shift_start: AwareDatetime
+    shift_end: AwareDatetime
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+
+

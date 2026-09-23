@@ -14,3 +14,14 @@ class IdempotencyConflict(Exception):
 
 class SubmissionBusy(Exception):
     pass
+
+class InvalidShift(ValueError):
+    """The requested shift is not eligible for submission."""
+    pass
+
+class ExecutionAuthorisationDenied(Exception):
+    """The current service or staff permissions do not allow execution."""
+
+
+class ExecutionAuthorisationUnavailable(Exception):
+    """Current permissions could not be checked due to a temporary failure."""

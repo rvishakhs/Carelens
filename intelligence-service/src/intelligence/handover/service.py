@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from fastapi import HTTPException
 from intelligence.core.contracts import ExecutionContext, Scope
 from intelligence.core.errors import AccessDenied, SubmissionBusy
 from .contracts import HandoverSubmissionRequest, HandoverSubmissionResponse
@@ -16,6 +17,7 @@ from .validation import validate_completed_shift
 from intelligence.persistence.database import Database
 from intelligence.persistence.models import DispatchOutbox, HandoverJob, IdempotencyRecord
 from intelligence.persistence.repositories import create_handover_job, find_existing_handover, add_idempotency_record, find_replayed_handover
+from intelligence.core.errors import InvalidShift
 
 
 class SubmissionRequest(Protocol):
@@ -50,11 +52,17 @@ async def submit_manual_handover(
         service_identity=service_identity,
     )
 
-    validate_completed_shift(
-        request,
-        care_home_timezone=care_home_timezone,
-        now=datetime.now(UTC),
-    )
+    try:
+        validate_completed_shift(
+            request,
+            care_home_timezone=care_home_timezone,
+            now=datetime.now(UTC),
+        )
+    except InvalidShift:
+        raise HTTPException(
+            status_code=422,
+            detail="Select a completed 07:00–19:00 or 19:00–07:00 shift",
+        ) from None
 
     if not idempotency_key.strip() or len(idempotency_key) > 128:
         raise ValueError(
