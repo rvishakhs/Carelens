@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Literal, Protocol
 
 from pydantic import Field
@@ -16,6 +17,7 @@ HandoverSection = Literal[
     "falls_incidents",
     "wounds",
     "documented_follow_up",
+    "clinical_observations"
 ]
 
 
@@ -32,16 +34,40 @@ class PseudonymisedEvidence(Contract):
     content: str = Field(min_length=1)
 
 
+
+MetricStatus = Literal[
+    "complete",
+    "partial",
+    "no_records",
+    "ambiguous",
+]
+
 class CalculatedMetric(Contract):
-    metric_alias: str
-    name: str
+    metric: str
 
-    # Calculated in trusted code, not by the model.
-    value: float | None
-    unit: str
+    status: MetricStatus
 
-    source_aliases: tuple[str, ...]
-    coverage: Literal["complete", "partial", "unavailable"]
+    value: Decimal | None = None
+    known_subtotal: Decimal | None = None
+
+    unit: str | None = None
+
+# class CalculatedMetric(Contract):
+#     metric_alias: str
+#     name: str
+#     status : MetricStatus
+#
+#     # Calculated in trusted code, not by the model.
+#     value: float | None
+#     unit: str
+#
+#     value: Decimal | None = None
+#     known_subtotal: Decimal | None = None
+#
+#     unit: str | None = None
+#
+#     source_aliases: tuple[str, ...]
+
 
 
 class HandoverPayload(Contract):

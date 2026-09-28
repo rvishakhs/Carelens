@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID, uuid4
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator, JsonValue
 
 
 class Contract(BaseModel):
@@ -34,7 +34,6 @@ class Period(Contract):
             raise ValueError("synthetic skeleton supports periods up to 31 days")
         return self
 
-
 class RunRequest(Contract):
     agent_id: AgentId
     resident_id: UUID
@@ -49,6 +48,7 @@ class SourceRef(Contract):
     version: str
     # Fingerprint will help to indentify the changes after the draft is made
     fingerprint: str | None = None
+
 
 
 class ExecutionContext(Contract):
@@ -82,6 +82,8 @@ class Evidence(Contract):
     resident_id: UUID
     reference: SourceRef
 
+    clinical_data: dict[str, JsonValue] = Field(default_factory=dict)
+
     effective_at: AwareDatetime | None = None
     source_date: date | None = None
     recorded_at: AwareDatetime | None = None
@@ -96,6 +98,7 @@ class Evidence(Contract):
 
     # Internal clinical narrative; NOT safe to send directly to a model.
     narrative: str | None = None
+    is_implausible: bool = False
 
     @model_validator(mode="after")
     def validate_time(self) -> "Evidence":
