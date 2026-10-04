@@ -1,64 +1,129 @@
-"""Validation for data crossing the external provider boundary."""
+"""Structural and deterministic support checks at the provider boundary."""
 
+from pydantic import ValidationError
 
+from .contracts import MAX_CLAIM_CHARACTERS, MAX_CLAIMS, HandoverOutput, HandoverPayload
+from .privacy import PrivacyRejected, check_text
 
-
-from .contracts import HandoverPayload
+MAX_PAYLOAD_BYTES = 256_000
+MAX_OUTPUT_BYTES = 64_000
 
 
 class GatewayValidationError(ValueError):
-    """Base error for gateway validation failures."""
+    pass
 
 
 class OutboundValidationError(GatewayValidationError):
-    """Provider-bound payload failed validation."""
+    pass
 
 
 class InboundValidationError(GatewayValidationError):
-    """Provider response failed validation."""
+    pass
 
 
 def validate_outbound_payload(payload: HandoverPayload) -> None:
-    """Validate the structure of a provider-bound handover payload.
+    """Structural/size/pattern checks; caller must first apply the text policy."""
+    try:
+        # Revalidate nested objects too, including objects made with model_copy.
+        data = payload.model_dump_json()
+        HandoverPayload.model_validate_json(data)
+        if len(data.encode()) > MAX_PAYLOAD_BYTES:
+            raise OutboundValidationError("Outbound payload exceeds byte limit")
+        check_text(data)
+    except (ValidationError, PrivacyRejected, ValueError) as exc:
+        if isinstance(exc, OutboundValidationError):
+            raise
+        raise OutboundValidationError("Outbound structure or privacy check failed") from None
+    sources = {e.source_alias: e for e in payload.evidence}
+    if len(sources) != len(payload.evidence):
+        raise OutboundValidationError("Outbound payload contains duplicate source aliases")
+    metrics = {m.metric_alias: m for m in payload.metrics}
+    if len(metrics) != len(payload.metrics) or len({m.metric for m in payload.metrics}) != len(metrics):
+        raise OutboundValidationError("Duplicate metric identity")
+    if len(payload.evidence) + sum(bool(m.source_aliases) for m in payload.metrics) > MAX_CLAIMS:
+        raise OutboundValidationError("Extractive output would exceed claim budget")
+    if any(len(evidence_claim_text(e)) > MAX_CLAIM_CHARACTERS for e in payload.evidence):
+        raise OutboundValidationError("Extractive evidence exceeds claim text budget")
+    for metric in payload.metrics:
+        if any(s not in sources for s in metric.source_aliases):
+            raise OutboundValidationError("Metric references unavailable evidence")
+        if any(
+            sources[s].context != "shift" or sources[s].category != metric.category
+            for s in metric.source_aliases
+        ):
+            raise OutboundValidationError("Metric references incompatible evidence")
+        if not payload.coverage_complete and metric.status == "complete":
+            raise OutboundValidationError("Complete metric conflicts with coverage")
 
-    This function is the final structural gate before provider dispatch.
 
-    It does not currently perform free-text PII detection. That is handled
-    by later pseudonymisation/minimisation stages.
+def evidence_claim_text(evidence) -> str:
+    # A conservative initial support policy: quote supplied content, with the
+    # gateway's time qualifier. No acceptance of arbitrary paraphrases yet.
+    return f"{evidence.time_label}. Recorded content: {evidence.content}"
 
-    Raises:
-        OutboundValidationError:
-            If the payload violates the outbound gateway contract.
-    """
 
-    if not payload.resident_alias.strip():
-        raise OutboundValidationError(
-            "Outbound payload has no resident alias"
-        )
+def metric_claim_text(metric) -> str:
+    if metric.status == "complete":
+        return f"Recorded {metric.metric}: {metric.value} {metric.unit} (complete)."
+    return (
+        f"Recorded {metric.metric}: known subtotal {metric.known_subtotal} "
+        f"{metric.unit}; status {metric.status}; complete total unavailable."
+    )
 
-    if not payload.resident_alias.startswith("RESIDENT_"):
-        raise OutboundValidationError(
-            "Outbound payload contains an invalid resident alias"
-        )
 
-    seen_source_aliases: set[str] = set()
+def validate_inbound_output(*, output: HandoverOutput, payload: HandoverPayload) -> None:
+    try:
+        data = output.model_dump_json()
+        HandoverOutput.model_validate_json(data)
+        if len(data.encode()) > MAX_OUTPUT_BYTES:
+            raise InboundValidationError("Provider output exceeds byte limit")
+        check_text(data)
+    except (ValidationError, PrivacyRejected, ValueError) as exc:
+        if isinstance(exc, InboundValidationError):
+            raise
+        raise InboundValidationError("Provider output structure or privacy check failed") from None
+    if output.resident_alias != payload.resident_alias:
+        raise InboundValidationError("Resident alias mismatch")
+    sources = {e.source_alias: e for e in payload.evidence}
+    metrics = {m.metric_alias: m for m in payload.metrics}
+    seen = set()
+    for claim in output.claims:
+        if len(set(claim.source_aliases)) != len(claim.source_aliases) or len(
+            set(claim.metric_aliases)
+        ) != len(claim.metric_aliases):
+            raise InboundValidationError("Duplicate claim references")
+        if any(s not in sources for s in claim.source_aliases):
+            raise InboundValidationError("Unknown source citation")
+        if any(m not in metrics for m in claim.metric_aliases):
+            raise InboundValidationError("Unknown metric citation")
+        cited = [sources[s] for s in claim.source_aliases]
+        contexts = {e.context for e in cited}
+        expected_context = next(iter(contexts)) if len(contexts) == 1 else "mixed"
+        if claim.context != expected_context or any(e.category != claim.section for e in cited):
+            raise InboundValidationError("Claim category or time context misrepresented")
+        if claim.metric_aliases:
+            if len(claim.metric_aliases) != 1:
+                raise InboundValidationError("Only one metric per claim is supported")
+            metric = metrics[claim.metric_aliases[0]]
+            if set(claim.source_aliases) != set(metric.source_aliases):
+                raise InboundValidationError("Metric supporting citations do not match")
+            expected_text = metric_claim_text(metric)
+        else:
+            if len(cited) != 1:
+                raise InboundValidationError("Only one evidence record per extractive claim is supported")
+            expected_text = evidence_claim_text(cited[0])
+        if claim.text != expected_text:
+            raise InboundValidationError("Claim text is not deterministically supported")
+        key = (claim.section, claim.text, tuple(sorted(claim.source_aliases)))
+        if key in seen:
+            raise InboundValidationError("Duplicate claim")
+        seen.add(key)
 
-    for evidence in payload.evidence:
-        source_alias = evidence.source_alias
-
-        if not source_alias.strip():
-            raise OutboundValidationError(
-                "Outbound evidence has no source alias"
-            )
-
-        if not source_alias.startswith("SRC_"):
-            raise OutboundValidationError(
-                "Outbound evidence contains an invalid source alias"
-            )
-
-        if source_alias in seen_source_aliases:
-            raise OutboundValidationError(
-                "Outbound payload contains duplicate source aliases"
-            )
-
-        seen_source_aliases.add(source_alias)
+    # Conservative extractive mode requires every prepared source and supported
+    # metric to survive. Empty output is valid only for empty evidence.
+    if {s for c in output.claims if not c.metric_aliases for s in c.source_aliases} != set(sources):
+        raise InboundValidationError("Provider omitted supplied evidence")
+    if {m for c in output.claims for m in c.metric_aliases} != {
+        m.metric_alias for m in payload.metrics if m.source_aliases
+    }:
+        raise InboundValidationError("Provider omitted a supported metric")

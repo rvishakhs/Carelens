@@ -51,7 +51,7 @@ def main() -> int:
     try:
         subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], env=env, check=True)
         return subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/test_outbox_concurrency.py", "--confcutdir=tests", "-q"],
+            [sys.executable, "-m", "pytest", "tests/integration/persistence/test_outbox_concurrency.py", "--confcutdir=tests", "-q"],
             env=env, check=False,
         ).returncode
     finally:

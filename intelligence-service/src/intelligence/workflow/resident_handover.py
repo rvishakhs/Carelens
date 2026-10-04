@@ -11,12 +11,13 @@ from intelligence.persistence.job_repository import (
     load_claimed_job,
 )
 
+
 async def reserve_handover_job(
-    db: Database,
-    *,
-    tenant_id: UUID,
-    job_id: UUID,
-    lease_seconds: int,
+        db: Database,
+        *,
+        tenant_id: UUID,
+        job_id: UUID,
+        lease_seconds: int,
 ) -> ClaimedJob | None:
     # tenant_id must come from trusted execution context.
     async with db.session() as session:
@@ -41,21 +42,20 @@ async def reserve_handover_job(
     return claim
 
 
-
-async def run_resident_handover_workflow(
-    *,
-    tenant_id: UUID,
-    job_id: UUID,
+async def run_reserve_handover(
+        *,
+        tenant_id: UUID,
+        job_id: UUID,
 ) -> ClaimedJob | None:
     settings = DatabaseSettings()
 
     db = Database(
-        database_url = settings.database_url.get_secret_value(),
+        database_url=settings.database_url.get_secret_value(),
     )
 
     try:
         claim = await reserve_handover_job(
-            db= db,
+            db=db,
             tenant_id=tenant_id,
             job_id=job_id,
             lease_seconds=60
@@ -72,11 +72,10 @@ async def run_resident_handover_workflow(
         await db.close()
 
 
-
 async def load_job_for_execution(
-    db: Database,
-    *,
-    claim: ClaimedJob,
+        db: Database,
+        *,
+        claim: ClaimedJob,
 ) -> JobExecutionSnapshot | None:
     async with db.session() as session:
         async with session.begin():
@@ -97,10 +96,10 @@ async def load_job_for_execution(
 
 
 async def prepare_handover_execution(
-    db: Database,
-    *,
-    tenant_id: UUID,
-    job_id: UUID,
+        db: Database,
+        *,
+        tenant_id: UUID,
+        job_id: UUID,
 ) -> tuple[ClaimedJob, JobExecutionSnapshot] | None:
     claim = await reserve_handover_job(
         db,
@@ -120,11 +119,17 @@ async def prepare_handover_execution(
 
     return claim, snapshot
 
+
 async def run_resident_handover_workflow(
-    *,
-    tenant_id: UUID,
-    job_id: UUID,
+        *,
+        tenant_id: UUID,
+        job_id: UUID,
 ) -> tuple[ClaimedJob, JobExecutionSnapshot] | None:
+    """Claim a queued job and load its trusted execution snapshot.
+
+    This is the single workflow entry point for the future Celery task.
+    Retrieval, generation, and draft persistence will be added here later.
+    """
     settings = DatabaseSettings()
     db = Database(
         database_url=settings.database_url.get_secret_value(),

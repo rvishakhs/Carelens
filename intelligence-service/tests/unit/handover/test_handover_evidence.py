@@ -14,7 +14,6 @@ from intelligence.handover.evidence import (
     assemble_shift_evidence,
 )
 
-
 TENANT_ID = UUID("10000000-0000-0000-0000-000000000001")
 RESIDENT_ID = UUID("30000000-0000-0000-0000-000000000001")
 OTHER_ID = UUID("90000000-0000-0000-0000-000000000001")
@@ -37,9 +36,7 @@ def timestamp_record(number, timestamp):
         reference=SourceRef(
             source_system="Carelens_connector",
             source_type="fluid_intake_records",
-            source_id=UUID(
-                f"40000000-0000-0000-0000-{number:012d}"
-            ),
+            source_id=UUID(f"40000000-0000-0000-0000-{number:012d}"),
             version="unversioned",
         ),
         effective_at=datetime.fromisoformat(timestamp),
@@ -67,6 +64,7 @@ def assemble(records, **changes):
         **arguments,
     )
 
+
 def test_shift_start_included_and_end_excluded():
     records = [
         timestamp_record(1, "2026-09-08T06:59:00+01:00"),
@@ -82,9 +80,7 @@ def test_shift_start_included_and_end_excluded():
 
 
 def test_rejects_duplicate_source_identity():
-    record = timestamp_record(
-        1, "2026-09-08T08:00:00+01:00"
-    )
+    record = timestamp_record(1, "2026-09-08T08:00:00+01:00")
 
     with pytest.raises(
         EvidenceValidationError,
@@ -101,9 +97,7 @@ def test_rejects_duplicate_source_identity():
     ],
 )
 def test_rejects_wrong_scope(changes):
-    record = timestamp_record(
-        1, "2026-09-08T08:00:00+01:00"
-    ).model_copy(update=changes)
+    record = timestamp_record(1, "2026-09-08T08:00:00+01:00").model_copy(update=changes)
 
     with pytest.raises(EvidenceValidationError):
         assemble([record])
@@ -134,13 +128,9 @@ def test_date_only_record_is_context_not_shift_event():
 
 
 def test_late_entry_uses_effective_time():
-    record = timestamp_record(
-        1, "2026-09-08T18:50:00+01:00"
-    ).model_copy(
+    record = timestamp_record(1, "2026-09-08T18:50:00+01:00").model_copy(
         update={
-            "recorded_at": datetime.fromisoformat(
-                "2026-09-08T19:10:00+01:00"
-            ),
+            "recorded_at": datetime.fromisoformat("2026-09-08T19:10:00+01:00"),
         }
     )
 

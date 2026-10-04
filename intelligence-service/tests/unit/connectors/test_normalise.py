@@ -3,48 +3,15 @@ from uuid import UUID
 
 import pytest
 
-from intelligence.connectors.carelens import ObservationResponse
 from intelligence.connectors.normalise import (
     EvidenceNormalisationError,
     normalise_observation,
 )
-from intelligence.core.contracts import ExecutionContext
-
+from tests.support.carelens import context, observation
 
 TENANT_ID = UUID("10000000-0000-0000-0000-000000000001")
 RESIDENT_ID = UUID("30000000-0000-0000-0000-000000000001")
 OTHER_RESIDENT_ID = UUID("30000000-0000-0000-0000-000000000002")
-
-
-def context() -> ExecutionContext:
-    return ExecutionContext(
-        tenant_id=TENANT_ID,
-        service_identity="synthetic-test-service",
-        trigger="scheduled",
-        authorised_resident_ids=frozenset({RESIDENT_ID}),
-        permissions=frozenset({"evidence:read"}),
-    )
-
-
-def observation(**changes) -> ObservationResponse:
-    data = {
-        "id": "40000000-0000-0000-0000-000000000001",
-        "resident_id": str(RESIDENT_ID),
-        "type": "fluid_intake",
-        "value": {
-            "volume_ml": 150,
-            "ml": 150,
-            "notes": "Synthetic note",
-        },
-        "recorded_at": "2026-09-08T08:00:00+01:00",
-        "recorded_by": None,
-        "is_implausible": False,
-        "source_type": "fluid_intake_records",
-        "time_precision": "timestamp",
-        "source_date": None,
-    }
-    data.update(changes)
-    return ObservationResponse.model_validate(data)
 
 
 def test_normalises_fluid_without_losing_source_data():
@@ -131,15 +98,11 @@ def test_fingerprint_changes_when_content_changes():
     assert original is not None
     assert corrected is not None
     assert original.reference.source_id == corrected.reference.source_id
-    assert (
-        original.reference.fingerprint
-        != corrected.reference.fingerprint
-    )
+    assert original.reference.fingerprint != corrected.reference.fingerprint
+
 
 def test_rejects_resident_outside_authorised_scope():
-    restricted_context = context().model_copy(
-        update={"authorised_resident_ids": frozenset()}
-    )
+    restricted_context = context().model_copy(update={"authorised_resident_ids": frozenset()})
 
     with pytest.raises(
         EvidenceNormalisationError,
@@ -150,6 +113,7 @@ def test_rejects_resident_outside_authorised_scope():
             context=restricted_context,
             expected_resident_id=RESIDENT_ID,
         )
+
 
 def test_rejects_unknown_source():
     with pytest.raises(
@@ -174,6 +138,7 @@ def test_rejects_source_type_mismatch():
             expected_resident_id=RESIDENT_ID,
         )
 
+
 @pytest.mark.parametrize(
     "source_date",
     [None, "not-a-date", "2026-02-30"],
@@ -191,6 +156,7 @@ def test_rejects_missing_or_invalid_source_date(source_date):
             context=context(),
             expected_resident_id=RESIDENT_ID,
         )
+
 
 def test_rejects_timestamp_source_with_date_precision():
     with pytest.raises(
@@ -236,26 +202,20 @@ def test_rejects_timestamp_source_with_source_date():
             expected_resident_id=RESIDENT_ID,
         )
 
+
 def test_fingerprint_is_stable_across_dictionary_order():
     first = normalise_observation(
-        observation(
-            value={"volume_ml": 150, "ml": 150}
-        ),
+        observation(value={"volume_ml": 150, "ml": 150}),
         context=context(),
         expected_resident_id=RESIDENT_ID,
     )
 
     second = normalise_observation(
-        observation(
-            value={"ml": 150, "volume_ml": 150}
-        ),
+        observation(value={"ml": 150, "volume_ml": 150}),
         context=context(),
         expected_resident_id=RESIDENT_ID,
     )
 
     assert first is not None
     assert second is not None
-    assert (
-        first.reference.fingerprint
-        == second.reference.fingerprint
-    )
+    assert first.reference.fingerprint == second.reference.fingerprint

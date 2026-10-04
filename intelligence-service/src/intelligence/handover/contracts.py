@@ -3,7 +3,9 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, model_validator
 
-from intelligence.core.contracts import Claim, Contract, Period
+from intelligence.core.contracts import Claim, Contract, Period, ExecutionContext
+from intelligence.handover.evidence import ShiftEvidence
+from intelligence.handover.metrics import HandoverMetrics
 
 
 HandoverJobState = Literal[
@@ -13,7 +15,6 @@ HandoverJobState = Literal[
     "failed",
     "cancelled",
 ]
-
 
 class HandoverSection(Contract):
     category: str
@@ -73,3 +74,51 @@ class HandoverStatusResponse(Contract):
     updated_at: AwareDatetime
 
 
+###### Agent Geteway COntracts ##########
+
+class HandoverRetrieval(Contract):
+    """Internal evidence and metadata from the retrieval stage."""
+
+    evidence: ShiftEvidence
+
+    # When the connector finished retrieving records.
+    retrieved_at: AwareDatetime
+
+    # Only populated when supported by the source system.
+    evidence_cutoff: AwareDatetime | None = None
+
+    # Required explicitly: fetching every page does not prove
+    # complete coverage of every required source.
+    coverage_complete: bool
+
+    warnings: tuple[str, ...] = ()
+
+
+class HandoverAgentInput(Contract):
+    """Trusted internal input; must never be sent to the provider."""
+
+    execution_context: ExecutionContext
+
+    job_id: UUID
+    resident_id: UUID
+
+    period: Period
+    care_home_timezone: str
+
+    retrieval: HandoverRetrieval
+    metrics: HandoverMetrics
+
+
+class ValidatedHandoverContent(Contract):
+    """Gateway output with resolved internal source references.
+
+    Validation here does not mean clinical approval.
+    Nurse review remains required.
+    """
+
+    sections: tuple[HandoverSection, ...]
+
+    # Preserved by trusted code, independently of model output.
+    warnings: tuple[str, ...] = ()
+
+    coverage_complete: bool

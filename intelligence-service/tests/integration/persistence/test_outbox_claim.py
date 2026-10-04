@@ -1,16 +1,14 @@
 import asyncio
 import os
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import select, text
-from uuid import uuid4
 
 from intelligence.dispatcher.service import reserve_next_dispatch
 from intelligence.persistence.models import DispatchOutbox, HandoverJob
-from tests.test_handover_submission import submission_harness
 from intelligence.persistence.outbox_repository import claim_pending_dispatch
-
-
+from tests.support.database import submission_harness
 
 pytestmark = [
     pytest.mark.integration,
@@ -42,10 +40,7 @@ def test_pending_outbox_is_reserved_once() -> None:
             async with h.database.session() as session:
                 async with session.begin():
                     await session.execute(
-                        text(
-                            "SELECT set_config("
-                            "'intelligence.tenant_id', :tenant_id, true)"
-                        ),
+                        text("SELECT set_config('intelligence.tenant_id', :tenant_id, true)"),
                         {"tenant_id": str(h.scope.tenant_id)},
                     )
 
@@ -85,6 +80,7 @@ def test_pending_outbox_is_reserved_once() -> None:
 
     asyncio.run(exercise())
 
+
 def test_rolled_back_claim_can_be_claimed_again() -> None:
     async def exercise() -> None:
         async with submission_harness() as h:
@@ -100,10 +96,7 @@ def test_rolled_back_claim_can_be_claimed_again() -> None:
                 async with h.database.session() as session:
                     async with session.begin():
                         await session.execute(
-                            text(
-                                "SELECT set_config("
-                                "'intelligence.tenant_id', :tenant_id, true)"
-                            ),
+                            text("SELECT set_config('intelligence.tenant_id', :tenant_id, true)"),
                             {"tenant_id": str(h.scope.tenant_id)},
                         )
 
@@ -132,10 +125,7 @@ def test_rolled_back_claim_can_be_claimed_again() -> None:
             async with h.database.session() as session:
                 async with session.begin():
                     await session.execute(
-                        text(
-                            "SELECT set_config("
-                            "'intelligence.tenant_id', :tenant_id, true)"
-                        ),
+                        text("SELECT set_config('intelligence.tenant_id', :tenant_id, true)"),
                         {"tenant_id": str(h.scope.tenant_id)},
                     )
 
@@ -153,6 +143,7 @@ def test_rolled_back_claim_can_be_claimed_again() -> None:
                     assert outbox.attempts == 1
 
     asyncio.run(exercise())
+
 
 def test_other_tenant_cannot_claim_outbox() -> None:
     async def exercise() -> None:

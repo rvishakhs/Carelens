@@ -9,7 +9,7 @@ from intelligence.connectors.carelens import CareLensClient, CareLensUnavailable
 from intelligence.core.contracts import Period
 from intelligence.handover.evidence import EvidenceValidationError
 from intelligence.handover.retrieval import retrieve_shift_observations
-from tests.carelens_connector.test_normalise import RESIDENT_ID, context, observation
+from tests.support.carelens import RESIDENT_ID, context, observation
 
 
 def run(handler, execution_context=None):

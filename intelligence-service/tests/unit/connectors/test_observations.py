@@ -13,26 +13,10 @@ from intelligence.connectors.carelens import (
     CareLensResourceUnavailable,
     CareLensUnavailable,
 )
-from tests.carelens_connector.test_carelens_client import OTHER_ID, RESIDENT_ID, TOKEN
+from tests.support.carelens import OTHER_ID, RESIDENT_ID, TOKEN, record
 
 SINCE = datetime.fromisoformat("2026-09-08T07:00:00+01:00")
 UNTIL = datetime.fromisoformat("2026-09-08T19:00:00+01:00")
-
-
-def record(**changes):
-    return {
-        "id": "40000000-0000-0000-0000-000000000001",
-        "resident_id": str(RESIDENT_ID),
-        "type": "fluid_intake",
-        "value": {"volume_ml": 150, "ml": 150, "notes": "synthetic-private-marker"},
-        "recorded_at": "2026-09-08T08:00:00+01:00",
-        "recorded_by": None,
-        "is_implausible": False,
-        "source_type": "fluid_intake_records",
-        "time_precision": "timestamp",
-        "source_date": None,
-        **changes,
-    }
 
 
 def run(handler, **kwargs):

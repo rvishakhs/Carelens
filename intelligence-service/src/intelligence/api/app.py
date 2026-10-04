@@ -2,21 +2,20 @@ import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from secrets import compare_digest
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 
 from intelligence.agents.base import AgentContext
 from intelligence.agents.registry import default_registry
+from intelligence.api.dependencies import actor
+from intelligence.api.handover import router as handover_router
 from intelligence.config import Settings
 from intelligence.connectors.synthetic import (
     SyntheticEvidenceReader,
-    demo_scope,
 )
 from intelligence.core.contracts import RunRequest, RunResult, Scope
 from intelligence.core.errors import (
@@ -25,11 +24,10 @@ from intelligence.core.errors import (
     GatewayRejected,
 )
 from intelligence.core.results import MemoryResults
-from intelligence.gateway.fake import FakeProvider
 from intelligence.gateway.service import Gateway
 from intelligence.persistence.database import Database
-from intelligence.api.dependencies import actor
-from intelligence.api.handover import router as handover_router
+from intelligence.providers.fake_demo import FakeProvider
+from intelligence.providers.fake_handover import FakeHandoverProvider
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +47,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(database_url=config.database_url.get_secret_value())
+        handover_provider = FakeHandoverProvider()
 
         try:
             await check_database(database)
             app.state.database = database
+            app.state.handover_provider = handover_provider
             logger.info("Database connection verified")
 
             # FastAPI starts serving requests here.

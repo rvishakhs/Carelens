@@ -11,8 +11,7 @@ from intelligence.connectors.carelens import (
     CareLensPaginationIncomplete,
     CareLensUnavailable,
 )
-from tests.carelens_connector.test_carelens_client import RESIDENT_ID, TOKEN
-from tests.carelens_connector.test_observations import SINCE, UNTIL, record
+from tests.support.carelens import RESIDENT_ID, SINCE, TOKEN, UNTIL, record
 
 
 def rows(count):

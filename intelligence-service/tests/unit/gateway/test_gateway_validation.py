@@ -1,12 +1,13 @@
 import pytest
 
+from intelligence.gateway.contracts import HandoverPayload, PseudonymisedEvidence
 from intelligence.gateway.validation import (
     GatewayValidationError,
     InboundValidationError,
     OutboundValidationError,
-    validate_outbound_payload
+    validate_outbound_payload,
 )
-from intelligence.gateway.contracts import HandoverPayload, PseudonymisedEvidence
+
 
 def make_payload(
     *,
@@ -17,11 +18,9 @@ def make_payload(
         PseudonymisedEvidence(
             source_alias=source_alias,
             category="mobility",
-            time_label=(
-                "Clinical event time: "
-                "2026-09-28T10:00:00+01:00"
-            ),
+            time_label=("Clinical event time: 2026-09-28T10:00:00+01:00"),
             time_precision="timestamp",
+            context="shift",
             content="Resident walked with staff assistance.",
         )
         for source_alias in source_aliases
@@ -32,7 +31,9 @@ def make_payload(
         period_label="2026-09-28 day shift",
         evidence=evidence,
         metrics=(),
+        coverage_complete=False,
     )
+
 
 def test_outbound_validation_error_is_gateway_error():
     error = OutboundValidationError("Outbound payload rejected")
@@ -56,6 +57,7 @@ def test_inbound_validation_error_is_gateway_error():
 def test_validation_errors_are_value_errors(error_type):
     assert issubclass(error_type, ValueError)
 
+
 def test_valid_outbound_payload_passes():
     payload = make_payload(
         resident_alias="RESIDENT_001",
@@ -64,29 +66,19 @@ def test_valid_outbound_payload_passes():
 
     validate_outbound_payload(payload)
 
-def test_invalid_resident_alias_is_rejected():
-    payload = make_payload(
-        resident_alias="REAL_RESIDENT_ID",
-        source_aliases=("SRC_001",),
-    )
 
-    with pytest.raises(
-        OutboundValidationError,
-        match="invalid resident alias",
-    ):
+def test_invalid_resident_alias_is_rejected():
+    payload = make_payload().model_copy(update={"resident_alias": "REAL_RESIDENT_ID"})
+    with pytest.raises(OutboundValidationError):
         validate_outbound_payload(payload)
+
 
 def test_invalid_source_alias_is_rejected():
-    payload = make_payload(
-        resident_alias="RESIDENT_001",
-        source_aliases=("REAL_SOURCE_ID",),
-    )
+    payload = make_payload()
+    evidence = payload.evidence[0].model_copy(update={"source_alias": "REAL_SOURCE_ID"})
+    with pytest.raises(OutboundValidationError):
+        validate_outbound_payload(payload.model_copy(update={"evidence": (evidence,)}))
 
-    with pytest.raises(
-        OutboundValidationError,
-        match="invalid source alias",
-    ):
-        validate_outbound_payload(payload)
 
 def test_duplicate_source_alias_is_rejected():
     payload = make_payload(

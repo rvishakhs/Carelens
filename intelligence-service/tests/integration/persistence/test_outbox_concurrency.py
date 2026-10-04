@@ -13,7 +13,7 @@ from intelligence.core.contracts import Scope
 from intelligence.handover.contracts import HandoverSubmissionRequest
 from intelligence.persistence.database import Database
 from intelligence.persistence.outbox_repository import claim_pending_dispatch
-from tests.test_handover_submission import SubmissionHarness
+from tests.support.database import SubmissionHarness
 
 pytestmark = [
     pytest.mark.integration,
@@ -31,7 +31,8 @@ def test_competing_dispatchers_skip_locked_row() -> None:
         database = Database(url)
         resident = uuid4()
         scope = Scope(
-            tenant_id=uuid4(), actor_id=uuid4(),
+            tenant_id=uuid4(),
+            actor_id=uuid4(),
             resident_ids=frozenset({resident}),
             permissions=frozenset({"handover:generate"}),
         )
@@ -61,14 +62,21 @@ def test_competing_dispatchers_skip_locked_row() -> None:
                     # A retains its row lock while B executes its claim.
                     claim_a = await claim_pending_dispatch(first, tenant_id=scope.tenant_id, lease_seconds=60)
                     claim_b = await claim_pending_dispatch(
-                        second, tenant_id=scope.tenant_id, lease_seconds=60,
+                        second,
+                        tenant_id=scope.tenant_id,
+                        lease_seconds=60,
                     )
                     assert claim_a is not None and claim_b is not None
                     assert claim_a.outbox_id != claim_b.outbox_id
                     assert {claim_a.job_id, claim_b.job_id} == job_ids
-                    assert await claim_pending_dispatch(
-                        second, tenant_id=scope.tenant_id, lease_seconds=60,
-                    ) is None
+                    assert (
+                        await claim_pending_dispatch(
+                            second,
+                            tenant_id=scope.tenant_id,
+                            lease_seconds=60,
+                        )
+                        is None
+                    )
         finally:
             await database.close()
 

@@ -1,3 +1,5 @@
+"""Legacy synthetic fluid demo adapter; separate from handover generation."""
+
 from intelligence.gateway.contracts import ProviderOutput, SafePayload
 
 

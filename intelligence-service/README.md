@@ -103,7 +103,7 @@ Store credentials in `.env`, never in tracked files.
 ```sh
 uv run python scripts/check_tenant_access.py
 # Equivalent opt-in pytest entry point:
-INTELLIGENCE_RUN_DB_TESTS=1 uv run pytest --confcutdir=tests tests/test_tenant_access.py -s
+INTELLIGENCE_RUN_DB_TESTS=1 uv run pytest --confcutdir=tests tests/integration/persistence/test_tenant_access.py -s
 ```
 
 The check uses synthetic UUIDs and rolls back its transaction. It checks tenant
@@ -125,3 +125,9 @@ Persistence tables/RLS exist, but the submission insertion primitive is not a
 complete endpoint: request replay, concurrent duplicate handling, shift/eligibility
 validation and worker dispatch still need implementation. Existing `/v1/runs`
 results remain in memory.
+
+## Code and test organisation
+
+See [the structure guide](docs/project-structure.md) and [test commands](tests/README.md).
+Provider adapters live in `src/intelligence/providers/`; gateway policy and orchestration
+remain in `src/intelligence/gateway/`. The application still starts with fake providers.

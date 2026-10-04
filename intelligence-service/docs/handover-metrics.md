@@ -99,7 +99,7 @@ consumption history; this module does not infer zero consumption from an offer.
 ## Tests
 
 ```sh
-.venv/bin/python -m pytest -q --confcutdir=tests tests/test_handover_metrics.py
+.venv/bin/python -m pytest -q --confcutdir=tests tests/unit/handover/test_metrics.py
 ```
 
 Tests cover the source normalization → shift assembly → metrics path, decimals,

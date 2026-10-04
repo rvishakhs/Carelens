@@ -51,7 +51,7 @@ class AliasContext:
         repr=False,
     )
 
-    _source_to_alias: dict[SourceRef, str] = field(
+    _source_to_alias: dict[tuple[str, str, str, str], str] = field(
         default_factory=dict,
         init=False,
         repr=False,
@@ -61,7 +61,6 @@ class AliasContext:
         init=False,
         repr=False,
     )
-    _source_to_alias: dict[tuple[str, str, str, str], str]
 
     def alias_resident(self, resident_id: UUID) -> str:
         """Return a stable alias for this resident within this request."""
@@ -81,21 +80,13 @@ class AliasContext:
     def alias_source(self, reference: SourceRef) -> str:
         """Return a stable alias for a complete SourceRef."""
 
-        # existing = self._source_to_alias.get(reference)
-        #
-        # if existing is not None:
-        #     return existing
-        #
-        # alias = f"SRC_{len(self._source_to_alias) + 1:03d}"
-        #
-        # self._source_to_alias[reference] = alias
-        # self._alias_to_source[alias] = reference
-
         key = _source_key(reference)
 
         existing = self._source_to_alias.get(key)
 
         if existing is not None:
+            if self._alias_to_source[existing] != reference:
+                raise PseudonymisationError("Conflicting source fingerprint")
             return existing
 
         alias = f"SRC_{len(self._source_to_alias) + 1:03d}"

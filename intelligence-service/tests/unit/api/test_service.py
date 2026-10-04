@@ -15,8 +15,8 @@ from intelligence.core.contracts import AgentId, EvidenceBundle, Period, RunRequ
 from intelligence.core.errors import AccessDenied, GatewayRejected
 from intelligence.core.results import MemoryResults
 from intelligence.gateway.contracts import ProviderOutput, SafePayload
-from intelligence.gateway.fake import FakeProvider
 from intelligence.gateway.service import Gateway
+from intelligence.providers.fake_demo import FakeProvider
 
 TOKEN = "synthetic-test-token-0123456789"
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}

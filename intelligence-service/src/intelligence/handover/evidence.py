@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -147,18 +146,3 @@ def assemble_shift_evidence(
         outside_shift_count=outside_shift_count,
         warnings=tuple(warnings),
     )
-
-
-@dataclass(frozen=True)
-class HandoverRetrieval:
-    evidence: ShiftEvidence
-
-    retrieved_at: datetime
-    evidence_cutoff: datetime | None
-
-    coverage_complete: bool
-
-    sources_requested: tuple[str, ...]
-    sources_completed: tuple[str, ...]
-
-    warnings: tuple[str, ...]

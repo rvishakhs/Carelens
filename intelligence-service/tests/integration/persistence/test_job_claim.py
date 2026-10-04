@@ -13,7 +13,7 @@ from sqlalchemy import select, text
 
 from intelligence.persistence.models import HandoverJob
 from intelligence.workflow.resident_handover import reserve_handover_job
-from tests.test_handover_submission import submission_harness
+from tests.support.database import submission_harness
 
 pytestmark = [
     pytest.mark.integration,

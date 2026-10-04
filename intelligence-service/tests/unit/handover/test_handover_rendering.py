@@ -29,11 +29,7 @@ def make_evidence(
             version="unversioned",
         ),
         clinical_data=clinical_data or {},
-        effective_at=(
-            None
-            if date_only
-            else datetime(2026, 9, 28, 10, tzinfo=UTC)
-        ),
+        effective_at=(None if date_only else datetime(2026, 9, 28, 10, tzinfo=UTC)),
         source_date=date(2026, 9, 28) if date_only else None,
         time_basis="effective",
         time_precision="date" if date_only else "timestamp",
@@ -105,10 +101,7 @@ def test_date_only_wound_is_context():
     assert rendered.context == "date_context"
     assert rendered.time_precision == "date"
     assert "exact event time unavailable" in rendered.time_label
-    assert (
-        "date_only_context_not_confirmed_shift_event"
-        in rendered.warnings
-    )
+    assert "date_only_context_not_confirmed_shift_event" in rendered.warnings
 
 
 def test_source_quality_flag_is_preserved():

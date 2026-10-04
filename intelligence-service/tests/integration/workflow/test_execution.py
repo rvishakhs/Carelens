@@ -11,7 +11,7 @@ from intelligence.workflow.resident_handover import (
     prepare_handover_execution,
     reserve_handover_job,
 )
-from tests.test_handover_submission import submission_harness
+from tests.support.database import submission_harness
 
 pytestmark = [
     pytest.mark.integration,
@@ -62,8 +62,6 @@ def test_prepare_claims_and_loads_snapshot() -> None:
     "scenario",
     ["wrong_token", "wrong_tenant", "expired", "cancelled"],
 )
-
-
 def test_loader_rejects_invalid_ownership(scenario: str) -> None:
     async def exercise() -> None:
         async with submission_harness() as h:
@@ -86,10 +84,7 @@ def test_loader_rejects_invalid_ownership(scenario: str) -> None:
                 async with h.database.session() as session:
                     async with session.begin():
                         await session.execute(
-                            text(
-                                "SELECT set_config("
-                                "'intelligence.tenant_id', :tenant_id, true)"
-                            ),
+                            text("SELECT set_config('intelligence.tenant_id', :tenant_id, true)"),
                             {"tenant_id": str(h.scope.tenant_id)},
                         )
 

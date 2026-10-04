@@ -111,6 +111,7 @@ def test_alias_from_another_request_cannot_resolve():
     with pytest.raises(UnknownAliasError):
         request_b.resolve_source(alias)
 
+
 def test_same_alias_string_is_scoped_to_its_own_request():
     request_a = AliasContext()
     request_b = AliasContext()
