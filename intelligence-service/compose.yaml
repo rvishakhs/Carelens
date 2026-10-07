@@ -18,6 +18,83 @@ services:
       timeout: 3s
       retries: 3
 
+  dispatcher:
+    profiles: ["handover"]
+    build: .
+    env_file: .env
+    command: ["python", "-m", "intelligence.dispatcher"]
+    environment:
+      INTELLIGENCE_BROKER_URL: redis://redis:6379/0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  worker:
+    profiles: ["handover"]
+    build: .
+    env_file: .env
+    command: ["celery", "-A", "intelligence.workers.celery_app:celery_app", "worker", "--loglevel=INFO"]
+    environment:
+      INTELLIGENCE_BROKER_URL: redis://redis:6379/0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  recovery-worker:
+    profiles: [ "handover" ]
+    build: .
+    env_file: .env
+    command:
+      - celery
+      - -A
+      - intelligence.workers.celery_app:celery_app
+      - worker
+      - --loglevel=INFO
+      - --queues=intelligence.maintenance
+      - --concurrency=1
+    environment:
+      INTELLIGENCE_BROKER_URL: redis://redis:6379/0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [ /tmp ]
+    security_opt: [ "no-new-privileges:true" ]
+    cap_drop: [ ALL ]
+
+  beat:
+    profiles: [ "handover" ]
+    build: .
+    env_file: .env
+    command:
+      - celery
+      - -A
+      - intelligence.workers.celery_app:celery_app
+      - beat
+      - --loglevel=INFO
+      - --schedule=/tmp/celerybeat-schedule
+    environment:
+      INTELLIGENCE_BROKER_URL: redis://redis:6379/0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [ /tmp ]
+    security_opt: [ "no-new-privileges:true" ]
+    cap_drop: [ ALL ]
+
   redis:
     image: redis:7-alpine
     container_name: intelligence-redis
@@ -36,4 +113,4 @@ services:
 volumes:
   intelligence_redis_data:
 # Deliberately no shared CareLens network, database, secrets or volumes.
-# PostgreSQL/Temporal are delivery milestones, not unused running dependencies.
+# PostgreSQL is configured separately. Background processes are opt-in via the handover profile.

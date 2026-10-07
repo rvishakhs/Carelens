@@ -25,3 +25,9 @@ class ExecutionAuthorisationDenied(Exception):
 
 class ExecutionAuthorisationUnavailable(Exception):
     """Current permissions could not be checked due to a temporary failure."""
+
+class HandoverLeaseLost(Exception):
+    pass
+
+class HandoverLeaseUncertain(Exception):
+    """The worker could not confirm continued ownership."""

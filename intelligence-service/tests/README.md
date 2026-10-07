@@ -52,3 +52,16 @@ prerequisites before running it.
   requests implicitly in the offline suite.
 - Keep clinical acceptance cases and human review results distinct from passing
   software tests. The gateway currently accepts only deterministic extractive text.
+
+Recovery validation uses the same disposable runner (now runs all integration
+checks): `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/test_outbox_concurrency.py`.
+It requires Docker and the configured local PostgreSQL container to be running.
+Recovery tests cover rollback, expired leases, retry/failure transitions, stale
+worker fencing, stale queued deliveries and independent-connection contention.
+
+Queued recovery waits five minutes after the latest publication by default;
+configure `INTELLIGENCE_DISPATCHER_QUEUED_RECOVERY_SECONDS` (minimum 60).
+Pending/publishing dispatches remain the dispatcher's responsibility. A slow queue
+may receive duplicate deliveries; the job claim prevents duplicate execution.
+Redispatch does not consume execution attempts. Persistent pre-claim credential
+failures will therefore redispatch at a bounded rate until repaired; monitor them.

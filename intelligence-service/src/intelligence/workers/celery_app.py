@@ -8,13 +8,32 @@ settings = WorkerSettings()
 celery_app = Celery(
     "intelligence",
     broker=settings.broker_url.get_secret_value(),
-    include=["intelligence.tasks.handover"],
+    include=["intelligence.tasks.handover",
+             "intelligence.tasks.recovery"
+             ]
 )
 
 celery_app.conf.update(
     # Accept JSON task messages only.
     task_serializer="json",
     accept_content=["json"],
+
+    task_routes={
+        "intelligence.handover.recover": {
+            "queue": "intelligence.maintenance",
+        },
+    },
+
+    beat_schedule={
+        "recover-expired-handovers": {
+            "task": "intelligence.handover.recover",
+            "schedule": 30.0,
+            "options": {
+                "queue": "intelligence.maintenance",
+                "expires": 30,
+            },
+        },
+    },
 
     # Default destination for tasks without an explicit route.
     task_default_queue=settings.handover_queue,

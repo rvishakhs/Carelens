@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from typing import Literal, cast
 from uuid import UUID, uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from .models import DispatchOutbox, HandoverJob
 from .models import HandoverJob
-
 
 @dataclass(frozen=True)
 class ClaimedJob:
@@ -146,3 +146,179 @@ async def load_claimed_job(
         shift_end=job.shift_end,
         timezone=job.timezone,
     )
+
+async def renew_handover_lease(
+    session: AsyncSession,
+    *,
+    claim: ClaimedJob,
+    lease_seconds: int = 60,
+) -> datetime | None:
+    """Extend a currently owned, unexpired lease.
+
+    Returns the new expiry, or None when ownership is no longer valid.
+    The caller must commit the transaction before treating renewal as successful.
+    """
+    if lease_seconds <= 0:
+        raise ValueError("lease_seconds must be positive")
+
+    if not session.in_transaction():
+        raise RuntimeError("An explicit transaction is required")
+
+    statement = (
+        update(HandoverJob)
+        .where(
+            HandoverJob.tenant_id == claim.tenant_id,
+            HandoverJob.id == claim.job_id,
+            HandoverJob.state == "running",
+            HandoverJob.lease_token == claim.lease_token,
+            HandoverJob.lease_expires_at > func.clock_timestamp(),
+        )
+        .values(
+            heartbeat_at=func.clock_timestamp(),
+            lease_expires_at=(
+                func.clock_timestamp()
+                + timedelta(seconds=lease_seconds)
+            ),
+        )
+        .returning(HandoverJob.lease_expires_at)
+        .execution_options(synchronize_session=False)
+    )
+
+    return await session.scalar(statement)
+
+
+async def mark_handover_job_failed(
+    session: AsyncSession,
+    *,
+    claim: ClaimedJob,
+    failure_code: str,
+) -> bool:
+    """Fail a running job only while this worker owns its live lease."""
+    if not session.in_transaction():
+        raise RuntimeError("An explicit transaction is required")
+
+    allowed_codes = {
+        "authorisation_denied",
+        "gateway_rejected",
+        "invalid_provider_output",
+        "attempts_exhausted",
+        "internal_error",
+    }
+    if failure_code not in allowed_codes:
+        raise ValueError("Unsupported failure code")
+
+    statement = (
+        update(HandoverJob)
+        .where(
+            HandoverJob.tenant_id == claim.tenant_id,
+            HandoverJob.id == claim.job_id,
+            HandoverJob.state == "running",
+            HandoverJob.lease_token == claim.lease_token,
+            HandoverJob.lease_expires_at > func.clock_timestamp(),
+        )
+        .values(
+            state="failed",
+            failure_code=failure_code,
+            completed_at=func.clock_timestamp(),
+            lease_token=None,
+            lease_expires_at=None,
+        )
+        .returning(HandoverJob.id)
+        .execution_options(synchronize_session=False)
+    )
+
+    updated_id = (await session.execute(statement)).scalar_one_or_none()
+    return updated_id is not None
+
+async def retry_handover_job(
+    session: AsyncSession,
+    *,
+    claim: ClaimedJob,
+    failure_code: str,
+    delay_seconds: int,
+) -> Literal["queued", "failed", "not_owned"]:
+    """Record a retry and its dispatch inside the caller's transaction."""
+    if not session.in_transaction():
+        raise RuntimeError("An explicit transaction is required")
+
+    if delay_seconds <= 0:
+        raise ValueError("delay_seconds must be positive")
+
+    allowed_codes = {
+        "provider_unavailable",
+        "provider_timeout",
+        "connector_unavailable",
+        "authorisation_unavailable",
+    }
+    if failure_code not in allowed_codes:
+        raise ValueError("Unsupported retry failure code")
+
+    # Serialize transitions for this job.
+    row = await session.scalar(
+        select(HandoverJob)
+        .where(
+            HandoverJob.tenant_id == claim.tenant_id,
+            HandoverJob.id == claim.job_id,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+
+    if row is None:
+        return "not_owned"
+
+    # Check expiry after acquiring the lock.
+    database_now = (
+        await session.execute(select(func.clock_timestamp()))
+    ).scalar_one()
+
+    if (
+        row.state != "running"
+        or row.lease_token != claim.lease_token
+        or row.lease_expires_at is None
+        or row.lease_expires_at <= database_now
+    ):
+        return "not_owned"
+
+    if row.attempts >= row.max_attempts:
+        row.state = "failed"
+        row.failure_code = "attempts_exhausted"
+        row.completed_at = database_now
+        row.lease_token = None
+        row.lease_expires_at = None
+
+        await session.flush()
+        return "failed"
+
+    last_dispatch_number = await session.scalar(
+        select(func.max(DispatchOutbox.dispatch_number))
+        .where(
+            DispatchOutbox.tenant_id == claim.tenant_id,
+            DispatchOutbox.job_id == claim.job_id,
+        )
+    )
+
+    retry_at = database_now + timedelta(seconds=delay_seconds)
+
+    row.state = "queued"
+    row.failure_code = failure_code
+    row.next_attempt_at = retry_at
+    row.completed_at = None
+    row.lease_token = None
+    row.lease_expires_at = None
+
+    session.add(
+        DispatchOutbox(
+            tenant_id=claim.tenant_id,
+            job_id=claim.job_id,
+            dispatch_number=(last_dispatch_number or 0) + 1,
+            task_name="intelligence.handover.generate",
+            state="pending",
+            attempts=0,
+            available_at=retry_at,
+        )
+    )
+
+    await session.flush()
+    return "queued"
+

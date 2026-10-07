@@ -39,6 +39,14 @@ class HandoverSubmissionResponse(Contract):
     state: HandoverJobState
     status_url: str
 
+class GenerationMetadata(Contract):
+    agent_version: str
+    prompt_version: str
+    gateway_version: str
+    provider: str
+    model_version: str
+    generated_at: AwareDatetime
+
 
 class HandoverDraft(Contract):
     job_id: UUID

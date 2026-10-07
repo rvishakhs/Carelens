@@ -38,6 +38,8 @@ def main() -> int:
         )
 
     env = os.environ.copy()
+    env["INTELLIGENCE_RUN_DB_TESTS"] = "1"
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["INTELLIGENCE_MIGRATION_DATABASE_URL"] = migrator.set(database=name).render_as_string(
         hide_password=False,
     )
@@ -51,7 +53,7 @@ def main() -> int:
     try:
         subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], env=env, check=True)
         return subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/integration/persistence/test_outbox_concurrency.py", "--confcutdir=tests", "-q"],
+            [sys.executable, "-m", "pytest", "tests/integration", "--confcutdir=tests", "-p", "no:cacheprovider", "-q"],
             env=env, check=False,
         ).returncode
     finally:

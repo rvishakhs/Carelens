@@ -51,8 +51,9 @@ _observations = TypeAdapter(list[ObservationResponse])
 
 
 class CareLensClient:
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(self, client: httpx.AsyncClient, *, service_tenant_id: UUID | None = None) -> None:
         self._client = client
+        self._service_tenant_id = service_tenant_id
 
     async def get_resident(
         self,
@@ -114,8 +115,9 @@ class CareLensClient:
 
         try:
             response = await self._client.get(
-                "/observations",
+                "/internal/intelligence/observations" if self._service_tenant_id is not None else "/observations",
                 params={
+                    **({"tenant_id": str(self._service_tenant_id)} if self._service_tenant_id else {}),
                     "resident_id": str(resident_id),
                     "since": since.isoformat(),
                     "until": until.isoformat(),

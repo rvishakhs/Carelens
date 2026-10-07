@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,3 +51,22 @@ class WorkerSettings(BaseSettings):
 
     broker_url: SecretStr
     handover_queue: str = "intelligence.handover"
+
+
+class WorkerIdentitySettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="INTELLIGENCE_", env_file=".env", extra="ignore")
+
+    token_url: str
+    client_id: str = Field(min_length=1)
+    client_secret: SecretStr = Field(min_length=1)
+    service_identity: str = "intelligence-api"
+    minimum_token_lifetime_seconds: int = Field(default=120, ge=60, le=3600)
+
+
+class DispatcherSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="INTELLIGENCE_DISPATCHER_", env_file=".env", extra="ignore")
+
+    # Explicit trusted allowlist. Never discover tenants from incoming messages.
+    tenant_ids: list[UUID] = Field(min_length=1)
+    poll_seconds: float = Field(default=2, gt=0, le=60)
+    queued_recovery_seconds: int = Field(default=300, ge=60)
