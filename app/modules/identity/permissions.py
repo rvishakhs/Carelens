@@ -154,6 +154,11 @@ def require(*permissions: Permission):
     async def _check(request: Request, current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
         registry = request.app.state.container.permission_registry
         granted = await registry.get_permissions_for_role(current_user.role)
+        from app.config import get_settings
+        from app.modules.identity.testing_access import allows_test_floor_management
+
+        if allows_test_floor_management(get_settings(), current_user):
+            granted = frozenset(granted) | {Permission.MANAGE_FLOORS}
         missing = [p for p in permissions if p not in granted]
         if missing:
             raise PermissionDeniedError(f"missing permissions: {', '.join(m.value for m in missing)}")

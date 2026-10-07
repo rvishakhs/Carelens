@@ -47,9 +47,21 @@ class KeycloakTokenVerifier(TokenVerifier):
     async def verify(self, bearer_token: str) -> TokenClaims:
         jwks = await self._get_jwks()
         try:
-            claims = jwt.decode(bearer_token, jwks, audience=self._audience, issuer=self._issuer, options={"verify_aud": False},)
-        except jwt.JWTError as exc:
-            raise UnauthenticatedError(f"invalid token: {exc}") from exc
+            claims = jwt.decode(
+                bearer_token,
+                jwks,
+                algorithms=["RS256"],
+                audience=self._audience,
+                issuer=self._issuer,
+                options={
+                    "require_aud": True,
+                    "require_iss": True,
+                    "require_exp": True,
+                    "require_sub": True,
+                },
+            )
+        except jwt.JWTError:
+            raise UnauthenticatedError("Invalid or expired access token") from None
 
         try:
             role = self._extract_role(claims)

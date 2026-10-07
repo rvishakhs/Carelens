@@ -1,7 +1,10 @@
 from functools import lru_cache
+from uuid import UUID
 
-from pydantic import Field
+from pydantic import AwareDatetime, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.modules.identity.service_grants import IntelligenceServiceGrant
 
 
 class Settings(BaseSettings):
@@ -11,6 +14,12 @@ class Settings(BaseSettings):
     app_name: str = "CareLens"
     environment: str = Field(default="development")
     debug: bool = Field(default=False)
+
+    # Temporary local testing grant; ignored outside development.
+    test_floor_manager_user_id: UUID | None = None
+    test_floor_manager_tenant_id: UUID | None = None
+    test_floor_manager_expires_at: AwareDatetime | None = None
+
 
 
 
@@ -53,7 +62,13 @@ class Settings(BaseSettings):
     oidc_issuer: str = Field(default="http://localhost:8080/realms/CareLens")
     oidc_client_id: str = Field(default="carelens-web")
     oidc_client_secret: str = Field(default="")
-    oidc_audience: str = Field(default="carelens-web")
+    oidc_audience: str = Field(default="carelens-api")
+
+    # Separate machine audience and explicit pilot registrations. Empty denies all.
+    intelligence_service_audience: str = "carelens-intelligence-api"
+    intelligence_service_grants: list[IntelligenceServiceGrant] = Field(default_factory=list)
+    intelligence_staff_service_identity: str = "intelligence-api"
+
 
     # --- AI gateway ---
     llm_provider: str = Field(default="fake")  # fake | local | <real provider>

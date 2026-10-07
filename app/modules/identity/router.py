@@ -1,7 +1,6 @@
 import uuid
-from collections.abc import AsyncIterator
-
-from fastapi import APIRouter, Depends, Request
+from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app import get_current_user
 from app import Permission, require
@@ -9,6 +8,18 @@ from app import UserRepository
 from app import CurrentUser, StaffCreate, StaffCreated, StaffCredentials, StaffUpdate, UserRead
 from app import IdentityService
 from app import rls_session
+
+from app.config import get_settings
+from app.modules.identity.intelligence_access import (
+    IntelligenceAccessDenied,
+    resolve_staff_intelligence_scope,
+)
+from app.modules.identity.models import CareHome
+from app.modules.identity.schemas import IntelligenceScopeRead
+
+from collections.abc import AsyncIterator
+
+
 
 router = APIRouter(prefix="/identity", tags=["identity"])
 
@@ -80,3 +91,70 @@ async def reset_staff_password(
     """Generates a fresh one-time temporary password, same rule as creation: shown
     exactly once in the response, never recoverable afterwards."""
     return await service.reset_staff_password(current_user.care_home_id, current_user.id, user_id)
+
+@router.get(
+    "/intelligence-scope",
+    response_model=IntelligenceScopeRead,
+)
+async def get_intelligence_scope(
+    response: Response,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> IntelligenceScopeRead:
+    response.headers["Cache-Control"] = "no-store"
+    settings = get_settings()
+
+    # Select a server-configured service registration for this user's home.
+    candidates = [
+        grant
+        for grant in settings.intelligence_service_grants
+        if grant.tenant_id == current_user.care_home_id
+        and grant.service_identity
+        == settings.intelligence_staff_service_identity
+    ]
+
+    if not candidates:
+        raise HTTPException(
+            status_code=403,
+            detail="Intelligence access denied",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    if len(candidates) != 1:
+        raise HTTPException(
+            status_code=503,
+            detail="Intelligence access configuration unavailable",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    grant = candidates[0]
+
+    # Preserve the active-home check used by the service-authenticated path.
+    async with rls_session(
+        current_user.care_home_id,
+        current_user.id,
+    ) as session:
+        home_id = await session.scalar(
+            select(CareHome.id).where(
+                CareHome.id == current_user.care_home_id,
+                CareHome.deleted_at.is_(None),
+            )
+        )
+
+    if home_id is None:
+        raise HTTPException(
+            status_code=403,
+            detail="Intelligence access denied",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    try:
+        return await resolve_staff_intelligence_scope(
+            actor_id=current_user.id,
+            grant=grant,
+        )
+    except IntelligenceAccessDenied:
+        raise HTTPException(
+            status_code=403,
+            detail="Intelligence access denied",
+            headers={"Cache-Control": "no-store"},
+        ) from None

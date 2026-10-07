@@ -1,28 +1,24 @@
 import asyncio
+import httpx
 import logging
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from sqlalchemy import text
 from uuid import UUID
 
+from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 
+from collections.abc import AsyncIterator
 from intelligence.agents.base import AgentContext
 from intelligence.agents.registry import default_registry
 from intelligence.api.dependencies import actor
 from intelligence.api.handover import router as handover_router
-from intelligence.config import Settings
-from intelligence.connectors.synthetic import (
-    SyntheticEvidenceReader,
-)
+from intelligence.config import CareLensSettings, Settings
+from intelligence.connectors.staff_identity import CareLensStaffIdentityReader
+from intelligence.connectors.synthetic import SyntheticEvidenceReader
 from intelligence.core.contracts import RunRequest, RunResult, Scope
-from intelligence.core.errors import (
-    AccessDenied,
-    CapacityExceeded,
-    GatewayRejected,
-)
+from intelligence.core.errors import AccessDenied, CapacityExceeded, GatewayRejected
 from intelligence.core.results import MemoryResults
 from intelligence.gateway.service import Gateway
 from intelligence.persistence.database import Database
@@ -46,20 +42,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        database = Database(database_url=config.database_url.get_secret_value())
-        handover_provider = FakeHandoverProvider()
+        carelens_config = CareLensSettings()
+        database = Database(
+            database_url=config.database_url.get_secret_value()
+        )
 
         try:
-            await check_database(database)
-            app.state.database = database
-            app.state.handover_provider = handover_provider
-            logger.info("Database connection verified")
+            async with httpx.AsyncClient(
+                    timeout=carelens_config.timeout_seconds,
+                    follow_redirects=False,
+            ) as client:
+                app.state.staff_identity_reader = (
+                    CareLensStaffIdentityReader(
+                        client=client,
+                        base_url=carelens_config.base_url,
+                        timeout_seconds=carelens_config.timeout_seconds,
+                    )
+                )
 
-            # FastAPI starts serving requests here.
-            yield
+                await check_database(database)
+
+                app.state.database = database
+                app.state.handover_provider = FakeHandoverProvider()
+
+                logger.info("Database connection verified")
+
+                yield
 
         finally:
-            # Also runs if the startup database check fails.
             await database.close()
             logger.info("Database connection pool disposed")
 

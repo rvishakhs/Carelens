@@ -32,6 +32,12 @@ class UserRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class IntelligenceScopeRead(BaseModel):
+    tenant_id: uuid.UUID
+    actor_id: uuid.UUID
+    resident_ids: list[uuid.UUID]
+    permissions: list[str]
+
 
 class StaffCreate(BaseModel):
     """A manager provisioning a nurse/carer -- restricted to those two roles; anything

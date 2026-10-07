@@ -20,7 +20,6 @@ sync_url = database_url.replace(
     "postgresql+psycopg://",
 )
 
-print(sync_url)
 
 config.set_main_option("sqlalchemy.url", sync_url)
 
