@@ -1,4 +1,6 @@
 import asyncio
+from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -16,7 +18,7 @@ from intelligence.core.errors import AccessDenied, GatewayRejected
 from intelligence.core.results import MemoryResults
 from intelligence.gateway.contracts import ProviderOutput, SafePayload
 from intelligence.gateway.service import Gateway
-from intelligence.providers.fake_demo import FakeProvider
+from tests.support.fake_demo import FakeProvider
 
 TOKEN = "synthetic-test-token-0123456789"
 HEADERS = {"Authorization": f"Bearer {TOKEN}"}
@@ -36,6 +38,20 @@ def stub_database_probe(monkeypatch: pytest.MonkeyPatch) -> None:
         async def close(self) -> None:
             pass
 
+    @asynccontextmanager
+    async def providers():
+        yield SimpleNamespace(structured=FakeProvider(), provider="openai")
+
+    monkeypatch.setattr("intelligence.api.app.open_provider_runtime", providers)
+    # Identity has its own adapter tests; do not contact CareLens in API unit tests.
+    from intelligence.connectors.staff_identity import StaffUnauthenticated
+
+    async def resolve(self, token):
+        if token != TOKEN:
+            raise StaffUnauthenticated
+        return demo_scope()
+
+    monkeypatch.setattr("intelligence.api.app.CareLensStaffIdentityReader.resolve", resolve)
     monkeypatch.setattr("intelligence.api.app.Database", FakeDatabase)
     monkeypatch.setattr("intelligence.api.app.check_database", available)
 
@@ -115,10 +131,10 @@ def test_capacity_and_readiness_are_honest() -> None:
         assert c.get("/readyz").json()["durable"] is False
 
 
-@pytest.mark.parametrize("setting", [{"provider": "real"}, {"mode": "production"}, {"demo_token": "short"}])
-def test_production_and_weak_credentials_cannot_be_enabled(setting: dict[str, str]) -> None:
+@pytest.mark.parametrize("setting", [{"provider": "real"}, {"provider": "fake"}, {"mode": "production"}])
+def test_unsupported_runtime_modes_cannot_be_enabled(setting: dict[str, str]) -> None:
     with pytest.raises(ValidationError):
-        Settings.model_validate({"demo_token": TOKEN} | setting)
+        Settings.model_validate({"database_url": "postgresql+psycopg://unused/unused"} | setting)
 
 
 class InspectingProvider:

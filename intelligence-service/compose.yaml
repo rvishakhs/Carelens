@@ -73,6 +73,22 @@ services:
     security_opt: [ "no-new-privileges:true" ]
     cap_drop: [ ALL ]
 
+  scheduling-worker:
+    profiles: ["handover"]
+    build: .
+    env_file: .env
+    command: ["celery", "-A", "intelligence.workers.celery_app:celery_app", "worker", "--loglevel=INFO", "--queues=intelligence.scheduling", "--concurrency=1"]
+    environment:
+      INTELLIGENCE_BROKER_URL: redis://redis:6379/0
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
   beat:
     profiles: [ "handover" ]
     build: .

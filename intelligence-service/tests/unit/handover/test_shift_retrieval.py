@@ -13,12 +13,17 @@ from tests.support.carelens import RESIDENT_ID, context, observation
 
 
 def run(handler, execution_context=None):
+    original = handler
+    def combined(request):
+        if request.url.path.endswith("/care-events"):
+            return httpx.Response(200, json=[])
+        return original(request)
     async def exercise():
         async with httpx.AsyncClient(
-            base_url="http://carelens.test", transport=httpx.MockTransport(handler)
+            base_url="http://carelens.test", transport=httpx.MockTransport(combined)
         ) as http:
             return await retrieve_shift_observations(
-                CareLensClient(http),
+                CareLensClient(http, service_tenant_id=context().tenant_id),
                 context=execution_context or context(),
                 resident_id=RESIDENT_ID,
                 access_token=SecretStr("synthetic-token"),

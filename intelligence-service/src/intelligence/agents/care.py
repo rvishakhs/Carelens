@@ -31,7 +31,7 @@ class CareAgent:
             claims=claims,
             warnings=(
                 *bundle.warnings,
-                "Fake provider: question text is not interpreted or sent.",
+                "Question text is not interpreted or sent to the provider.",
                 "Demo supports synthetic fluid totals only, not the complete pilot case pack.",
                 "No finalisation, clinical guidance or authoritative record writes.",
             ),

@@ -15,7 +15,7 @@ from intelligence.connectors.carelens import CareLensClient
 from intelligence.gateway.handover import HandoverGateway
 from intelligence.handover.authorization import CareLensExecutionAuthorizer, ExecutionAuthorizer
 from intelligence.handover.contracts import GenerationMetadata
-from intelligence.providers.fake_handover import FakeHandoverProvider
+from intelligence.providers.runtime import ProviderRuntime, open_provider_runtime
 from intelligence.workflow.resident_handover import (
     run_resident_handover_workflow,
 )
@@ -26,6 +26,7 @@ async def run_handover_task(*, tenant_id: UUID, job_id: UUID):
     carelens = CareLensSettings()
     require_secure_endpoint(carelens.base_url)
     async with (
+        open_provider_runtime() as providers,
         httpx.AsyncClient(timeout=10, follow_redirects=False) as token_client,
         httpx.AsyncClient(
             base_url=carelens.base_url,
@@ -50,12 +51,13 @@ async def run_handover_task(*, tenant_id: UUID, job_id: UUID):
             job_id=job_id,
             authorizer=authorizer,
             access_token=credentials.access_token,
+            providers=providers,
             generation_metadata=GenerationMetadata(
                 agent_version=HandoverAgent.version,
-                prompt_version="extractive-v1",
-                gateway_version="handover-v1",
-                provider="fake",
-                model_version="deterministic-v1",
+                prompt_version=providers.prompt_version,
+                gateway_version="handover-supported-prose-v2",
+                provider=providers.provider,
+                model_version=providers.model,
                 generated_at=datetime.now(UTC),
             ),
         )
@@ -68,6 +70,7 @@ async def execute_handover(
     authorizer: ExecutionAuthorizer,
     access_token: SecretStr,
     generation_metadata: GenerationMetadata,
+    providers: ProviderRuntime,
 ):
     settings = CareLensSettings()
 
@@ -82,8 +85,8 @@ async def execute_handover(
 
         agent = HandoverAgent(
             gateway=HandoverGateway(
-                provider=FakeHandoverProvider(),
-                provider_timeout_seconds=30,
+                provider=providers.handover,
+                provider_timeout_seconds=providers.timeout_seconds,
             ),
         )
 

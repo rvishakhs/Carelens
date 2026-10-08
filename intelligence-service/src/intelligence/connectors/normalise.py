@@ -11,7 +11,6 @@ from intelligence.core.contracts import (
     SourceRef,
 )
 
-
 SOURCE_KINDS = {
     "fluid_intake_records": "fluid_intake",
     "food_intake_records": "meal",
@@ -75,6 +74,11 @@ def validate_observation_source(
             "Unexpected resident in observation"
         )
 
+    if record.source_type == "care_events":
+        if record.type != "note":
+            raise EvidenceNormalisationError("Unexpected care-event transport type")
+        return "care_event"
+
     if record.source_type in EXCLUDED_SOURCES:
         return None
 
@@ -107,6 +111,13 @@ def normalise_observation(
     if kind is None:
         # Deliberately excluded from this pilot.
         return None
+
+    if record.source_type == "care_events":
+        from intelligence.connectors.care_events import normalise_care_event
+        try:
+            return normalise_care_event(record, context)
+        except ValueError:
+            raise EvidenceNormalisationError("Invalid care-event evidence") from None
 
     reference = SourceRef(
         source_system="Carelens_connector",

@@ -263,6 +263,23 @@ def render_evidence(
         raise ValueError("max_field_characters must be positive")
 
     rule = RULES.get(evidence.reference.source_type)
+    if evidence.reference.source_type == "care_events":
+        categories = {
+            "fluid_intake": "nutrition_hydration", "meal": "nutrition_hydration",
+            "mobility": "mobility", "behaviour": "mood_behaviour",
+            "wellbeing": "mood_behaviour", "note": "clinical_observations",
+        }
+        if evidence.kind not in categories:
+            raise EvidenceRenderingError("Unsupported care-event kind")
+        rule = RenderRule(evidence.kind, categories[evidence.kind], (
+            "status_completed", "status_declined", "status_refused", "status_not_applicable",
+            "duration_minutes", "offered_ml", "estimated_consumed_ml",
+            "amount_all", "amount_half", "meal_most_eaten", "meal_about_half_eaten",
+            "walking_frame_used", "supervision_only", "settled", "remained_on_premises",
+            "reassurance_or_distraction", "is_walk", "is_wandering",
+            "food_sandwich", "meal_size_medium", "distance_medium", "trigger_unknown",
+            "drink_tea", "wandering_in_garden",
+        ))
 
     if rule is None:
         raise EvidenceRenderingError("Unsupported source type")
@@ -318,6 +335,12 @@ def render_evidence(
         fields.append(RenderedField(name=name, value=value))
 
     warnings: list[str] = []
+    if evidence.reference.source_type == "care_events":
+        warnings.append("care_event_free_text_and_unmapped_fields_withheld")
+        if "estimated_consumed_ml" in evidence.clinical_data:
+            warnings.append("consumed_volume_estimated_from_options_not_measured")
+        if evidence.kind == "note":
+            warnings.append("unmapped_care_event_category")
 
     if not fields:
         warnings.append("no_allowlisted_clinical_fields")

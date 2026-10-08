@@ -17,7 +17,7 @@ from intelligence.gateway.validation import (
     validate_outbound_payload,
 )
 from intelligence.handover.metrics import calculate_handover_metrics
-from intelligence.providers.fake_handover import FakeHandoverProvider
+from tests.support.fake_handover import FakeHandoverProvider
 from tests.support.handover import make_input, replace_evidence, with_notes
 
 

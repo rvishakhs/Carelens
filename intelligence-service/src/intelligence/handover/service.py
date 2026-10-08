@@ -1,4 +1,4 @@
-"""Insertion primitive; request replay and concurrent-generation handling are still pending."""
+"""Durable, idempotent manual submission through the transactional outbox."""
 
 from datetime import datetime, UTC
 from typing import Protocol
@@ -83,6 +83,10 @@ async def submit_manual_handover(
                         {"tenant_id": str(context.tenant_id)},
                     )
 
+                    await session.execute(
+                        text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+                        {"key": f"handover:{context.tenant_id}:{request.resident_id}"},
+                    )
                     job = await find_replayed_handover(
                         session,
                         tenant_id=context.tenant_id,

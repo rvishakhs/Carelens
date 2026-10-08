@@ -1,6 +1,7 @@
 """Structural and deterministic support checks at the provider boundary."""
 
 from pydantic import ValidationError
+from intelligence.handover.prose import evidence_prose, metric_prose
 
 from .contracts import MAX_CLAIM_CHARACTERS, MAX_CLAIMS, HandoverOutput, HandoverPayload
 from .privacy import PrivacyRejected, check_text
@@ -57,18 +58,11 @@ def validate_outbound_payload(payload: HandoverPayload) -> None:
 
 
 def evidence_claim_text(evidence) -> str:
-    # A conservative initial support policy: quote supplied content, with the
-    # gateway's time qualifier. No acceptance of arbitrary paraphrases yet.
-    return f"{evidence.time_label}. Recorded content: {evidence.content}"
+    return evidence_prose(evidence.time_label, evidence.content)
 
 
 def metric_claim_text(metric) -> str:
-    if metric.status == "complete":
-        return f"Recorded {metric.metric}: {metric.value} {metric.unit} (complete)."
-    return (
-        f"Recorded {metric.metric}: known subtotal {metric.known_subtotal} "
-        f"{metric.unit}; status {metric.status}; complete total unavailable."
-    )
+    return metric_prose(metric.metric, metric.value, metric.known_subtotal, metric.status, metric.unit)
 
 
 def validate_inbound_output(*, output: HandoverOutput, payload: HandoverPayload) -> None:

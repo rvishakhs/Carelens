@@ -1,4 +1,5 @@
 from typing import Annotated
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Response
@@ -23,6 +24,16 @@ from intelligence.persistence.database import Database
 
 
 router = APIRouter(prefix="/v1/handovers", tags=["handovers"])
+
+
+@router.get("/residents/{resident_id}/shifts")
+async def available_shifts(resident_id: UUID, response: Response,
+                           scope: Scope = Depends(actor), settings: Settings = Depends(get_settings)):
+    from intelligence.handover.shifts import completed_shifts
+    if "handover:generate" not in scope.permissions or resident_id not in scope.resident_ids:
+        raise HTTPException(404, "Resource unavailable")
+    response.headers["Cache-Control"] = "no-store"
+    return completed_shifts(now=datetime.now(UTC), timezone=settings.care_home_timezone)
 
 
 @router.post(

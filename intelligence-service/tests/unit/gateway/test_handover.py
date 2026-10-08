@@ -12,7 +12,7 @@ from intelligence.gateway.validation import InboundValidationError
 from intelligence.handover.input_validation import (
     InternalInputValidationError,
 )
-from intelligence.providers.fake_handover import FakeHandoverProvider
+from tests.support.fake_handover import FakeHandoverProvider
 from tests.support.handover import make_input, with_notes
 
 

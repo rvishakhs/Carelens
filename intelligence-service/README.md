@@ -1,10 +1,56 @@
 # Independent intelligence service
 
-A runnable **synthetic-only skeleton**, separately packaged from CareLens. Two registered agent paths exercise request → scoped evidence → deterministic metrics → gateway → fake provider → validated cited result. The history path is a demo of fluid totals, not natural-language search. The handover path returns an unreviewed draft, not a complete clinical handover.
+A runnable **synthetic-only skeleton**, separately packaged from CareLens. Two registered agent paths exercise request → scoped evidence → deterministic metrics → gateway → OpenAI provider → validated cited result. The history path is a demo of fluid totals, not natural-language search. The handover path returns an unreviewed draft, not a complete clinical handover.
 
 Start with [architecture and stack](docs/architecture.md), then [delivery plan](docs/delivery-plan.md) and [adding an agent](docs/adding-agents.md).
 
 ## Run locally
+
+1. run the main app
+    --  Backend
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    -- Intelligence Server
+    .venv/bin/uvicorn intelligence.api.app:create_app \
+      --factory --host 127.0.0.1 --port 8100 --no-access-log
+
+2. Start background processing -- Redis
+    docker compose up -d redis
+
+3. Start the dispatcher, which sends database outbox jobs to Redis:
+    .venv/bin/python -m intelligence.dispatcher
+
+4. Start the handover worker:
+    .venv/bin/celery -A intelligence.workers.celery_app:celery_app worker \
+  --loglevel=INFO --queues=intelligence.handover \
+  --concurrency=1 --hostname=handover@%h
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Requires Python 3.12 and uv. Run from this directory:
 
@@ -33,7 +79,7 @@ Open `http://127.0.0.1:8100/docs`, choose **Authorize** and enter the demo token
 }
 ```
 
-Expected: 450 ml consumed, 630 ml offered, and three synthetic source references. Change `agent_id` to `handover_draft` to receive `state: draft`. The period is deliberately fixed to the fixture date. Empty periods return “no records”, not zero intake. Question text is accepted to establish the request contract but **is not interpreted, persisted or sent to the fake provider**. Only use synthetic inputs.
+Expected: 450 ml consumed, 630 ml offered, and three synthetic source references. Change `agent_id` to `handover_draft` to receive `state: draft`. The period is deliberately fixed to the fixture date. Empty periods return “no records”, not zero intake. Question text is accepted to establish the request contract but **is not interpreted, persisted or sent to the provider**. Only use synthetic inputs.
 
 With the API running, exercise both paths without copying the token into a command:
 
@@ -75,7 +121,7 @@ uv run --frozen mypy src
 
 ## What does not exist yet
 
-Live CareLens connector/delegated OIDC, complete persistent submission API, Celery dispatch/workers, outbox delivery, full 14-source mapping, hybrid search, free-text pseudonymisation, real models, clinical evaluations, signed review/amendment APIs, scheduled deletion and cloud deployment. `mode=production` and real providers fail configuration validation. The fake provider has no network calls.
+Live CareLens connector/delegated OIDC, complete persistent submission API, Celery dispatch/workers, outbox delivery, full 14-source mapping, hybrid search, free-text pseudonymisation, clinical evaluations, signed review/amendment APIs, scheduled deletion and cloud deployment. `mode=production` remains unsupported for the legacy synthetic API. Runtime generation now uses OpenAI; offline tests inject test doubles.
 
 The current alias resolution restores internal source references and attaches the authorised resident ID to the response; it does **not** demonstrate name redaction/re-identification of arbitrary clinical text. That gateway upgrade is a separate milestone with leakage tests.
 
@@ -130,4 +176,9 @@ results remain in memory.
 
 See [the structure guide](docs/project-structure.md) and [test commands](tests/README.md).
 Provider adapters live in `src/intelligence/providers/`; gateway policy and orchestration
-remain in `src/intelligence/gateway/`. The application still starts with fake providers.
+remain in `src/intelligence/gateway/`. Runtime generation uses OpenAI. See [provider configuration](docs/openai-provider.md).
+# Handover generation wiring
+
+See [handover workflow wiring](docs/handover-workflow-wiring.md) for manual
+generation, scheduled shift submission, the dedicated scheduling worker, reviewer
+evidence/history, activation settings and the remaining clinical sign-off boundary.

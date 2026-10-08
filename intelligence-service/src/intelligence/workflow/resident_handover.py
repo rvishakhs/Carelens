@@ -273,7 +273,7 @@ async def run_resident_handover_workflow(
                 evidence_cutoff=None,
                 coverage_complete=False,
                 warnings=(
-                    "Observation retrieval only; complete handover coverage "
+                    "Clinical observations and care events retrieved; complete handover coverage "
                     "and source snapshot consistency have not been established.",
                 ),
             )

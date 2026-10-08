@@ -9,7 +9,7 @@ celery_app = Celery(
     "intelligence",
     broker=settings.broker_url.get_secret_value(),
     include=["intelligence.tasks.handover",
-             "intelligence.tasks.recovery"
+             "intelligence.tasks.recovery", "intelligence.tasks.scheduling"
              ]
 )
 
@@ -19,12 +19,18 @@ celery_app.conf.update(
     accept_content=["json"],
 
     task_routes={
+        "intelligence.handover.schedule": {"queue": "intelligence.scheduling"},
         "intelligence.handover.recover": {
             "queue": "intelligence.maintenance",
         },
     },
 
     beat_schedule={
+        "submit-completed-handovers": {
+            "task": "intelligence.handover.schedule",
+            "schedule": 60.0,
+            "options": {"queue": "intelligence.scheduling", "expires": 60},
+        },
         "recover-expired-handovers": {
             "task": "intelligence.handover.recover",
             "schedule": 30.0,

@@ -14,6 +14,7 @@ from intelligence.agents.base import AgentContext
 from intelligence.agents.registry import default_registry
 from intelligence.api.dependencies import actor
 from intelligence.api.handover import router as handover_router
+from intelligence.api.handover_review import router as handover_review_router
 from intelligence.config import CareLensSettings, Settings
 from intelligence.connectors.staff_identity import CareLensStaffIdentityReader
 from intelligence.connectors.synthetic import SyntheticEvidenceReader
@@ -22,8 +23,7 @@ from intelligence.core.errors import AccessDenied, CapacityExceeded, GatewayReje
 from intelligence.core.results import MemoryResults
 from intelligence.gateway.service import Gateway
 from intelligence.persistence.database import Database
-from intelligence.providers.fake_demo import FakeProvider
-from intelligence.providers.fake_handover import FakeHandoverProvider
+from intelligence.providers.runtime import open_provider_runtime
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await check_database(database)
 
                 app.state.database = database
-                app.state.handover_provider = FakeHandoverProvider()
 
                 logger.info("Database connection verified")
 
@@ -83,10 +82,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     registry = default_registry()
 
-    context = AgentContext(
-        reader=SyntheticEvidenceReader(),
-        gateway=Gateway(FakeProvider()),
-    )
 
     results = MemoryResults(
         config.result_ttl_seconds,
@@ -94,6 +89,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.include_router(handover_router)
+    app.include_router(handover_review_router)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(
@@ -142,7 +138,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "status": "ready" if database_available else "not_ready",
                 "database": ("available" if database_available else "unavailable"),
                 "mode": "synthetic",
-                "provider": "fake",
+                "provider": config.provider,
                 "durable": False,
                 "live_carelens_connected": False,
             },
@@ -161,7 +157,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ) -> RunResult:
         try:
             agent = registry.get(payload.agent_id)
-            result = await agent.run(scope, payload, context)
+            async with open_provider_runtime() as providers:
+                context = AgentContext(
+                    reader=SyntheticEvidenceReader(),
+                    gateway=Gateway(providers.structured),
+                )
+                result = await agent.run(scope, payload, context)
+                result = result.model_copy(update={"provider": providers.provider})
 
             results.put(scope, result, agent.permission)
 

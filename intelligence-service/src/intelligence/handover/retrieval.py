@@ -28,7 +28,7 @@ async def retrieve_shift_observations(
 ) -> ShiftEvidence:
     """Use trusted execution scope and credentials, revalidated by the caller.
 
-    Care events and snapshot-consistency verification are not provided here.
+    Both clinical observations and care events are retrieved; snapshot consistency is not guaranteed.
     Transport/normalization failures propagate; no partial result is returned.
     """
     if resident_id not in context.authorised_resident_ids:
@@ -41,6 +41,10 @@ async def retrieve_shift_observations(
         until=fetch.end,
         page_size=page_size,
         max_pages=max_pages,
+    )
+    rows += await client.list_care_events(
+        resident_id, access_token, since=shift.start, until=shift.end,
+        page_size=page_size, max_pages=max_pages,
     )
     records = []
     for row in rows:

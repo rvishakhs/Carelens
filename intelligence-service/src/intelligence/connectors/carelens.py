@@ -99,6 +99,7 @@ class CareLensClient:
         until: datetime,
         limit: int = 100,
         offset: int = 0,
+        _care_events: bool = False,
     ) -> list[ObservationResponse]:
         """Read one raw page; neither an empty page nor a full page proves complete history.
 
@@ -113,9 +114,15 @@ class CareLensClient:
         if not 1 <= limit <= 500 or offset < 0:
             raise ValueError("limit must be 1–500 and offset must be non-negative")
 
+        if _care_events and self._service_tenant_id is None:
+            raise CareLensAccessDenied("Care-event retrieval requires service scope")
+        endpoint = (
+            "/internal/intelligence/care-events" if _care_events else
+            "/internal/intelligence/observations" if self._service_tenant_id is not None else "/observations"
+        )
         try:
             response = await self._client.get(
-                "/internal/intelligence/observations" if self._service_tenant_id is not None else "/observations",
+                endpoint,
                 params={
                     **({"tenant_id": str(self._service_tenant_id)} if self._service_tenant_id else {}),
                     "resident_id": str(resident_id),
@@ -159,6 +166,7 @@ class CareLensClient:
         until: datetime,
         page_size: int = 100,
         max_pages: int = 100,
+        _care_events: bool = False,
     ) -> list[ObservationResponse]:
         """Traverse raw pages until an empty page, without claiming snapshot consistency.
 
@@ -177,7 +185,8 @@ class CareLensClient:
         offset = 0
         for _ in range(max_pages):
             page = await self.list_observations_page(
-                resident_id, access_token, since=since, until=until, limit=page_size, offset=offset
+                resident_id, access_token, since=since, until=until, limit=page_size, offset=offset,
+                **({"_care_events": True} if _care_events else {})
             )
             if not page:
                 return records
@@ -190,3 +199,15 @@ class CareLensClient:
             offset += len(page)
 
         raise CareLensPaginationIncomplete("CareLens observation pagination reached its page limit")
+
+    async def list_care_events(
+        self, resident_id: UUID, access_token: SecretStr, *, since: datetime,
+        until: datetime, page_size: int = 100, max_pages: int = 100,
+    ) -> list[ObservationResponse]:
+        rows = await self.list_observations(
+            resident_id, access_token, since=since, until=until,
+            page_size=page_size, max_pages=max_pages, _care_events=True,
+        )
+        if any(row.source_type != "care_events" or row.type != "note" for row in rows):
+            raise CareLensUnavailable("Unexpected care-event source")
+        return rows

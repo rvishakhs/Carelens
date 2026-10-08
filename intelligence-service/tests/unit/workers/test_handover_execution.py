@@ -1,4 +1,6 @@
 import asyncio
+from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -13,6 +15,18 @@ def test_worker_builds_dependencies_and_closes_clients(monkeypatch):
     monkeypatch.setenv("INTELLIGENCE_CLIENT_SECRET", "test-secret")
     monkeypatch.setenv("INTELLIGENCE_SERVICE_IDENTITY", "intelligence-api")
     monkeypatch.setenv("CARELENS_BASE_URL", "https://carelens.test")
+
+    @asynccontextmanager
+    async def providers():
+        yield SimpleNamespace(
+            handover=object(),
+            provider="openai",
+            model="test-model",
+            prompt_version="openai-extractive-v1",
+            timeout_seconds=25,
+        )
+
+    monkeypatch.setattr(worker, "open_provider_runtime", providers)
     tenant, job = uuid4(), uuid4()
     clients = []
     actual_client = httpx.AsyncClient
@@ -36,7 +50,7 @@ def test_worker_builds_dependencies_and_closes_clients(monkeypatch):
     assert kwargs["tenant_id"] == tenant and kwargs["job_id"] == job
     assert kwargs["access_token"].get_secret_value() == "worker-token"
     assert kwargs["client"]._service_tenant_id == tenant
-    assert kwargs["generation_metadata"].provider == "fake"
+    assert kwargs["generation_metadata"].provider == "openai"
     assert kwargs["authorizer"]._identity == "intelligence-api"
     assert len(clients) == 3 and all(client.is_closed for client in clients)
 

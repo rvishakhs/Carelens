@@ -140,7 +140,7 @@ class RunResult(Contract):
     period: Period
     state: Literal["completed", "draft"]
     synthetic: Literal[True] = True
-    provider: Literal["fake"] = "fake"
+    provider: str = "openai"
     agent_version: str = "0.1.0"
     gateway_version: str = "synthetic-structured-v1"
     generated_at: datetime
