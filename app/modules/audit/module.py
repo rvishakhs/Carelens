@@ -23,6 +23,7 @@ from app import AuditService
 from app import CareEventRecorded
 from app import FloorCreated, UserFloorAccessGranted, UserFloorAccessRevoked
 from app import RecordViewed
+from app import ResidentHistorySearched
 from app import (
     MfaChallengeFailed,
     StaffMemberCreated,
@@ -92,6 +93,10 @@ async def _on_record_viewed(event: RecordViewed) -> None:
     await _log(event, action=AuditAction.VIEW, entity_type="resident", entity_id=event.resident_id)
 
 
+async def _on_resident_history_searched(event: ResidentHistorySearched) -> None:
+    await _log(event, action=AuditAction.VIEW, entity_type="resident_history_search", entity_id=event.resident_id)
+
+
 async def _on_floor_created(event: FloorCreated) -> None:
     await _log(event, action=AuditAction.CREATE, entity_type="floor", entity_id=event.floor_id)
 
@@ -129,6 +134,7 @@ def register(app: FastAPI, container: Container) -> None:
     container.event_bus.subscribe(SummaryGenerated, _on_summary_generated)
     container.event_bus.subscribe(SummaryReviewed, _on_summary_reviewed)
     container.event_bus.subscribe(RecordViewed, _on_record_viewed)
+    container.event_bus.subscribe(ResidentHistorySearched, _on_resident_history_searched)
     container.event_bus.subscribe(FloorCreated, _on_floor_created)
     container.event_bus.subscribe(UserFloorAccessGranted, _on_user_floor_access_granted)
     container.event_bus.subscribe(UserFloorAccessRevoked, _on_user_floor_access_revoked)

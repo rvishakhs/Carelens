@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 
+import { ResidentAIInsightsPanel } from "@/components/residents/ResidentAIInsightsPanel";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -284,6 +285,8 @@ export function ResidentDetailPage() {
               </div>
             </Card>
 
+            <ResidentAIInsightsPanel key={resident.id} residentId={resident.id} residentName={displayName} />
+
             <Card>
               <CardHeader title="Vitals" subtitle={overview.latest_vitals ? formatDateTime(overview.latest_vitals.recorded_at) : undefined} />
               {overview.latest_vitals ? (
@@ -314,7 +317,7 @@ export function ResidentDetailPage() {
               )}
             </Card>
 
-            <Card>
+            <Card className="lg:col-span-3">
               <CardHeader
                 title="Recent Activity"
                 action={

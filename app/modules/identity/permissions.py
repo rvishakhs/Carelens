@@ -35,6 +35,7 @@ class Permission(str, enum.Enum):
     MANAGE_CARE_TEMPLATES = "manage_care_templates"
     VIEW_AI_INSIGHTS = "view_ai_insights"
     MANAGE_AI_ALERTS = "manage_ai_alerts"
+    SEARCH_RESIDENT_HISTORY = "search_resident_history"
 
 
 # This dict is the seed data for the DB-backed permissions/role_permissions tables
@@ -70,6 +71,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.RECORD_CARE_EVENT,
             Permission.VIEW_AI_INSIGHTS,
             Permission.MANAGE_AI_ALERTS,
+            Permission.SEARCH_RESIDENT_HISTORY,
         }
     ),
     Role.MANAGER: frozenset(
@@ -87,6 +89,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.MANAGE_CARE_TEMPLATES,
             Permission.VIEW_AI_INSIGHTS,
             Permission.MANAGE_AI_ALERTS,
+            Permission.SEARCH_RESIDENT_HISTORY
         }
     ),
     # Per-home administrative staff: everything a manager has today. Kept as a
@@ -108,6 +111,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.MANAGE_CARE_TEMPLATES,
             Permission.VIEW_AI_INSIGHTS,
             Permission.MANAGE_AI_ALERTS,
+            Permission.SEARCH_RESIDENT_HISTORY
         }
     ),
     # Multi-home oversight -- same grants as admin for now, everywhere; scoping
@@ -128,6 +132,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.MANAGE_CARE_TEMPLATES,
             Permission.VIEW_AI_INSIGHTS,
             Permission.MANAGE_AI_ALERTS,
+            Permission.SEARCH_RESIDENT_HISTORY
         }
     ),
     # Platform operator, not care-home staff -- everything, including cross-cutting

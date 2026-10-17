@@ -113,6 +113,7 @@ from app.modules.floors.events import FloorCreated, UserFloorAccessGranted, User
 from app.modules.floors.schemas import FloorCreate, FloorRead, UserFloorLinkCreate
 from app.modules.floors.service import FloorService
 from app.modules.handover.events import RecordViewed
+from app.modules.resident_search.events import ResidentHistorySearched
 from app.modules.residents.models import Resident, ResidentStatus
 from app.modules.residents.schemas import (
     ActivityEntry,

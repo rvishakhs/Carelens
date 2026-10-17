@@ -62,6 +62,7 @@ def setup(monkeypatch):
         yield session
 
     monkeypatch.setattr(routes, "rls_session", scoped)
+    monkeypatch.setattr("app.modules.identity.intelligence_access.rls_session", scoped)
     return grant, private, claims, session, scopes, settings
 
 
@@ -142,9 +143,9 @@ async def test_staff_requires_current_permissions_and_explicit_designation(setup
         await routes.staff_grant(actor_id=actor, grant=grant)
     session.scalars.return_value = SimpleNamespace(all=lambda: ["view_handover", "view_resident", "view_observation"])
     visible = AsyncMock(return_value=[])
-    monkeypatch.setattr(routes, "visible_residents", visible)
+    monkeypatch.setattr("app.modules.identity.intelligence_access.visible_residents", visible)
     result = await routes.staff_grant(actor_id=actor, grant=grant)
-    assert result["resident_ids"] == []
+    assert result.resident_ids == []
     visible.assert_awaited_once_with(grant, staff_id=actor)
 
 
@@ -248,3 +249,50 @@ async def test_observation_feed_uses_scoped_repository(setup, monkeypatch):
         since=now - timedelta(hours=12),
         until=now,
     )
+
+
+async def test_care_events_deny_ineligible_before_read(setup, monkeypatch):
+    from datetime import UTC, datetime
+    grant, *_ = setup
+    monkeypatch.setattr(routes, "is_eligible", AsyncMock(return_value=False))
+    read = AsyncMock()
+    monkeypatch.setattr("app.modules.care_recording.intelligence_feed.list_care_events", read)
+    with pytest.raises(HTTPException) as error:
+        await routes.care_events(
+            resident_id=next(iter(grant.resident_ids)),
+            since=datetime(2026, 10, 7, 18, tzinfo=UTC),
+            until=datetime(2026, 10, 8, 6, tzinfo=UTC), limit=100, offset=0, grant=grant,
+        )
+    assert error.value.status_code == 403
+    read.assert_not_awaited()
+
+
+async def test_care_event_read_uses_service_floor_scope_and_shift(setup, monkeypatch):
+    from datetime import UTC, datetime
+    grant, _, _, session, scopes, _ = setup
+    monkeypatch.setattr(routes, "is_eligible", AsyncMock(return_value=True))
+    read = AsyncMock(return_value=[])
+    monkeypatch.setattr("app.modules.care_recording.intelligence_feed.list_care_events", read)
+    resident = next(iter(grant.resident_ids))
+    since = datetime(2026, 10, 7, 18, tzinfo=UTC)
+    until = datetime(2026, 10, 8, 6, tzinfo=UTC)
+    assert await routes.care_events(
+        resident_id=resident, since=since, until=until, limit=2, offset=4, grant=grant,
+    ) == []
+    assert scopes == [(grant.tenant_id, grant.subject, list(grant.floor_ids))]
+    read.assert_awaited_once_with(
+        session, tenant_id=grant.tenant_id, resident_id=resident,
+        since=since, until=until, limit=2, offset=4,
+    )
+
+
+async def test_care_events_invalid_window_rejected_before_read(setup, monkeypatch):
+    from datetime import UTC, datetime
+    grant, *_ = setup
+    eligible = AsyncMock()
+    monkeypatch.setattr(routes, "is_eligible", eligible)
+    now = datetime(2026, 10, 7, tzinfo=UTC)
+    with pytest.raises(HTTPException) as error:
+        await routes.care_events(resident_id=uuid4(), since=now, until=now, limit=1, offset=0, grant=grant)
+    assert error.value.status_code == 422
+    eligible.assert_not_awaited()

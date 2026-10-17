@@ -13,5 +13,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      "/intelligence": {
+        target: "http://127.0.0.1:8100",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/intelligence/, ""),
+      },
+    },
   },
 });

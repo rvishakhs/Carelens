@@ -39,6 +39,12 @@ def test_nurse_can_manage_medications():
     assert role_has_permission(Role.NURSE, Permission.MANAGE_MEDICATIONS)
 
 
+def test_only_approved_roles_can_search_resident_history():
+    allowed = {Role.NURSE, Role.MANAGER, Role.ADMIN, Role.HEADOFFICE, Role.SYSTEM_ADMIN}
+    for role in Role:
+        assert role_has_permission(role, Permission.SEARCH_RESIDENT_HISTORY) is (role in allowed)
+
+
 # TODO before Phase 1 is done: parametrize over every registered route x every Role,
 # hitting the real app (real Postgres via testcontainers, one seeded user per role per
 # care home) and asserting 2xx/403 matches ROLE_PERMISSIONS exactly. This is the test

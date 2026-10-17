@@ -165,3 +165,26 @@ async def staff_grant(
             status_code=403,
             detail="Staff execution access denied",
         ) from None
+
+
+@router.get("/care-events", response_model=list[ObservationRead])
+async def care_events(
+    resident_id: UUID,
+    since: AwareDatetime,
+    until: AwareDatetime,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    grant: IntelligenceServiceGrant = Depends(service_scope),
+) -> list[ObservationRead]:
+    from app.modules.care_recording.intelligence_feed import list_care_events
+
+    if since >= until:
+        raise HTTPException(422, "since must precede until")
+    if not await is_eligible(grant, resident_id):
+        raise HTTPException(403, "Resident execution access denied")
+    async with rls_session(grant.tenant_id, grant.subject, list(grant.floor_ids)) as session:
+        rows = await list_care_events(
+            session, tenant_id=grant.tenant_id, resident_id=resident_id,
+            since=since, until=until, limit=limit, offset=offset,
+        )
+    return [ObservationRead.model_validate(row) for row in rows]

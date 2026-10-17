@@ -58,6 +58,7 @@ def _load_module_registry() -> dict[str, ModuleRegistrar]:
     from app.modules.observations.module import register as register_observations
     from app.modules.residents.module import register as register_residents
     from app.modules.summaries.module import register as register_summaries
+    from app.modules.resident_search.module import register as register_resident_search
 
     return {
         "identity": register_identity,
@@ -71,6 +72,7 @@ def _load_module_registry() -> dict[str, ModuleRegistrar]:
         "summaries": register_summaries,
         "ai_insights": register_ai_insights,
         "handover": register_handover,
+        "resident_search": register_resident_search,
     }
 
 def create_app() -> FastAPI:

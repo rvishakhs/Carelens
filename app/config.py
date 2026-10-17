@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     keycloak_admin_client_secret: str = Field(default="")
     # --- Modules (comma-separated; controls what main.py registers) ---
     enabled_modules: str = Field(
-        default="identity,residents,floors,observations,care_recording,audit,ai_gateway,summaries,ai_insights,handover"
+        default="identity,residents,floors,observations,care_recording,audit,ai_gateway,summaries,ai_insights,handover,resident_search"
     )
 
     # --- Feature flags (for incomplete features within an enabled module; whole-module
