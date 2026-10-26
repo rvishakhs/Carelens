@@ -2,16 +2,12 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 
+from app.modules.resident_search.evidence.models import EvidenceSourceType
 
-class SearchSourceType(str, Enum):
-    FALL = "fall"
-    INCIDENT = "incident"
-    OBSERVATION = "observation"
-    CARE_EVENT = "care_event"
-    APPOINTMENT = "appointment"
-    CARE_PLAN = "care_plan"
+# Compatibility for existing callers; the canonical enum lives in evidence/models.py.
+SearchSourceType = EvidenceSourceType
 
 
 class SearchMode(str, Enum):
@@ -27,7 +23,7 @@ class AnswerStatus(str, Enum):
 
 class EvidenceCitation(BaseModel):
     evidence_id: str
-    source_type: SearchSourceType
+    source_type: EvidenceSourceType
     source_id: uuid.UUID
     source_version: datetime | None = None
     occurred_at: datetime
@@ -36,10 +32,10 @@ class EvidenceCitation(BaseModel):
 
 
 class ResidentSearchRequest(BaseModel):
-    question: str = Field(min_length=2, max_length=500)
-    from_date: datetime | None = Field(default=None, alias="from")
-    to_date: datetime | None = Field(default=None, alias="to")
-    source_types: list[SearchSourceType] | None = Field(default=None, min_length=1)
+    question: str = Field(min_length=2, max_length=500, pattern=r"\S")
+    from_date: AwareDatetime | None = Field(default=None, alias="from")
+    to_date: AwareDatetime | None = Field(default=None, alias="to")
+    source_types: list[EvidenceSourceType] | None = Field(default=None, min_length=1)
     mode: SearchMode = SearchMode.EVIDENCE
 
     model_config = {"populate_by_name": True}
@@ -61,7 +57,7 @@ class ResidentSearchResponse(BaseModel):
 
 
 class ResidentSearchSourceResponse(BaseModel):
-    source_type: SearchSourceType
+    source_type: EvidenceSourceType
     source_id: uuid.UUID
     occurred_at: datetime
     source_version: datetime | None

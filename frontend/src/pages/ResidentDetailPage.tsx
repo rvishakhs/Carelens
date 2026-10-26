@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 
 import { ResidentAIInsightsPanel } from "@/components/residents/ResidentAIInsightsPanel";
+import { ResidentHistorySearch } from "@/components/residents/ResidentHistorySearch";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -259,6 +260,7 @@ export function ResidentDetailPage() {
 
       {tab === "Overview" && overview && (
         <div className="space-y-4">
+          <ResidentHistorySearch key={resident.id} residentId={resident.id} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card>
               <CardHeader title="At a Glance" />

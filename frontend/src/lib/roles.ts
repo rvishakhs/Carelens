@@ -26,3 +26,10 @@ const MANAGE_USERS_ROLES = new Set<UserRole>(["manager", "admin", "headoffice", 
 export function canManageUsers(role: UserRole | undefined): boolean {
   return !!role && MANAGE_USERS_ROLES.has(role);
 }
+
+// UX gating mirrors SEARCH_RESIDENT_HISTORY. Each API request enforces current permissions and RLS.
+const RESIDENT_SEARCH_ROLES = new Set<UserRole>(["nurse", "manager", "admin", "headoffice", "system_admin"]);
+
+export function canSearchResidentHistory(role: UserRole | undefined): boolean {
+  return !!role && RESIDENT_SEARCH_ROLES.has(role);
+}

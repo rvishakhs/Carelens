@@ -1,41 +1,119 @@
 import uuid
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
-from app import InMemoryEventBus
+import pytest
+
+from app import InMemoryEventBus, NotFoundError, ValidationError
 from app.modules.resident_search.events import ResidentHistorySearched
+from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceSourceType
+from app.modules.resident_search.repository import MAX_FALL_CITATIONS
 from app.modules.resident_search.schemas import (
+    AnswerStatus,
     EvidenceCitation,
     ResidentSearchRequest,
+    SearchMode,
     SearchSourceType,
 )
 from app.modules.resident_search.service import ResidentSearchService
 
 
+def fall_adapters(adapter: object) -> dict[EvidenceSourceType, object]:
+    return {EvidenceSourceType.FALL: adapter}
+
+
+def fall_citation(
+    *,
+    source_id: uuid.UUID | None = None,
+    occurred_at: datetime | None = None,
+) -> EvidenceCitation:
+    source_id = source_id or uuid.uuid4()
+    occurred_at = occurred_at or datetime(2026, 10, 1, 10, tzinfo=UTC)
+    return EvidenceCitation(
+        evidence_id=f"fall:{source_id}",
+        source_type=SearchSourceType.FALL,
+        source_id=source_id,
+        source_version=occurred_at,
+        occurred_at=occurred_at,
+        title="Fall — no injury",
+        excerpt="Location: lounge.",
+    )
+
+
 class StubSearchRepository:
-    def __init__(self, evidence: list[EvidenceCitation], *, exists: bool = True):
-        self._evidence = evidence
-        self._exists = exists
+    source_type = EvidenceSourceType.FALL
 
-    async def resident_exists(self, resident_id: uuid.UUID) -> bool:
-        return self._exists
+    def __init__(
+        self,
+        citations: list[EvidenceCitation] | None = None,
+        *,
+        scope: tuple[uuid.UUID, uuid.UUID | None] | None = None,
+    ):
+        self.citations = citations or []
+        self.scope = scope
+        self.search_id = uuid.uuid4()
+        self.create_search_kwargs: dict[str, object] | None = None
+        self.added_citations: list[EvidenceCitation] | None = None
+        self.persisted_search = None
+        self.persisted_citation = None
+        self.current_source: dict[str, object] | None = None
 
-    async def find_falls(self, resident_id, from_date, to_date):
-        return self._evidence
+    async def get_resident_scope(self, resident_id: uuid.UUID):
+        return self.scope
+
+    async def find(self, *, resident_id, from_date, to_date, limit):
+        return [
+            EvidenceDocument(
+                **citation.model_dump(exclude={"excerpt"}),
+                resident_id=resident_id,
+                care_home_id=self.scope[0],
+                floor_id=self.scope[1],
+                searchable_text=citation.excerpt or "",
+                structured_metadata={},
+            )
+            for citation in self.citations
+        ]
+
+    async def get(self, *, resident_id, source_id):
+        if self.current_source is None:
+            return None
+        return EvidenceDocument(
+            evidence_id=f"fall:{source_id}",
+            source_type=EvidenceSourceType.FALL,
+            source_id=source_id,
+            resident_id=resident_id,
+            care_home_id=self.scope[0],
+            floor_id=self.scope[1],
+            occurred_at=self.current_source["occurred_at"],
+            source_version=self.current_source["source_version"],
+            title=self.current_source["title"],
+            searchable_text="",
+            structured_metadata=self.current_source["details"],
+        )
+
+    async def create_search(self, **kwargs):
+        self.create_search_kwargs = kwargs
+        return SimpleNamespace(id=self.search_id)
+
+    async def add_citations(self, *, search, citations):
+        self.added_citations = list(citations)
+        return []
+
+    async def get_search(self, *, search_id, resident_id):
+        return self.persisted_search
+
+    async def get_citation(self, *, search_id, resident_id, source_type, source_id):
+        return self.persisted_citation
+
+    async def get_current_source(self, *, source_type, source_id, resident_id):
+        return self.current_source
 
 
-async def test_search_publishes_metadata_only_audit_event():
+async def test_search_persists_citations_and_publishes_metadata_only_audit_event():
     resident_id = uuid.uuid4()
     care_home_id = uuid.uuid4()
     actor_id = uuid.uuid4()
-    evidence = [
-        EvidenceCitation(
-            evidence_id=f"fall:{uuid.uuid4()}",
-            source_type=SearchSourceType.FALL,
-            source_id=uuid.uuid4(),
-            occurred_at="2026-10-01T10:00:00Z",
-            title="Fall — no injury",
-            excerpt="Location: lounge.",
-        )
-    ]
+    repository = StubSearchRepository([fall_citation()], scope=(care_home_id, uuid.uuid4()))
     event_bus = InMemoryEventBus()
     events: list[ResidentHistorySearched] = []
 
@@ -43,23 +121,189 @@ async def test_search_publishes_metadata_only_audit_event():
         events.append(event)
 
     event_bus.subscribe(ResidentHistorySearched, capture)
-    service = ResidentSearchService(StubSearchRepository(evidence), event_bus)
-
-    response = await service.search(
+    response = await ResidentSearchService(repository, event_bus, fall_adapters(repository)).search(
         care_home_id,
         actor_id,
         resident_id,
-        ResidentSearchRequest(query="Show the resident's fall history"),
+        ResidentSearchRequest(question="Show the resident's fall history"),
     )
 
-    assert response.evidence == evidence
+    assert response.search_id == repository.search_id
+    assert response.answer == "1 fall was found in available record history."
+    assert response.answer_status == AnswerStatus.SUPPORTED
+    assert response.citations == repository.citations
+    assert repository.create_search_kwargs is not None
+    assert repository.create_search_kwargs["care_home_id"] == care_home_id
+    assert repository.create_search_kwargs["resident_id"] == resident_id
+    assert repository.create_search_kwargs["requested_by"] == actor_id
+    assert repository.create_search_kwargs["mode"] == SearchMode.EVIDENCE.value
+    assert repository.create_search_kwargs["answer_status"] == AnswerStatus.SUPPORTED.value
+    assert repository.added_citations == repository.citations
+
     assert len(events) == 1
     event = events[0]
     assert event.care_home_id == care_home_id
     assert event.actor_user_id == actor_id
     assert event.resident_id == resident_id
     assert event.result_count == 1
-    # The event reaches the audit subscriber, so it must not contain query text or
-    # clinical excerpts that would duplicate sensitive information in audit storage.
-    assert "query" not in event.model_dump()
+    # Audit events deliberately carry metadata only, never the staff question or
+    # clinical excerpts that would create a second sensitive copy of the record.
+    assert "question" not in event.model_dump()
     assert "excerpt" not in event.model_dump()
+
+
+async def test_search_returns_no_evidence_when_no_fall_records_match():
+    care_home_id = uuid.uuid4()
+    repository = StubSearchRepository(scope=(care_home_id, uuid.uuid4()))
+    response = await ResidentSearchService(repository, InMemoryEventBus(), fall_adapters(repository)).search(
+        care_home_id,
+        uuid.uuid4(),
+        uuid.uuid4(),
+        ResidentSearchRequest(
+            question="What falls were recorded?",
+            from_date=datetime(2026, 9, 1, tzinfo=UTC),
+            to_date=datetime(2026, 10, 1, tzinfo=UTC),
+            source_types=[SearchSourceType.FALL],
+        ),
+    )
+
+    assert response.answer == "No fall records were found in the selected period."
+    assert response.answer_status == AnswerStatus.NO_EVIDENCE
+    assert response.citations == []
+    assert repository.added_citations == []
+
+
+async def test_search_marks_capped_results_as_partial():
+    care_home_id = uuid.uuid4()
+    citations = [
+        fall_citation(occurred_at=datetime(2026, 10, 1, tzinfo=UTC) - timedelta(minutes=index))
+        for index in range(MAX_FALL_CITATIONS + 1)
+    ]
+    repository = StubSearchRepository(citations, scope=(care_home_id, uuid.uuid4()))
+
+    response = await ResidentSearchService(repository, InMemoryEventBus(), fall_adapters(repository)).search(
+        care_home_id,
+        uuid.uuid4(),
+        uuid.uuid4(),
+        ResidentSearchRequest(question="Show fall history", source_types=[SearchSourceType.FALL]),
+    )
+
+    assert response.answer_status == AnswerStatus.PARTIAL
+    assert response.answer == f"At least {MAX_FALL_CITATIONS} fall records were found in available record history."
+    assert len(response.citations) == MAX_FALL_CITATIONS
+    assert repository.added_citations is not None
+    assert len(repository.added_citations) == MAX_FALL_CITATIONS
+    assert f"Only the {MAX_FALL_CITATIONS} most recent records are shown." in response.coverage_limitations
+
+
+async def test_search_rejects_ai_mode_and_unimplemented_source_types():
+    service = ResidentSearchService(StubSearchRepository(), InMemoryEventBus(), {})
+
+    with pytest.raises(ValidationError, match="AI answer mode"):
+        await service.search(
+            uuid.uuid4(),
+            uuid.uuid4(),
+            uuid.uuid4(),
+            ResidentSearchRequest(question="Show fall history", mode=SearchMode.AI_ANSWER),
+        )
+
+    with pytest.raises(ValidationError, match="incident"):
+        await service.search(
+            uuid.uuid4(),
+            uuid.uuid4(),
+            uuid.uuid4(),
+            ResidentSearchRequest(question="Show incident history", source_types=[SearchSourceType.INCIDENT]),
+        )
+
+
+async def test_search_defaults_to_the_fall_adapter_when_source_type_is_omitted():
+    care_home_id = uuid.uuid4()
+    repository = StubSearchRepository([fall_citation()], scope=(care_home_id, uuid.uuid4()))
+
+    response = await ResidentSearchService(
+        repository, InMemoryEventBus(), fall_adapters(repository)
+    ).search(
+        care_home_id,
+        uuid.uuid4(),
+        uuid.uuid4(),
+        ResidentSearchRequest(question="Show the resident's fall history"),
+    )
+
+    assert response.citations[0].source_type is EvidenceSourceType.FALL
+
+
+async def test_get_saved_search_rebuilds_the_cited_response_in_rank_order():
+    resident_id = uuid.uuid4()
+    search_id = uuid.uuid4()
+    earlier = datetime(2026, 9, 1, tzinfo=UTC)
+    later = datetime(2026, 10, 1, tzinfo=UTC)
+    first_source_id = uuid.uuid4()
+    second_source_id = uuid.uuid4()
+    repository = StubSearchRepository()
+    repository.persisted_search = SimpleNamespace(
+        id=search_id,
+        resident_id=resident_id,
+        answer="Two falls were recorded in the selected period.",
+        answer_status=AnswerStatus.SUPPORTED.value,
+        coverage_limitations=["This result currently searches approved fall records only."],
+        citations=[
+            SimpleNamespace(
+                source_type=SearchSourceType.FALL.value,
+                source_id=second_source_id,
+                source_version=earlier,
+                occurred_at=earlier,
+                title="Fall — no injury",
+                excerpt="Location: lounge.",
+                rank=2,
+            ),
+            SimpleNamespace(
+                source_type=SearchSourceType.FALL.value,
+                source_id=first_source_id,
+                source_version=later,
+                occurred_at=later,
+                title="Fall — no injury",
+                excerpt="Location: bedroom.",
+                rank=1,
+            ),
+        ],
+    )
+
+    response = await ResidentSearchService(repository, InMemoryEventBus(), fall_adapters(repository)).get_saved_search(
+        resident_id, search_id
+    )
+
+    assert response.search_id == search_id
+    assert [citation.source_id for citation in response.citations] == [first_source_id, second_source_id]
+    assert response.answer_status == AnswerStatus.SUPPORTED
+
+
+async def test_get_source_requires_a_saved_citation_and_reports_source_changes():
+    resident_id = uuid.uuid4()
+    search_id = uuid.uuid4()
+    source_id = uuid.uuid4()
+    source_version_at_search = datetime(2026, 10, 1, 10, tzinfo=UTC)
+    repository = StubSearchRepository()
+    repository.scope = (uuid.uuid4(), uuid.uuid4())
+    repository.persisted_citation = SimpleNamespace(source_version=source_version_at_search)
+    repository.current_source = {
+        "source_id": source_id,
+        "occurred_at": source_version_at_search - timedelta(days=1),
+        "source_version": source_version_at_search + timedelta(hours=1),
+        "title": "Fall — no injury",
+        "details": {"location": "Lounge"},
+    }
+    service = ResidentSearchService(repository, InMemoryEventBus(), fall_adapters(repository))
+
+    response = await service.get_source(
+        resident_id,
+        search_id,
+        SearchSourceType.FALL,
+        source_id,
+    )
+
+    assert response.changed_since_search is True
+    assert response.details == {"location": "Lounge"}
+
+    repository.persisted_citation = None
+    with pytest.raises(NotFoundError):
+        await service.get_source(resident_id, search_id, SearchSourceType.FALL, source_id)

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
@@ -15,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app import Base
+
 
 class ResidentHistorySearch(Base):
     __tablename__ = "resident_history_searches"
@@ -79,10 +81,11 @@ class ResidentHistorySearch(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
-    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     citations: Mapped[list["ResidentHistorySearchCitation"]] = relationship(
         back_populates="search",
@@ -96,8 +99,7 @@ class ResidentHistorySearchCitation(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "source_type IN ('fall', 'incident', 'observation', "
-            "'care_event', 'appointment', 'care_plan')",
+            "source_type IN ('fall', 'incident', 'observation', 'care_event', 'appointment', 'care_plan')",
             name="ck_resident_history_search_citation_source_type",
         ),
         CheckConstraint(
@@ -148,14 +150,15 @@ class ResidentHistorySearchCitation(Base):
 
     source_type: Mapped[str] = mapped_column(String(30), nullable=False)
     source_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    source_version: Mapped[datetime | None] = mapped_column(nullable=True)
-    occurred_at: Mapped[datetime] = mapped_column(nullable=False)
+    source_version: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     title: Mapped[str] = mapped_column(String, nullable=False)
     excerpt: Mapped[str | None] = mapped_column(String, nullable=True)
     rank: Mapped[int] = mapped_column(Integer, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
