@@ -48,11 +48,11 @@ class AppointmentsEvidenceAdapter:
                     text(
                         _SELECT
                         + """
-                AND f.scheduled_at >= COALESCE(CAST(:from_date AS TIMESTAMPTZ), '-infinity'::timestamptz)
-                AND f.scheduled_at < COALESCE(CAST(:to_date AS TIMESTAMPTZ), 'infinity'::timestamptz)
-                ORDER BY f.scheduled_at DESC, f.id DESC
-                LIMIT :limit
-            """
+                            AND f.scheduled_at >= COALESCE(CAST(:from_date AS TIMESTAMPTZ), '-infinity'::timestamptz)
+                            AND f.scheduled_at < COALESCE(CAST(:to_date AS TIMESTAMPTZ), 'infinity'::timestamptz)
+                            ORDER BY f.scheduled_at DESC, f.id DESC
+                            LIMIT :limit
+                        """
                     ),
                     {"resident_id": resident_id, "from_date": from_date, "to_date": to_date, "limit": limit},
                 )

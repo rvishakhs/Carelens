@@ -1,7 +1,30 @@
+import hashlib
+import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterable
 from typing import Any
 
+
+
+CARE_PLAN_DOMAIN_TOPICS: dict[str, set[str]] = {
+    "mobility": {"mobility", "transfer", "falls"},
+    "nutrition_hydration": {"nutrition", "hydration", "fluid"},
+    "communication": {"communication"},
+    "skin_integrity": {"skin", "pressure_area", "repositioning"},
+    "continence": {"continence", "toileting"},
+    "behaviour_wellbeing": {"wellbeing", "behaviour"},
+    "sleep": {"sleep"},
+}
+
+PLAN_TEXT_TOPICS: dict[str, set[str]] = {
+    "standing aid": {"mobility", "transfer"},
+    "hoist": {"mobility", "transfer"},
+    "two staff": {"transfer", "staffing"},
+    "wheelchair": {"mobility"},
+    "walking frame": {"mobility"},
+    "thickened fluids": {"nutrition", "hydration"},
+    "reposition": {"skin", "repositioning"},
+}
 
 def _clean(value: object | None) -> str | None:
     """Normalise whitespace and avoid rendering empty text."""
@@ -49,6 +72,27 @@ def _topics_for_event(category_name: str, template_name: str) -> list[str]:
 
     return sorted(topics)
 
+def _topics_for_care_plan(
+    domain: str,
+    content: str | None,
+    goals: Iterable[dict[str, object]],
+) -> list[str]:
+    topics = set(CARE_PLAN_DOMAIN_TOPICS.get(domain, {"care_plan"}))
+
+    goal_text = " ".join(
+        str(goal.get(field) or "")
+        for goal in goals
+        for field in ("goal_text", "baseline", "target", "measurement")
+    )
+
+    text = f"{content or ''} {goal_text}".casefold()
+
+    for phrase, mapped_topics in PLAN_TEXT_TOPICS.items():
+        if re.search(r"\b" + re.escape(phrase) + r"\b", text):
+            topics.update(mapped_topics)
+
+    return sorted(topics)
+
 
 def _measurement_value(measurement: Mapping[str, Any]) -> str | None:
     """Choose the populated measurement value without treating zero as empty."""
@@ -65,3 +109,24 @@ def _measurement_value(measurement: Mapping[str, Any]) -> str | None:
     if value is None:
         return None
     return f"{value} {unit}" if unit else value
+
+def _care_plan_revision(
+    *,
+    plan: Mapping[str, Any],
+    goals: list[dict[str, Any]],
+) -> str:
+    payload = {
+        "plan": dict(plan),
+        "goals": goals,
+    }
+
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        default=str,
+        separators=(",", ":"),
+    )
+
+    return "sha256:" + hashlib.sha256(
+        canonical.encode("utf-8")
+    ).hexdigest()
