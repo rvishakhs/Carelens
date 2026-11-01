@@ -48,9 +48,7 @@ WHERE cp.resident_id = :resident_id
   AND cpv.deleted_at IS NULL
   AND r.deleted_at IS NULL
   AND r.floor_id IS NOT NULL
-ORDER BY cp.domain ASC, cp.id ASC
-LIMIT :limit
-    
+  AND cp.id = :source_id
 """
 
 CARE_PLAN_DETAILS_SQL = """

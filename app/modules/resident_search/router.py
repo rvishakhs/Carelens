@@ -6,7 +6,10 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from app import CurrentUser, Permission, get_current_user, get_floor_scope, require, rls_session
 from app.modules.resident_search.evidence.appointments import AppointmentsEvidenceAdapter
 from app.modules.resident_search.evidence.falls import FallsEvidenceAdapter
+from app.modules.resident_search.evidence.careevent import CareEventEvidenceAdapter
+from app.modules.resident_search.evidence.careplan import CarePlanEvidenceAdapter
 from app.modules.resident_search.evidence.models import EvidenceSourceType
+
 from app.modules.resident_search.repository import ResidentSearchRepository
 from app.modules.resident_search.schemas import (
     ResidentSearchRequest,
@@ -16,9 +19,6 @@ from app.modules.resident_search.schemas import (
 from app.modules.resident_search.service import ResidentSearchService
 
 router = APIRouter(prefix="/residents", tags=["resident-search"])
-
-
-
 
 async def get_resident_search_service(
     request: Request,
@@ -33,6 +33,8 @@ async def get_resident_search_service(
         adapters = {
             EvidenceSourceType.FALL: FallsEvidenceAdapter(session),
             EvidenceSourceType.APPOINTMENT: AppointmentsEvidenceAdapter(session),
+            EvidenceSourceType.CARE_PLAN: CarePlanEvidenceAdapter(session),
+            EvidenceSourceType.CARE_EVENT: CareEventEvidenceAdapter(session),
         }
 
         yield ResidentSearchService(

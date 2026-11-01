@@ -16,13 +16,37 @@ from app.modules.resident_search.schemas import (
     SearchMode,
 )
 
-_SUPPORTED_SOURCE_TYPES = frozenset({EvidenceSourceType.FALL, EvidenceSourceType.APPOINTMENT})
+_SUPPORTED_SOURCE_TYPES = frozenset({
+    EvidenceSourceType.FALL,
+    EvidenceSourceType.APPOINTMENT,
+    EvidenceSourceType.CARE_PLAN,
+    EvidenceSourceType.CARE_EVENT,
+})
 _SOURCE_QUERY_TERMS: dict[EvidenceSourceType, frozenset[str]] = {
-    EvidenceSourceType.FALL: frozenset({"fall", "falls", "fell", "slip", "slipped", "trip", "tripped"}),
-    EvidenceSourceType.APPOINTMENT: frozenset({"appointment", "appointments", "hospital", "clinic", "consultation", "gp"}),
+    EvidenceSourceType.FALL: frozenset({
+        "fall", "falls", "fell", "slip", "slipped", "trip", "tripped",
+    }),
+    EvidenceSourceType.APPOINTMENT: frozenset({
+        "appointment", "appointments", "hospital", "clinic",
+        "consultation", "gp",
+    }),
+    EvidenceSourceType.CARE_PLAN: frozenset({
+        "plan", "requirement", "requirements", "support",
+        "mobility", "transfer", "transfers", "nutrition",
+        "hydration", "communication", "sleep",
+    }),
+    EvidenceSourceType.CARE_EVENT: frozenset({
+        "care", "record", "records", "event", "events",
+        "transfer", "mobility", "meal", "food", "fluid",
+        "sleep", "communication", "toileting", "personal care",
+    }),
 }
-_SOURCE_LABELS = {EvidenceSourceType.FALL: "fall", EvidenceSourceType.APPOINTMENT: "appointment"}
-
+_SOURCE_LABELS = {
+    EvidenceSourceType.FALL: "fall",
+    EvidenceSourceType.APPOINTMENT: "appointment",
+    EvidenceSourceType.CARE_PLAN: "care plan",
+    EvidenceSourceType.CARE_EVENT: "care event",
+}
 
 class ResidentSearchService:
     def __init__(self, repository: ResidentSearchRepository, event_bus: EventBus, adapters: Mapping[EvidenceSourceType, EvidenceSourceAdapter]):
