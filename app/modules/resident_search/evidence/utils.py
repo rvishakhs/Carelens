@@ -1,10 +1,8 @@
 import hashlib
 import json
 import re
-from collections.abc import Mapping, Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
-
-
 
 CARE_PLAN_DOMAIN_TOPICS: dict[str, set[str]] = {
     "mobility": {"mobility", "transfer", "falls"},
@@ -14,6 +12,11 @@ CARE_PLAN_DOMAIN_TOPICS: dict[str, set[str]] = {
     "continence": {"continence", "toileting"},
     "behaviour_wellbeing": {"wellbeing", "behaviour"},
     "sleep": {"sleep"},
+    "medication": {"medication"},
+    "pain_management": {"pain"},
+    "social_activities": {"activity", "wellbeing"},
+    "end_of_life": {"end_of_life"},
+    "personal": {"personal_care"},
 }
 
 PLAN_TEXT_TOPICS: dict[str, set[str]] = {
@@ -25,6 +28,7 @@ PLAN_TEXT_TOPICS: dict[str, set[str]] = {
     "thickened fluids": {"nutrition", "hydration"},
     "reposition": {"skin", "repositioning"},
 }
+
 
 def _clean(value: object | None) -> str | None:
     """Normalise whitespace and avoid rendering empty text."""
@@ -72,6 +76,7 @@ def _topics_for_event(category_name: str, template_name: str) -> list[str]:
 
     return sorted(topics)
 
+
 def _topics_for_care_plan(
     domain: str,
     content: str | None,
@@ -80,9 +85,7 @@ def _topics_for_care_plan(
     topics = set(CARE_PLAN_DOMAIN_TOPICS.get(domain, {"care_plan"}))
 
     goal_text = " ".join(
-        str(goal.get(field) or "")
-        for goal in goals
-        for field in ("goal_text", "baseline", "target", "measurement")
+        str(goal.get(field) or "") for goal in goals for field in ("goal_text", "baseline", "target", "measurement")
     )
 
     text = f"{content or ''} {goal_text}".casefold()
@@ -110,6 +113,7 @@ def _measurement_value(measurement: Mapping[str, Any]) -> str | None:
         return None
     return f"{value} {unit}" if unit else value
 
+
 def _care_plan_revision(
     *,
     plan: Mapping[str, Any],
@@ -117,7 +121,7 @@ def _care_plan_revision(
 ) -> str:
     payload = {
         "plan": dict(plan),
-        "goals": goals,
+        "goals": sorted(goals, key=lambda goal: str(goal["id"])),
     }
 
     canonical = json.dumps(
@@ -127,6 +131,4 @@ def _care_plan_revision(
         separators=(",", ":"),
     )
 
-    return "sha256:" + hashlib.sha256(
-        canonical.encode("utf-8")
-    ).hexdigest()
+    return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()

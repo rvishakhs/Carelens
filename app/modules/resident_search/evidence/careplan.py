@@ -13,8 +13,9 @@ from app.modules.resident_search.evidence.models import (
     EvidenceSourceType,
 )
 from app.modules.resident_search.evidence.utils import (
+    _care_plan_revision,
     _clean,
-    _topics_for_care_plan, _care_plan_revision,
+    _topics_for_care_plan,
 )
 
 CAREPLAN_BASE_SQL = """
@@ -41,6 +42,7 @@ JOIN residents r
  AND r.care_home_id = cp.care_home_id
 JOIN care_plan_versions cpv
   ON cpv.care_plan_id = cp.id
+ AND cpv.care_home_id = cp.care_home_id
  AND cpv.version_number = cp.current_version
 WHERE cp.resident_id = :resident_id
   AND cp.deleted_at IS NULL
@@ -48,39 +50,47 @@ WHERE cp.resident_id = :resident_id
   AND cpv.deleted_at IS NULL
   AND r.deleted_at IS NULL
   AND r.floor_id IS NOT NULL
+"""
+
+CAREPLAN_FIND_SQL = (
+    CAREPLAN_BASE_SQL
+    + """
+ORDER BY cp.domain ASC, cp.id ASC
+LIMIT :limit OFFSET :offset
+"""
+)
+
+CAREPLAN_BY_ID_SQL = (
+    CAREPLAN_BASE_SQL
+    + """
   AND cp.id = :source_id
 """
+)
 
 CARE_PLAN_DETAILS_SQL = """
 SELECT
-    id,
-    care_plan_id,
-    goal_text,
-    baseline,
-    target,
-    measurement,
-    status,
-    set_at,
-    review_date,
-    achieved_date,
-    created_at,
-    updated_at
-FROM care_plan_goals
-WHERE care_plan_id IN :plan_ids
-  AND deleted_at IS NULL
-ORDER BY care_plan_id, set_at ASC, id ASC
-"""
-
-CAREPLAN_BY_ID_SQL = """
-SELECT ...
-FROM ...
-WHERE cp.resident_id = :resident_id
-  AND cp.id = :source_id
+    g.id,
+    g.care_plan_id,
+    g.goal_text,
+    g.baseline,
+    g.target,
+    g.measurement,
+    g.status,
+    g.set_at,
+    g.review_date,
+    g.achieved_date,
+    g.created_at,
+    g.updated_at
+FROM care_plan_goals g
+JOIN care_plans cp
+  ON cp.id = g.care_plan_id
+ AND cp.resident_id = g.resident_id
+ AND cp.care_home_id = g.care_home_id
+WHERE g.care_plan_id IN :plan_ids
+  AND g.deleted_at IS NULL
   AND cp.deleted_at IS NULL
   AND cp.is_active = TRUE
-  AND cpv.deleted_at IS NULL
-  AND r.deleted_at IS NULL
-  AND r.floor_id IS NOT NULL
+ORDER BY g.care_plan_id, g.set_at ASC, g.id ASC
 """
 
 _ALLOWED_STATUSES = frozenset({"active"})
@@ -92,7 +102,7 @@ def _validate_find_request(
     to_date: datetime | None,
     limit: int,
     statuses: set[str] | None,
-):
+) -> set[str]:
     if not 1 <= limit <= 500:
         raise ValueError("limit must be between 1 and 500")
 
@@ -107,15 +117,20 @@ def _validate_find_request(
 
     unsupported = selected_statuses - _ALLOWED_STATUSES
     if unsupported:
-        raise ValueError(
-            "Care-plan search currently supports only active plans"
-        )
+        raise ValueError("Care-plan search currently supports only active plans")
 
     return selected_statuses
 
-class CarePlanEvidenceAdapter:
-    source_type = EvidenceSourceType.CARE_PLAN
 
+class CarePlanEvidenceAdapter:
+    """Current active plans and their live goals, read through an RLS session.
+
+    Both values of current_only retrieve the current version in phase one.
+    Valid date bounds do not exclude an older plan that remains active; this
+    adapter does not reconstruct historical versions or historical goal state.
+    """
+
+    source_type = EvidenceSourceType.CARE_PLAN
 
     def __init__(self, session: AsyncSession):
         self._session = session
@@ -125,11 +140,7 @@ class CarePlanEvidenceAdapter:
         if topics is None:
             return None
 
-        return {
-            topic.strip().casefold()
-            for topic in topics
-            if topic.strip()
-        }
+        return {topic.strip().casefold() for topic in topics if topic.strip()}
 
     async def find(
         self,
@@ -142,80 +153,68 @@ class CarePlanEvidenceAdapter:
         current_only: bool = False,
         limit: int,
     ) -> list[EvidenceDocument]:
-        _validate_find_request(
+        selected_statuses = _validate_find_request(
             from_date=from_date,
             to_date=to_date,
             limit=limit,
             statuses=statuses,
         )
 
-        # Historical care-plan retrieval is intentionally not implemented.
-        if not current_only and (from_date is not None or to_date is not None):
-            raise ValueError(
-                "Historical care-plan retrieval is not available yet"
-            )
-
         normalised_topics = self._normalise_topics(topics)
-        if topics is not None and not normalised_topics:
+        if not selected_statuses or normalised_topics == set():
             return []
 
-        plan_rows = await self._load_current_active_plans(
-            resident_id=resident_id,
-            limit=limit,
-        )
-
-        if not plan_rows:
-            return []
-
-        goals_by_plan = await self._load_goals(
-            [row["care_plan_id"] for row in plan_rows]
-        )
-
-        documents = [
-            self._document(
-                plan=plan,
-                goals=goals_by_plan.get(plan["care_plan_id"], []),
+        documents = []
+        offset = 0
+        # Filter before applying the result limit. Relevant plans can occur
+        # after unrelated domains, and topic tags can come from linked goals.
+        while len(documents) < limit:
+            plan_rows = await self._load_current_active_plans(
+                resident_id=resident_id,
+                limit=limit,
+                offset=offset,
             )
-            for plan in plan_rows
-        ]
-
-        if normalised_topics is not None:
-            documents = [
-                document
-                for document in documents
-                if document.topic_tags.intersection(normalised_topics)
-            ]
-
-        return documents[:limit]
-
+            if not plan_rows:
+                break
+            goals_by_plan = await self._load_goals([plan["care_plan_id"] for plan in plan_rows])
+            for plan in plan_rows:
+                document = self._document(plan=plan, goals=goals_by_plan.get(plan["care_plan_id"], []))
+                if normalised_topics is None or document.topic_tags.intersection(normalised_topics):
+                    documents.append(document)
+                    if len(documents) == limit:
+                        break
+            if len(plan_rows) < limit:
+                break
+            offset += len(plan_rows)
+        return documents
 
     async def _load_current_active_plans(
-            self,
-            *,
-            resident_id: uuid.UUID,
-            limit: int,
+        self,
+        *,
+        resident_id: uuid.UUID,
+        limit: int,
+        offset: int,
     ) -> list[dict[str, Any]]:
         result = await self._session.execute(
-            text(CAREPLAN_BASE_SQL),
+            text(CAREPLAN_FIND_SQL),
             {
                 "resident_id": resident_id,
                 "limit": limit,
+                "offset": offset,
             },
         )
         return [dict(row) for row in result.mappings().all()]
 
     async def _load_goals(
-            self,
-            plan_ids: list[uuid.UUID],
+        self,
+        plan_ids: list[uuid.UUID],
     ) -> dict[uuid.UUID, list[dict[str, Any]]]:
         grouped: dict[uuid.UUID, list[dict[str, Any]]] = defaultdict(list)
 
         if not plan_ids:
             return grouped
 
-        statement = text(CARE_PLAN_DETAILS_SQL).bindparams(
-            bindparam("plan_ids", expanding=True)
-        )
+        statement = text(CARE_PLAN_DETAILS_SQL).bindparams(bindparam("plan_ids", expanding=True))
 
         result = await self._session.execute(
             statement,
@@ -227,13 +226,11 @@ class CarePlanEvidenceAdapter:
 
         return grouped
 
-
-
     async def get(
-            self,
-            *,
-            resident_id: uuid.UUID,
-            source_id: uuid.UUID,
+        self,
+        *,
+        resident_id: uuid.UUID,
+        source_id: uuid.UUID,
     ) -> EvidenceDocument | None:
 
         result = await self._session.execute(
@@ -254,11 +251,12 @@ class CarePlanEvidenceAdapter:
             plan=plan,
             goals=goals_by_plan.get(plan["care_plan_id"], []),
         )
+
     @staticmethod
     def _document(
-            *,
-            plan: Mapping[str, Any],
-            goals: list[dict[str, Any]],
+        *,
+        plan: Mapping[str, Any],
+        goals: list[dict[str, Any]],
     ) -> EvidenceDocument:
 
         domain = str(plan["domain"])
@@ -284,6 +282,7 @@ class CarePlanEvidenceAdapter:
             text_parts.append(f"Instructions: {content}")
 
         for goal in goals:
+            text_parts.append(f"Care goal status: {str(goal['status']).replace('_', ' ')}.")
             goal_text = _clean(goal["goal_text"])
             baseline = _clean(goal["baseline"])
             target = _clean(goal["target"])
@@ -298,7 +297,6 @@ class CarePlanEvidenceAdapter:
             if measurement:
                 text_parts.append(f"Measurement: {measurement}.")
 
-        # Add normalised goal text here.
         source_version = _care_plan_revision(
             plan=plan,
             goals=goals,
@@ -306,26 +304,23 @@ class CarePlanEvidenceAdapter:
 
         return EvidenceDocument(
             evidence_id=f"care_plan:{plan['care_plan_id']}",
-            source_type = EvidenceSourceType.CARE_PLAN,
+            source_type=EvidenceSourceType.CARE_PLAN,
             source_id=plan["care_plan_id"],
-
-            topic_tags = set(topics),
-            authority_level= AuthorityLevel.CARE_PLAN,
+            topic_tags=set(topics),
+            authority_level=AuthorityLevel.CARE_PLAN,
             status="active" if plan["is_active"] else "inactive",
-
             occurred_at=plan["version_created_at"],
-            time_precision="effective_period",
-            effective_from=plan["version_created_at"].date(),
+            # This is the version's recorded creation time. No effective dates
+            # are present in the source schema, so do not infer them.
+            time_precision="timestamp",
+            effective_from=None,
             effective_to=None,
             source_version=source_version,
-
             resident_id=plan["resident_id"],
             care_home_id=plan["care_home_id"],
             floor_id=plan["floor_id"],
-
             title=title,
             searchable_text=" ".join(text_parts),
-
             structured_metadata={
                 "domain": domain,
                 "plan_goal": plan_goal,
@@ -337,8 +332,6 @@ class CarePlanEvidenceAdapter:
                 "review_due": plan["review_due"],
                 "goals": goals,
             },
-
             is_deleted=False,
             is_eligible=True,
-
-            )
+        )

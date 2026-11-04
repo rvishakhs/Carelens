@@ -150,7 +150,7 @@ class ResidentHistorySearchCitation(Base):
 
     source_type: Mapped[str] = mapped_column(String(30), nullable=False)
     source_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    source_version: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_version: Mapped[str | None] = mapped_column(String, nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     title: Mapped[str] = mapped_column(String, nullable=False)

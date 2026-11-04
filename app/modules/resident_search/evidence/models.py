@@ -21,6 +21,15 @@ class EvidenceSourceType(str, Enum):
     SLEEP = "sleep"
     WOUND = "wound"
 
+    SOURCE_GROUP= "assessment"
+    MOBILITY_ASSESSMENT = "mobility_assessment"
+    NUTRITION_ASSESSMENT = "nutrition_assessment"
+    SKIN_ASSESSMENT = "skin_assessment"
+    MENTAL_HEALTH_ASSESSMENT = "mental_health_assessment"
+    COMMUNICATION_NEED = "communication_need"
+    NUTRITION_TARGET = "nutrition_target"
+    CONTINENCE_CARE_PLAN = "continence_care_plan"
+
 
 
 class AuthorityLevel(IntEnum):
@@ -39,21 +48,22 @@ class EvidenceDocument(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     evidence_id: str
+    resident_id: uuid.UUID
+    care_home_id: uuid.UUID
+    floor_id: uuid.UUID
+    authority_level: AuthorityLevel  # care_plan, assessment, incident, care_event, observation
+
     source_type: EvidenceSourceType
     source_id: uuid.UUID
-    topic_tags: set[str]
+    source_version: datetime | str   # must reflect child-record changes too
 
-    authority_level: AuthorityLevel  # care_plan, assessment, incident, care_event, observation
+    topic_tags: set[str]
     status: str | None               # active, approved, completed, cancelled...
     occurred_at: datetime | None
     time_precision: Literal["timestamp", "date", "effective_period"]
     effective_from: date | None
     effective_to: date | None
-    source_version: datetime | str   # must reflect child-record changes too
 
-    resident_id: uuid.UUID
-    care_home_id: uuid.UUID
-    floor_id: uuid.UUID
     title: str
     searchable_text: str
     structured_metadata: dict

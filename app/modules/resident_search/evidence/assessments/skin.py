@@ -1,0 +1,2 @@
+class SkinAssessmentReader:
+    pass

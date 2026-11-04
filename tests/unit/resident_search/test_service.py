@@ -1,12 +1,15 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from app import InMemoryEventBus, NotFoundError, ValidationError
 from app.modules.resident_search.events import ResidentHistorySearched
-from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceSourceType
+from app.modules.resident_search.evidence.careplan import CarePlanEvidenceAdapter
+from app.modules.resident_search.evidence.models import AuthorityLevel, EvidenceDocument, EvidenceSourceType
+from app.modules.resident_search.evidence.revisions import revision_token
 from app.modules.resident_search.repository import MAX_FALL_CITATIONS
 from app.modules.resident_search.schemas import (
     AnswerStatus,
@@ -16,6 +19,7 @@ from app.modules.resident_search.schemas import (
     SearchSourceType,
 )
 from app.modules.resident_search.service import ResidentSearchService
+from tests.unit.resident_search.test_careplan_adapter import plan_row
 
 
 def fall_adapters(adapter: object) -> dict[EvidenceSourceType, object]:
@@ -70,6 +74,14 @@ class StubSearchRepository:
                 floor_id=self.scope[1],
                 searchable_text=citation.excerpt or "",
                 structured_metadata={},
+                topic_tags={"fall"},
+                authority_level=AuthorityLevel.STRUCTURED_INCIDENT,
+                status=None,
+                time_precision="timestamp",
+                effective_from=None,
+                effective_to=None,
+                is_deleted=False,
+                is_eligible=True,
             )
             for citation in self.citations
         ]
@@ -89,6 +101,14 @@ class StubSearchRepository:
             title=self.current_source["title"],
             searchable_text="",
             structured_metadata=self.current_source["details"],
+            topic_tags={"fall"},
+            authority_level=AuthorityLevel.STRUCTURED_INCIDENT,
+            status=None,
+            time_precision="timestamp",
+            effective_from=None,
+            effective_to=None,
+            is_deleted=False,
+            is_eligible=True,
         )
 
     async def create_search(self, **kwargs):
@@ -220,9 +240,7 @@ async def test_search_defaults_to_the_fall_adapter_when_source_type_is_omitted()
     care_home_id = uuid.uuid4()
     repository = StubSearchRepository([fall_citation()], scope=(care_home_id, uuid.uuid4()))
 
-    response = await ResidentSearchService(
-        repository, InMemoryEventBus(), fall_adapters(repository)
-    ).search(
+    response = await ResidentSearchService(repository, InMemoryEventBus(), fall_adapters(repository)).search(
         care_home_id,
         uuid.uuid4(),
         uuid.uuid4(),
@@ -307,3 +325,73 @@ async def test_get_source_requires_a_saved_citation_and_reports_source_changes()
     repository.persisted_citation = None
     with pytest.raises(NotFoundError):
         await service.get_source(resident_id, search_id, SearchSourceType.FALL, source_id)
+
+
+async def test_careplan_search_round_trips_revision_and_reopens_current_source():
+    plan = plan_row()
+    document = CarePlanEvidenceAdapter._document(plan=plan, goals=[])
+    repository = StubSearchRepository(scope=(plan["care_home_id"], plan["floor_id"]))
+    adapter = Mock(find=AsyncMock(return_value=[document]), get=AsyncMock(return_value=document))
+    service = ResidentSearchService(repository, InMemoryEventBus(), {EvidenceSourceType.CARE_PLAN: adapter})
+    response = await service.search(
+        plan["care_home_id"],
+        uuid.uuid4(),
+        plan["resident_id"],
+        ResidentSearchRequest(question="Show current mobility plan", source_types=[EvidenceSourceType.CARE_PLAN]),
+    )
+    assert response.citations[0].source_version == document.source_version
+    assert response.answer == "1 care plan was found in available record history."
+    assert any("historical plan versions are not included" in notice for notice in response.coverage_limitations)
+    repository.persisted_search = SimpleNamespace(
+        id=response.search_id,
+        resident_id=plan["resident_id"],
+        answer=response.answer,
+        answer_status=response.answer_status.value,
+        coverage_limitations=response.coverage_limitations,
+        citations=[
+            SimpleNamespace(
+                **response.citations[0].model_dump(exclude={"evidence_id", "source_type"}),
+                source_type=EvidenceSourceType.CARE_PLAN.value,
+                rank=1,
+            )
+        ],
+    )
+    saved = await service.get_saved_search(plan["resident_id"], response.search_id)
+    assert saved == response
+    repository.persisted_citation = SimpleNamespace(source_version=document.source_version)
+    source = await service.get_source(
+        plan["resident_id"],
+        response.search_id,
+        EvidenceSourceType.CARE_PLAN,
+        plan["care_plan_id"],
+    )
+    assert source.changed_since_search is False
+    adapter.get.return_value = CarePlanEvidenceAdapter._document(
+        plan=plan | {"content": "Changed instructions"}, goals=[]
+    )
+    changed = await service.get_source(
+        plan["resident_id"],
+        response.search_id,
+        EvidenceSourceType.CARE_PLAN,
+        plan["care_plan_id"],
+    )
+    assert changed.changed_since_search is True
+
+
+async def test_legacy_timestamp_and_persisted_revision_token_do_not_report_false_change():
+    repository = StubSearchRepository(scope=(uuid.uuid4(), uuid.uuid4()))
+    when = datetime(2026, 10, 1, tzinfo=UTC)
+    repository.persisted_citation = SimpleNamespace(source_version=revision_token(when))
+    repository.current_source = {
+        "occurred_at": when,
+        "source_version": when,
+        "title": "Fall",
+        "details": {},
+    }
+    source = await ResidentSearchService(repository, InMemoryEventBus(), fall_adapters(repository)).get_source(
+        uuid.uuid4(),
+        uuid.uuid4(),
+        EvidenceSourceType.FALL,
+        uuid.uuid4(),
+    )
+    assert source.changed_since_search is False

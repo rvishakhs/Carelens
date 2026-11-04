@@ -1,13 +1,16 @@
 import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 
-from pydantic import AwareDatetime, BaseModel, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, BeforeValidator, Field, model_validator
 
 from app.modules.resident_search.evidence.models import EvidenceSourceType
+from app.modules.resident_search.evidence.revisions import revision_token
 
 # Compatibility for existing callers; the canonical enum lives in evidence/models.py.
 SearchSourceType = EvidenceSourceType
+SourceRevision = Annotated[str | None, BeforeValidator(revision_token)]
 
 
 class SearchMode(str, Enum):
@@ -25,7 +28,7 @@ class EvidenceCitation(BaseModel):
     evidence_id: str
     source_type: EvidenceSourceType
     source_id: uuid.UUID
-    source_version: datetime | None = None
+    source_version: SourceRevision = None
     occurred_at: datetime
     title: str
     excerpt: str | None = None
@@ -60,7 +63,7 @@ class ResidentSearchSourceResponse(BaseModel):
     source_type: EvidenceSourceType
     source_id: uuid.UUID
     occurred_at: datetime
-    source_version: datetime | None
+    source_version: SourceRevision
     title: str
     details: dict[str, object]
     changed_since_search: bool
