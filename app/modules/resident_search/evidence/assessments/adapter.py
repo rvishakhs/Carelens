@@ -24,7 +24,7 @@ class AssessmentEvidenceAdapter:
     async def find(self, *, resident_id, from_date, to_date, limit):
         documents = [
             *await self._mobility.find(self, resident_id, from_date, to_date),
-            *await self._nutrition.find(...),
+            *await self._nutrition.find(self, resident_id, from_date, to_date),
             *await self._skin.find(...),
             *await self._mental_health.find(...),
         ]

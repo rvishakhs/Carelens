@@ -20,7 +20,7 @@ _SELECT = """
         m.aids_used,
         m.transfer_method,
         m.falls_risk_score,
-        m.falls_risk_level,
+        m.falls_risk_level, 
         m.assessed_at,
         m.next_review_due,
         m.notes,
