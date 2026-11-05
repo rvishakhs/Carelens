@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     CheckConstraint,
@@ -99,7 +99,10 @@ class ResidentHistorySearchCitation(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "source_type IN ('fall', 'incident', 'observation', 'care_event', 'appointment', 'care_plan')",
+            "source_type IN ("
+            "'fall', 'incident', 'observation', 'care_event', 'appointment', 'care_plan', "
+            "'mobility_assessment', 'nutrition_assessment', 'skin_assessment', 'mental_health_assessment'"
+            ")",
             name="ck_resident_history_search_citation_source_type",
         ),
         CheckConstraint(
@@ -151,7 +154,9 @@ class ResidentHistorySearchCitation(Base):
     source_type: Mapped[str] = mapped_column(String(30), nullable=False)
     source_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     source_version: Mapped[str | None] = mapped_column(String, nullable=True)
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    time_precision: Mapped[str] = mapped_column(String(20), nullable=False, server_default="timestamp")
+    source_date: Mapped[date | None] = mapped_column(nullable=True)
 
     title: Mapped[str] = mapped_column(String, nullable=False)
     excerpt: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -66,6 +66,7 @@ class ObservationRead(BaseModel):
     source_type: str = "observations"
     time_precision: Literal["timestamp", "date"] = "timestamp"
     source_date: str | None = None
+    source_updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

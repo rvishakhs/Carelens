@@ -1,14 +1,12 @@
 import uuid
-from datetime import datetime
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
 from sqlalchemy import text
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceSourceType, AuthorityLevel
+from app.modules.resident_search.evidence.models import AuthorityLevel, EvidenceDocument, EvidenceSourceType
 
 _SELECT = """
     SELECT
@@ -129,14 +127,14 @@ class NutritionAssessmentReader:
 
     @staticmethod
     def _document(row: Mapping[str, Any]) -> EvidenceDocument:
-        risk_level = row["risk_level"],
-        total_score = row["total_score"],
-        bmi_score = row["bmi_score"],
-        weight_loss_score = row["weight_loss_score"],
+        risk_level = row["risk_level"]
+        total_score = row["total_score"]
+        bmi_score = row["bmi_score"]
+        weight_loss_score = row["weight_loss_score"]
         acute_disease_score = row["acute_disease_score"]
 
         title = "Nutrition assessment"
-        parts =[
+        parts = [
             f"{row['assessment_tool']} nutrition risk assessment."
         ]
 
@@ -164,8 +162,7 @@ class NutritionAssessmentReader:
             "weight_loss_score": weight_loss_score,
             "next_review_due": row["next_review_due"],
             "acute_disease_score" : acute_disease_score,
-            # Keep notes separate from searchable/model text for now.
-            "has_notes": bool(row["notes"]),
+            "has_action_plan": bool(row["action_plan"]),
         }
 
         return EvidenceDocument(
@@ -201,6 +198,7 @@ class NutritionAssessmentReader:
 
             is_deleted=row["deleted_at"] is not None,
             is_eligible=row["deleted_at"] is None,
+            is_implausible=False
         )
 
 

@@ -334,4 +334,5 @@ class CarePlanEvidenceAdapter:
             },
             is_deleted=False,
             is_eligible=True,
+            is_implausible=False
         )

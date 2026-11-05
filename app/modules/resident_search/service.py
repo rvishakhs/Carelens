@@ -23,8 +23,25 @@ _SUPPORTED_SOURCE_TYPES = frozenset(
         EvidenceSourceType.APPOINTMENT,
         EvidenceSourceType.CARE_PLAN,
         EvidenceSourceType.CARE_EVENT,
+        EvidenceSourceType.ASSESSMENT,
+        EvidenceSourceType.OBSERVATION,
+        EvidenceSourceType.SLEEP,
+        EvidenceSourceType.NUTRITION,
+        EvidenceSourceType.MOBILITY,
+        EvidenceSourceType.WELLBEING,
+        EvidenceSourceType.COMMUNICATION,
+        EvidenceSourceType.WOUND,
+        EvidenceSourceType.INCIDENT,
     }
 )
+
+ASSESSMENT_SOURCE_TYPES = frozenset({
+    EvidenceSourceType.MOBILITY_ASSESSMENT,
+    EvidenceSourceType.NUTRITION_ASSESSMENT,
+    EvidenceSourceType.SKIN_ASSESSMENT,
+    EvidenceSourceType.MENTAL_HEALTH_ASSESSMENT,
+})
+
 _SOURCE_QUERY_TERMS: dict[EvidenceSourceType, frozenset[str]] = {
     EvidenceSourceType.FALL: frozenset(
         {
@@ -47,6 +64,22 @@ _SOURCE_QUERY_TERMS: dict[EvidenceSourceType, frozenset[str]] = {
             "gp",
         }
     ),
+    EvidenceSourceType.ASSESSMENT: frozenset({
+        "assessment",
+        "assessed",
+        "mobility",
+        "transfer",
+        "falls",
+        "risk",
+        "nutrition",
+        "malnutrition",
+        "skin",
+        "pressure area",
+        "repositioning",
+        "wellbeing",
+        "behaviour",
+        "mental health",
+    }),
     EvidenceSourceType.CARE_PLAN: frozenset(
         {
             "plan",
@@ -80,14 +113,41 @@ _SOURCE_QUERY_TERMS: dict[EvidenceSourceType, frozenset[str]] = {
             "personal care",
         }
     ),
+    EvidenceSourceType.SLEEP: frozenset({"sleep", "night", "waking", "wakings"}),
+    EvidenceSourceType.NUTRITION: frozenset({"nutrition", "food", "meal", "fluid", "hydration", "weight"}),
+    EvidenceSourceType.MOBILITY: frozenset({"mobility", "transfer", "transfers", "walking", "wheelchair"}),
+    EvidenceSourceType.WELLBEING: frozenset({"wellbeing", "mood", "behaviour", "behavior"}),
+    EvidenceSourceType.COMMUNICATION: frozenset({"communication", "hearing", "interaction"}),
+    EvidenceSourceType.WOUND: frozenset({"wound", "skin", "pressure", "pressure area"}),
+    EvidenceSourceType.INCIDENT: frozenset({"incident", "safety"}),
+    EvidenceSourceType.OBSERVATION: frozenset({"observation", "observations", "vitals", "pain"}),
 }
 _SOURCE_LABELS = {
     EvidenceSourceType.FALL: "fall",
     EvidenceSourceType.APPOINTMENT: "appointment",
     EvidenceSourceType.CARE_PLAN: "care plan",
     EvidenceSourceType.CARE_EVENT: "care event",
+    EvidenceSourceType.ASSESSMENT: "assessment",
+    EvidenceSourceType.MOBILITY_ASSESSMENT: "mobility assessment",
+    EvidenceSourceType.NUTRITION_ASSESSMENT: "nutrition assessment",
+    EvidenceSourceType.SKIN_ASSESSMENT: "skin assessment",
+    EvidenceSourceType.MENTAL_HEALTH_ASSESSMENT: "mental-health assessment",
+    EvidenceSourceType.OBSERVATION: "clinical observation",
+    EvidenceSourceType.SLEEP: "sleep",
+    EvidenceSourceType.NUTRITION: "nutrition",
+    EvidenceSourceType.MOBILITY: "mobility observation",
+    EvidenceSourceType.WELLBEING: "wellbeing",
+    EvidenceSourceType.COMMUNICATION: "communication",
+    EvidenceSourceType.WOUND: "wound",
+    EvidenceSourceType.INCIDENT: "incident",
 }
 
+SOURCE_TYPE_TO_ADAPTER_GROUP = {
+    EvidenceSourceType.MOBILITY_ASSESSMENT: EvidenceSourceType.ASSESSMENT,
+    EvidenceSourceType.NUTRITION_ASSESSMENT: EvidenceSourceType.ASSESSMENT,
+    EvidenceSourceType.SKIN_ASSESSMENT: EvidenceSourceType.ASSESSMENT,
+    EvidenceSourceType.MENTAL_HEALTH_ASSESSMENT: EvidenceSourceType.ASSESSMENT,
+}
 
 class ResidentSearchService:
     def __init__(
@@ -137,12 +197,14 @@ class ResidentSearchService:
                 source_id=document.source_id,
                 source_version=document.source_version,
                 occurred_at=document.occurred_at,
+                time_precision=document.time_precision,
+                source_date=document.source_date,
                 title=document.title,
                 excerpt=document.searchable_text,
             )
             for document in documents
         ]
-        citations.sort(key=lambda citation: citation.occurred_at, reverse=True)
+        citations.sort(key=lambda citation: citation.occurred_at or datetime.combine(citation.source_date, datetime.min.time(), tzinfo=UTC), reverse=True)
         results_were_truncated = len(citations) > MAX_CITATIONS
         citations = citations[:MAX_CITATIONS]
         period = "the selected period" if payload.from_date or payload.to_date else "available record history"
@@ -209,6 +271,8 @@ class ResidentSearchService:
                 source_id=citation.source_id,
                 source_version=citation.source_version,
                 occurred_at=citation.occurred_at,
+                time_precision=citation.time_precision,
+                source_date=citation.source_date,
                 title=citation.title,
                 excerpt=citation.excerpt,
             )
@@ -224,25 +288,67 @@ class ResidentSearchService:
         )
 
     async def get_source(
-        self, resident_id: uuid.UUID, search_id: uuid.UUID, source_type: EvidenceSourceType, source_id: uuid.UUID
+            self,
+            resident_id: uuid.UUID,
+            search_id: uuid.UUID,
+            source_type: EvidenceSourceType,
+            source_id: uuid.UUID,
     ) -> ResidentSearchSourceResponse:
         citation = await self._repository.get_citation(
-            search_id=search_id, resident_id=resident_id, source_type=source_type, source_id=source_id
+            search_id=search_id,
+            resident_id=resident_id,
+            source_type=source_type,
+            source_id=source_id,
         )
+
         if citation is None:
             raise NotFoundError(f"history search source {source_id} not found")
-        source = await self._adapter_for(source_type).get(source_id=source_id, resident_id=resident_id)
+
+        adapter_group = SOURCE_TYPE_TO_ADAPTER_GROUP.get(
+            source_type,
+            source_type,
+        )
+        adapter = self._adapter_for(adapter_group)
+
+        if adapter_group == EvidenceSourceType.ASSESSMENT:
+            source = await adapter.get(
+                resident_id=resident_id,
+                source_type=source_type,
+                source_id=source_id,
+            )
+        else:
+            source = await adapter.get(
+                resident_id=resident_id,
+                source_id=source_id,
+            )
+
         scope = await self._repository.get_resident_scope(resident_id)
-        if scope is None or source is None or not self._usable(source, resident_id, scope[0], source_type):
+
+        if (
+                scope is None
+                or source is None
+                or not self._usable(
+            source,
+            resident_id,
+            scope[0],
+            adapter_group,
+        )
+        ):
             raise NotFoundError(f"history search source {source_id} not found")
+
         return ResidentSearchSourceResponse(
             source_type=source_type,
             source_id=source.source_id,
             occurred_at=source.occurred_at,
+            time_precision=source.time_precision,
+            source_date=source.source_date,
             source_version=source.source_version,
             title=source.title,
             details=source.structured_metadata,
-            changed_since_search=revision_token(source.source_version) != revision_token(citation.source_version),
+            changed_since_search=(
+                    revision_token(source.source_version)
+                    != revision_token(citation.source_version)
+            ),
         )
 
     @staticmethod
@@ -277,12 +383,21 @@ class ResidentSearchService:
 
     @staticmethod
     def _usable(
-        document: EvidenceDocument, resident_id: uuid.UUID, care_home_id: uuid.UUID, source_type: EvidenceSourceType
+            document: EvidenceDocument,
+            resident_id: uuid.UUID,
+            care_home_id: uuid.UUID,
+            requested_source_type: EvidenceSourceType,
     ) -> bool:
+        correct_source_group = (
+            document.source_type in ASSESSMENT_SOURCE_TYPES
+            if requested_source_type == EvidenceSourceType.ASSESSMENT
+            else document.source_type == requested_source_type
+        )
+
         return (
-            document.resident_id == resident_id
-            and document.care_home_id == care_home_id
-            and document.source_type == source_type
-            and not document.is_deleted
-            and document.is_eligible
+                document.resident_id == resident_id
+                and document.care_home_id == care_home_id
+                and correct_source_group
+                and not document.is_deleted
+                and document.is_eligible
         )

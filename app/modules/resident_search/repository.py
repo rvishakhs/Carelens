@@ -96,6 +96,8 @@ class ResidentSearchRepository:
                 source_id=citation.source_id,
                 source_version=citation.source_version,
                 occurred_at=citation.occurred_at,
+                time_precision=citation.time_precision,
+                source_date=citation.source_date,
                 title=citation.title,
                 excerpt=citation.excerpt,
                 rank=rank,

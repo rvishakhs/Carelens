@@ -1,14 +1,12 @@
 import uuid
-from datetime import datetime
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
 from sqlalchemy import text
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceSourceType, AuthorityLevel
+from app.modules.resident_search.evidence.models import AuthorityLevel, EvidenceDocument, EvidenceSourceType
 
 _SELECT = """
     SELECT
@@ -186,6 +184,7 @@ class MobilityAssessmentReader:
 
             is_deleted=row["deleted_at"] is not None,
             is_eligible=row["deleted_at"] is None,
+            is_implausible=False
         )
 
 

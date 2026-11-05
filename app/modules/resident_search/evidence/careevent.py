@@ -338,4 +338,5 @@ class CareEventEvidenceAdapter:
             },
             is_deleted=event["deleted_at"] is not None,
             is_eligible=event["deleted_at"] is None,
+            is_implausible= False
         )

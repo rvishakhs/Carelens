@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime, date
+from datetime import date, datetime
 from enum import Enum, IntEnum
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class EvidenceSourceType(str, Enum):
@@ -21,7 +21,7 @@ class EvidenceSourceType(str, Enum):
     SLEEP = "sleep"
     WOUND = "wound"
 
-    SOURCE_GROUP= "assessment"
+    ASSESSMENT= "assessment"
     MOBILITY_ASSESSMENT = "mobility_assessment"
     NUTRITION_ASSESSMENT = "nutrition_assessment"
     SKIN_ASSESSMENT = "skin_assessment"
@@ -61,6 +61,7 @@ class EvidenceDocument(BaseModel):
     status: str | None               # active, approved, completed, cancelled...
     occurred_at: datetime | None
     time_precision: Literal["timestamp", "date", "effective_period"]
+    source_date: date | None = None
     effective_from: date | None
     effective_to: date | None
 
@@ -69,10 +70,15 @@ class EvidenceDocument(BaseModel):
     structured_metadata: dict
     is_deleted: bool
     is_eligible: bool
+    is_implausible: bool = False
 
 
     @model_validator(mode="after")
     def validate_evidence_id(self) -> "EvidenceDocument":
         if self.evidence_id != f"{self.source_type.value}:{self.source_id}":
             raise ValueError("evidence_id must match source_type and source_id")
+        if self.time_precision == "timestamp" and self.occurred_at is None:
+            raise ValueError("timestamp evidence requires occurred_at")
+        if self.time_precision == "date" and self.source_date is None:
+            raise ValueError("date evidence requires source_date")
         return self

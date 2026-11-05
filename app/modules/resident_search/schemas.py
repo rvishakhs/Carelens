@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Annotated
 
@@ -29,7 +29,9 @@ class EvidenceCitation(BaseModel):
     source_type: EvidenceSourceType
     source_id: uuid.UUID
     source_version: SourceRevision = None
-    occurred_at: datetime
+    occurred_at: datetime | None
+    time_precision: str = "timestamp"
+    source_date: date | None = None
     title: str
     excerpt: str | None = None
 
@@ -62,7 +64,9 @@ class ResidentSearchResponse(BaseModel):
 class ResidentSearchSourceResponse(BaseModel):
     source_type: EvidenceSourceType
     source_id: uuid.UUID
-    occurred_at: datetime
+    occurred_at: datetime | None
+    time_precision: str = "timestamp"
+    source_date: date | None = None
     source_version: SourceRevision
     title: str
     details: dict[str, object]

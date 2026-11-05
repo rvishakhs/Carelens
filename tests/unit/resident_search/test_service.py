@@ -395,3 +395,117 @@ async def test_legacy_timestamp_and_persisted_revision_token_do_not_report_false
         uuid.uuid4(),
     )
     assert source.changed_since_search is False
+
+
+class AssessmentAdapterStub:
+    source_type = EvidenceSourceType.ASSESSMENT
+
+    def __init__(self, document: EvidenceDocument):
+        self.document = document
+        self.get_calls: list[dict] = []
+
+    async def find(self, **_kwargs):
+        return [self.document]
+
+    async def get(self, **kwargs):
+        self.get_calls.append(kwargs)
+        return self.document
+
+
+def mobility_assessment_document(
+    *,
+    resident_id: uuid.UUID,
+    care_home_id: uuid.UUID,
+    floor_id: uuid.UUID,
+) -> EvidenceDocument:
+    source_id = uuid.uuid4()
+    assessed_at = datetime(2026, 10, 24, 10, tzinfo=UTC)
+    return EvidenceDocument(
+        evidence_id=f"mobility_assessment:{source_id}",
+        source_type=EvidenceSourceType.MOBILITY_ASSESSMENT,
+        source_id=source_id,
+        resident_id=resident_id,
+        care_home_id=care_home_id,
+        floor_id=floor_id,
+        authority_level=AuthorityLevel.FORMAL_ASSESSMENT,
+        topic_tags={"mobility", "transfer"},
+        status="assessed",
+        occurred_at=assessed_at,
+        time_precision="timestamp",
+        effective_from=None,
+        effective_to=None,
+        source_version=assessed_at,
+        title="Mobility assessment",
+        searchable_text="Mobility assessment. Transfer method: standing hoist.",
+        structured_metadata={"transfer_method": "standing hoist"},
+        is_deleted=False,
+        is_eligible=True,
+    )
+
+
+async def test_assessment_search_persists_concrete_assessment_citation():
+    resident_id = uuid.uuid4()
+    care_home_id = uuid.uuid4()
+    floor_id = uuid.uuid4()
+    document = mobility_assessment_document(
+        resident_id=resident_id,
+        care_home_id=care_home_id,
+        floor_id=floor_id,
+    )
+    repository = StubSearchRepository(scope=(care_home_id, floor_id))
+    adapter = AssessmentAdapterStub(document)
+    service = ResidentSearchService(
+        repository,
+        InMemoryEventBus(),
+        {EvidenceSourceType.ASSESSMENT: adapter},
+    )
+
+    response = await service.search(
+        care_home_id,
+        uuid.uuid4(),
+        resident_id,
+        ResidentSearchRequest(
+            question="What is the latest mobility assessment?",
+            source_types=[EvidenceSourceType.ASSESSMENT],
+        ),
+    )
+
+    assert response.answer == "1 mobility assessment was found in available record history."
+    assert response.citations[0].source_type is EvidenceSourceType.MOBILITY_ASSESSMENT
+    assert repository.added_citations == response.citations
+
+
+async def test_assessment_citation_reopens_through_its_group_adapter():
+    resident_id = uuid.uuid4()
+    care_home_id = uuid.uuid4()
+    floor_id = uuid.uuid4()
+    document = mobility_assessment_document(
+        resident_id=resident_id,
+        care_home_id=care_home_id,
+        floor_id=floor_id,
+    )
+    repository = StubSearchRepository(scope=(care_home_id, floor_id))
+    repository.persisted_citation = SimpleNamespace(source_version=document.source_version)
+    adapter = AssessmentAdapterStub(document)
+    service = ResidentSearchService(
+        repository,
+        InMemoryEventBus(),
+        {EvidenceSourceType.ASSESSMENT: adapter},
+    )
+
+    response = await service.get_source(
+        resident_id,
+        uuid.uuid4(),
+        EvidenceSourceType.MOBILITY_ASSESSMENT,
+        document.source_id,
+    )
+
+    assert response.source_type is EvidenceSourceType.MOBILITY_ASSESSMENT
+    assert response.details == {"transfer_method": "standing hoist"}
+    assert adapter.get_calls == [
+        {
+            "resident_id": resident_id,
+            "source_type": EvidenceSourceType.MOBILITY_ASSESSMENT,
+            "source_id": document.source_id,
+        }
+    ]

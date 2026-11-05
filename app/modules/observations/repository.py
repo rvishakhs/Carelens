@@ -26,6 +26,7 @@ class ObservationRepository(ObservationReader):
         limit: int | None = None,
         offset: int = 0,
         source_type: str | None = None,
+        source_types: set[str] | None = None,
         source_id: uuid.UUID | None = None,
     ) -> list[ObservationRead]:
         if not resident_ids:
@@ -42,12 +43,22 @@ class ObservationRepository(ObservationReader):
             if value is not None:
                 clauses.append(clause)
                 params[name] = value
+        if source_types is not None:
+            invalid_source_types = source_types - SOURCE_TYPES
+            if invalid_source_types:
+                raise ValueError(f"unknown clinical source types: {', '.join(sorted(invalid_source_types))}")
+            if not source_types:
+                return []
+            clauses.append("source_type IN :source_types")
+            params["source_types"] = sorted(source_types)
         query = f"SELECT * FROM ({CLINICAL_FEED_SQL}) feed WHERE {' AND '.join(clauses)}"
         query += " ORDER BY recorded_at DESC, source_type, id"
         if limit is not None:
             query += " LIMIT :limit OFFSET :offset"
             params.update(limit=limit, offset=offset)
         statement = text(query).bindparams(bindparam("resident_ids", expanding=True))
+        if source_types is not None:
+            statement = statement.bindparams(bindparam("source_types", expanding=True))
         rows = (await self._session.execute(statement, params)).mappings().all()
         result = []
         for row in rows:
@@ -113,6 +124,31 @@ class ObservationRepository(ObservationReader):
             since=since,
             until=until,
             observation_type=observation_type,
+        )
+
+    async def list_clinical_evidence_for_resident(
+        self,
+        resident_id: uuid.UUID,
+        *,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+        source_types: set[str] | None = None,
+        source_id: uuid.UUID | None = None,
+        limit: int = 100,
+    ) -> list[ObservationRead]:
+        """Read the normalised clinical-history projection for resident search.
+
+        The caller supplies the same RLS-scoped session used by all observation
+        reads.  This is deliberately a projection reader, not a new endpoint or
+        a duplicate per-table search implementation.
+        """
+        return await self._read(
+            [resident_id],
+            since=from_date,
+            until=to_date,
+            source_types=source_types,
+            source_id=source_id,
+            limit=limit,
         )
 
     async def get_source(

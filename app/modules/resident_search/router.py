@@ -5,11 +5,14 @@ from fastapi import APIRouter, Depends, Request, Response, status
 
 from app import CurrentUser, Permission, get_current_user, get_floor_scope, require, rls_session
 from app.modules.resident_search.evidence.appointments import AppointmentsEvidenceAdapter
-from app.modules.resident_search.evidence.falls import FallsEvidenceAdapter
+from app.modules.resident_search.evidence.assessments.adapter import (
+    AssessmentEvidenceAdapter,
+)
 from app.modules.resident_search.evidence.careevent import CareEventEvidenceAdapter
 from app.modules.resident_search.evidence.careplan import CarePlanEvidenceAdapter
+from app.modules.resident_search.evidence.clinical_observations import ClinicalObservationEvidenceAdapter
+from app.modules.resident_search.evidence.falls import FallsEvidenceAdapter
 from app.modules.resident_search.evidence.models import EvidenceSourceType
-
 from app.modules.resident_search.repository import ResidentSearchRepository
 from app.modules.resident_search.schemas import (
     ResidentSearchRequest,
@@ -35,6 +38,15 @@ async def get_resident_search_service(
             EvidenceSourceType.APPOINTMENT: AppointmentsEvidenceAdapter(session),
             EvidenceSourceType.CARE_PLAN: CarePlanEvidenceAdapter(session),
             EvidenceSourceType.CARE_EVENT: CareEventEvidenceAdapter(session),
+            EvidenceSourceType.ASSESSMENT : AssessmentEvidenceAdapter(session),
+            EvidenceSourceType.OBSERVATION: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.OBSERVATION),
+            EvidenceSourceType.SLEEP: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.SLEEP),
+            EvidenceSourceType.NUTRITION: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.NUTRITION),
+            EvidenceSourceType.MOBILITY: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.MOBILITY),
+            EvidenceSourceType.WELLBEING: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.WELLBEING),
+            EvidenceSourceType.COMMUNICATION: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.COMMUNICATION),
+            EvidenceSourceType.WOUND: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.WOUND),
+            EvidenceSourceType.INCIDENT: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.INCIDENT),
         }
 
         yield ResidentSearchService(

@@ -60,7 +60,8 @@ def _domain_select(table: str, kind: str, time_column: str, actor: str | None, a
             {effective_time} AS recorded_at, {actor_column} AS recorded_by,
             false AS is_implausible, '{table}'::text AS source_type,
             '{"date" if date_only else "timestamp"}'::text AS time_precision,
-            {source_date} AS source_date
+            {source_date} AS source_date,
+            t.created_at AS source_updated_at
         FROM {table} t
         JOIN residents r ON r.id = t.resident_id AND r.care_home_id = t.care_home_id
         JOIN care_homes h ON h.id = t.care_home_id
@@ -74,7 +75,7 @@ CLINICAL_FEED_SQL = "\nUNION ALL\n".join(
         SELECT t.id, t.resident_id, t.type::text AS type, t.value,
             t.recorded_at, t.recorded_by, t.is_implausible,
             'observations'::text AS source_type, 'timestamp'::text AS time_precision,
-            NULL::text AS source_date
+            NULL::text AS source_date, t.created_at AS source_updated_at
         FROM observations t
         JOIN residents r ON r.id = t.resident_id AND r.care_home_id = t.care_home_id
         WHERE t.deleted_at IS NULL AND r.deleted_at IS NULL

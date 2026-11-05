@@ -1,14 +1,12 @@
 import uuid
-from datetime import datetime
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
 from sqlalchemy import text
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceSourceType, AuthorityLevel
+from app.modules.resident_search.evidence.models import AuthorityLevel, EvidenceDocument, EvidenceSourceType
 
 _SELECT = """
     SELECT
@@ -138,11 +136,11 @@ class SkinAssessmentReader:
 
         title = "Skin assessment"
 
-        parts = [title + "." + f"{row['assessment_tool']} skin-integrity assessment."]
+        parts = [f"{row['assessment_tool']} skin-integrity assessment."]
 
         if pressure_areas_checked:
             parts.append(
-                f"Pressure area in moniter: {str(pressure_areas_checked).replace('_', ' ')}."
+                f"Pressure areas checked: {', '.join(pressure_areas_checked)}."
             )
 
         if total_score:
@@ -150,14 +148,14 @@ class SkinAssessmentReader:
 
         if risk_level:
             parts.append(
-                f"skin risk level: {str(risk_level).replace('_', ' ')}."
+                f"Skin risk level: {str(risk_level).replace('_', ' ')}."
             )
 
         if equipment_in_use:
-            parts.append(f"Equipment using is : {equipment_in_use}.")
+            parts.append(f"Equipment in use: {equipment_in_use}.")
 
         if reposition_frequency:
-            parts.append(f"Regular reposition at: {', '.join(reposition_frequency)}.")
+            parts.append(f"Recorded repositioning frequency: {reposition_frequency}.")
 
         metadata = {
             "assessment_tool": row["assessment_tool"],
@@ -167,7 +165,7 @@ class SkinAssessmentReader:
             "equipment_in_use": row["equipment_in_use"],
             "reposition_frequency": row["reposition_frequency"],
             "next_review_due": row["next_review_due"],
-        },
+        }
 
         return EvidenceDocument(
             evidence_id=f"skin_assessment:{row['id']}",
@@ -202,6 +200,7 @@ class SkinAssessmentReader:
 
             is_deleted=row["deleted_at"] is not None,
             is_eligible=row["deleted_at"] is None,
+            is_implausible=False
         )
 
 

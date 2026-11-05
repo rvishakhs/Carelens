@@ -132,4 +132,5 @@ class FallsEvidenceAdapter:
             effective_to=None,
             is_deleted=row["deleted_at"] is not None,
             is_eligible=row["deleted_at"] is None,
+            is_implausible=True
         )
