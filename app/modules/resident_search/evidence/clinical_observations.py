@@ -46,7 +46,7 @@ _DISPLAY = {
 
 _TEXT_FIELDS: dict[str, tuple[str, ...]] = {
     "observations": ("text",),
-    "sleep_records": ("quality", "night_wakings"),
+    "sleep_records": ("quality", "night_wakings", "settled_time", "woke_time", "notes"),
     "food_intake_records": ("meal_type", "percentage_eaten"),
     "fluid_intake_records": ("volume_ml", "fluid_type"),
     "weight_records": ("weight_kg",),
@@ -54,13 +54,27 @@ _TEXT_FIELDS: dict[str, tuple[str, ...]] = {
     "wellbeing_records": ("mood", "notes"),
     "behaviour_records": ("behaviour_type", "behaviour_description"),
     "communication_logs": ("interaction_summary", "mood_during_interaction"),
-    "pain_assessments": ("score", "location", "interventions"),
+    "pain_assessments": ("score", "location", "intervention", "scale_type", "pain_behaviours", "effective"),
     "vital_signs_records": (
         "blood_pressure_systolic", "blood_pressure_diastolic", "heart_rate_bpm", "oxygen_saturation_pct",
         "temperature_celsius", "news2_score",
     ),
-    "wound_records": ("wound_type", "status", "location", "description"),
-    "incidents": ("incident_type", "description", "action_taken"),
+    "wound_records": ("wound_type", "status", "body_location", "treatment_plan", "grade_or_category" "length_cm", "width_cm", "depth_cm"),
+    "incidents": ("incident_type","immediate_action", "description", "investigation_status", "investigation_outcome"),
+}
+
+_FIELD_FORMATS = {
+    "length_cm": ("Length", "cm"),
+    "width_cm": ("Width", "cm"),
+    "depth_cm": ("Depth", "cm"),
+    "weight_kg": ("Weight", "kg"),
+    "volume_ml": ("Volume", "ml"),
+    "percentage_eaten": ("Amount eaten", "%"),
+    "temperature_celsius": ("Temperature", "°C"),
+    "heart_rate_bpm": ("Heart rate", "bpm"),
+    "oxygen_saturation_pct": ("Oxygen saturation", "%"),
+    "blood_pressure_systolic": ("Systolic blood pressure", "mmHg"),
+    "blood_pressure_diastolic": ("Diastolic blood pressure", "mmHg"),
 }
 
 
@@ -171,14 +185,32 @@ class ClinicalObservationEvidenceAdapter:
         return (row["care_home_id"], row["floor_id"]) if row is not None else None
 
 
-def _text_for(source_table: str, title: str, value: dict[str, Any]) -> str:
+def _text_for(
+    source_table: str,
+    title: str,
+    value: dict[str, Any],
+) -> str:
     parts = [f"{title}."]
+
     for key in _TEXT_FIELDS.get(source_table, ()):
         raw = value.get(key)
-        if raw is None or raw == "":
-            continue
-        label = key.replace("_", " ").capitalize()
-        parts.append(f"{label}: {' '.join(str(raw).split())}.")
+        label, unit = _FIELD_FORMATS.get(
+            key,
+            (key.replace("_", " ").capitalize(), None),
+        )
+
+        if raw is None or (isinstance(raw, str) and not raw.strip()):
+            formatted = "Not recorded"
+        elif isinstance(raw, bool):
+            formatted = "Yes" if raw else "No"
+        else:
+            formatted = " ".join(str(raw).split())
+            if unit:
+                separator = "" if unit == "%" else " "
+                formatted = f"{formatted}{separator}{unit}"
+
+        parts.append(f"{label}: {formatted}.")
+
     return " ".join(parts)
 
 
