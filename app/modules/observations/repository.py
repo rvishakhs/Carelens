@@ -27,12 +27,20 @@ class ObservationRepository(ObservationReader):
         offset: int = 0,
         source_type: str | None = None,
         source_types: set[str] | None = None,
+        native_types: set[str] | None = None,
         source_id: uuid.UUID | None = None,
     ) -> list[ObservationRead]:
         if not resident_ids:
             return []
         clauses = ["resident_id IN :resident_ids"]
         params: dict = {"resident_ids": resident_ids}
+
+        if native_types and not source_types:
+            raise ValueError(
+                "native_types requires a non-empty source_types selection"
+            )
+
+
         for name, value, clause in (
             ("since", since, "recorded_at >= :since"),
             ("until", until, "recorded_at < :until"),
@@ -49,7 +57,11 @@ class ObservationRepository(ObservationReader):
                 raise ValueError(f"unknown clinical source types: {', '.join(sorted(invalid_source_types))}")
             if not source_types:
                 return []
-            clauses.append("source_type IN :source_types")
+            if native_types:
+                clauses.append("(source_type IN :source_types OR (source_type = 'observations' AND type IN :native_types))")
+                params["native_types"] = sorted(native_types)
+            else:
+                clauses.append("source_type IN :source_types")
             params["source_types"] = sorted(source_types)
         query = f"SELECT * FROM ({CLINICAL_FEED_SQL}) feed WHERE {' AND '.join(clauses)}"
         query += " ORDER BY recorded_at DESC, source_type, id"
@@ -59,6 +71,8 @@ class ObservationRepository(ObservationReader):
         statement = text(query).bindparams(bindparam("resident_ids", expanding=True))
         if source_types is not None:
             statement = statement.bindparams(bindparam("source_types", expanding=True))
+        if native_types:
+            statement = statement.bindparams(bindparam("native_types", expanding=True))
         rows = (await self._session.execute(statement, params)).mappings().all()
         result = []
         for row in rows:
@@ -133,8 +147,10 @@ class ObservationRepository(ObservationReader):
         from_date: datetime | None = None,
         to_date: datetime | None = None,
         source_types: set[str] | None = None,
+        native_types: set[str] | None = None,
         source_id: uuid.UUID | None = None,
         limit: int = 100,
+        offset: int = 0,
     ) -> list[ObservationRead]:
         """Read the normalised clinical-history projection for resident search.
 
@@ -142,13 +158,18 @@ class ObservationRepository(ObservationReader):
         reads.  This is deliberately a projection reader, not a new endpoint or
         a duplicate per-table search implementation.
         """
+        if offset < 0:
+            raise ValueError("offset must be >= 0")
+
         return await self._read(
             [resident_id],
             since=from_date,
             until=to_date,
             source_types=source_types,
+            native_types=native_types,
             source_id=source_id,
             limit=limit,
+            offset=offset,
         )
 
     async def get_source(

@@ -18,6 +18,24 @@ TEMPLATE_CODE_TOPICS = MappingProxyType({
     "sleep_check": frozenset({
         ResidentTopic.SLEEP,
     }),
+    "fall incident": frozenset({
+        ResidentTopic.FALL,
+        ResidentTopic.MOBILITY,
+    }),
+
+    "repositioning": frozenset({
+        ResidentTopic.SKIN,
+        ResidentTopic.WOUND,
+    }),
+
+    "communication support": frozenset({
+        ResidentTopic.COMMUNICATION,
+    }),
+
+    "toileting support": frozenset({
+        ResidentTopic.CONTINENCE,
+        ResidentTopic.PERSONAL_CARE,
+    }),
 })
 
 
@@ -68,3 +86,34 @@ class TopicAssignment:
         "unmapped",
     ]
 
+def assign_care_event_topics(
+    *,
+    template_code: str | None,
+    template_name: str | None,
+    category_name: str | None,
+) -> TopicAssignment:
+    code = normalise_label(template_code)
+    if code and code in TEMPLATE_CODE_TOPICS:
+        return TopicAssignment(
+            topics=TEMPLATE_CODE_TOPICS[code],
+            basis="template_code",
+        )
+
+    name = normalise_label(template_name)
+    if name and name in TEMPLATE_NAME_TOPICS:
+        return TopicAssignment(
+            topics=TEMPLATE_NAME_TOPICS[name],
+            basis="template_name",
+        )
+
+    category = normalise_label(category_name)
+    if category and category in CATEGORY_NAME_TOPICS:
+        return TopicAssignment(
+            topics=CATEGORY_NAME_TOPICS[category],
+            basis="category",
+        )
+
+    return TopicAssignment(
+        topics=frozenset({ResidentTopic.CARE_RECORD}),
+        basis="unmapped",
+    )

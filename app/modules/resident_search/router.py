@@ -10,6 +10,7 @@ from app.modules.resident_search.evidence.assessments.adapter import (
 )
 from app.modules.resident_search.evidence.careevent import CareEventEvidenceAdapter
 from app.modules.resident_search.evidence.careplan import CarePlanEvidenceAdapter
+from app.modules.resident_search.evidence.care_needs import CareNeedsEvidenceAdapter
 from app.modules.resident_search.evidence.clinical_observations import ClinicalObservationEvidenceAdapter
 from app.modules.resident_search.evidence.falls import FallsEvidenceAdapter
 from app.modules.resident_search.evidence.models import EvidenceSourceType
@@ -38,6 +39,9 @@ async def get_resident_search_service(
             EvidenceSourceType.APPOINTMENT: AppointmentsEvidenceAdapter(session),
             EvidenceSourceType.CARE_PLAN: CarePlanEvidenceAdapter(session),
             EvidenceSourceType.CARE_EVENT: CareEventEvidenceAdapter(session),
+            EvidenceSourceType.COMMUNICATION_NEED: CareNeedsEvidenceAdapter(session, EvidenceSourceType.COMMUNICATION_NEED),
+            EvidenceSourceType.NUTRITION_TARGET: CareNeedsEvidenceAdapter(session, EvidenceSourceType.NUTRITION_TARGET),
+            EvidenceSourceType.CONTINENCE_CARE_PLAN: CareNeedsEvidenceAdapter(session, EvidenceSourceType.CONTINENCE_CARE_PLAN),
             EvidenceSourceType.ASSESSMENT : AssessmentEvidenceAdapter(session),
             EvidenceSourceType.OBSERVATION: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.OBSERVATION),
             EvidenceSourceType.SLEEP: ClinicalObservationEvidenceAdapter(session, EvidenceSourceType.SLEEP),

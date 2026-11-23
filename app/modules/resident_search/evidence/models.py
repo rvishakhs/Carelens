@@ -1,9 +1,15 @@
 import uuid
+from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum, IntEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
+
+class PlausibilityPolicy(str, Enum):
+    EXCLUDE_FLAGGED = "exclude_flagged"
+    INCLUDE_FLAGGED = "include_flagged"
+    FLAGGED_ONLY = "flagged_only"
 
 
 class EvidenceSourceType(str, Enum):
@@ -41,6 +47,8 @@ class AuthorityLevel(IntEnum):
     CARE_EVENT = 60
     OBSERVATION = 50
     HISTORICAL = 25
+
+
 
 class EvidenceDocument(BaseModel):
     """Internal retrieval shape"""
@@ -82,3 +90,12 @@ class EvidenceDocument(BaseModel):
         if self.time_precision == "date" and self.source_date is None:
             raise ValueError("date evidence requires source_date")
         return self
+
+
+@dataclass(frozen=True)
+class EvidenceRetrievalResult:
+    documents: list[EvidenceDocument]
+    scanned_count: int
+    source_exhausted: bool
+    scan_limit_reached: bool
+    excluded_flagged_count: int = 0

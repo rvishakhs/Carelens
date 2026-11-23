@@ -4,9 +4,10 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 
 from app import EventBus, NotFoundError, ResidentHistorySearched, ValidationError
-from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceSourceType
+from app.modules.resident_search.evidence.models import EvidenceDocument, EvidenceRetrievalResult, EvidenceSourceType
 from app.modules.resident_search.evidence.ports import EvidenceSourceAdapter
 from app.modules.resident_search.evidence.revisions import revision_token
+from app.modules.resident_search.evidence.resolver import EvidenceSourceResolver
 from app.modules.resident_search.repository import MAX_CITATIONS, ResidentSearchRepository
 from app.modules.resident_search.schemas import (
     AnswerStatus,
@@ -32,6 +33,9 @@ _SUPPORTED_SOURCE_TYPES = frozenset(
         EvidenceSourceType.COMMUNICATION,
         EvidenceSourceType.WOUND,
         EvidenceSourceType.INCIDENT,
+        EvidenceSourceType.COMMUNICATION_NEED,
+        EvidenceSourceType.NUTRITION_TARGET,
+        EvidenceSourceType.CONTINENCE_CARE_PLAN,
     }
 )
 
@@ -121,6 +125,9 @@ _SOURCE_QUERY_TERMS: dict[EvidenceSourceType, frozenset[str]] = {
     EvidenceSourceType.WOUND: frozenset({"wound", "skin", "pressure", "pressure area"}),
     EvidenceSourceType.INCIDENT: frozenset({"incident", "safety"}),
     EvidenceSourceType.OBSERVATION: frozenset({"observation", "observations", "vitals", "pain"}),
+    EvidenceSourceType.COMMUNICATION_NEED: frozenset({"communication", "hearing", "hearing aid", "glasses", "interpreter", "aac"}),
+    EvidenceSourceType.NUTRITION_TARGET: frozenset({"nutrition", "hydration", "fluid", "calorie", "target"}),
+    EvidenceSourceType.CONTINENCE_CARE_PLAN: frozenset({"continence", "toileting", "toilet", "bowel"}),
 }
 _SOURCE_LABELS = {
     EvidenceSourceType.FALL: "fall",
@@ -140,6 +147,9 @@ _SOURCE_LABELS = {
     EvidenceSourceType.COMMUNICATION: "communication",
     EvidenceSourceType.WOUND: "wound",
     EvidenceSourceType.INCIDENT: "incident",
+    EvidenceSourceType.COMMUNICATION_NEED: "communication need",
+    EvidenceSourceType.NUTRITION_TARGET: "nutrition and hydration target",
+    EvidenceSourceType.CONTINENCE_CARE_PLAN: "continence care plan",
 }
 
 SOURCE_TYPE_TO_ADAPTER_GROUP = {
@@ -159,6 +169,7 @@ class ResidentSearchService:
         self._repository = repository
         self._event_bus = event_bus
         self._adapters = dict(adapters)
+        self._resolver = EvidenceSourceResolver(self._adapters)
 
     def _adapter_for(self, source_type: EvidenceSourceType) -> EvidenceSourceAdapter:
         try:
@@ -180,16 +191,30 @@ class ResidentSearchService:
             raise NotFoundError(f"resident {resident_id} not found")
 
         documents: list[EvidenceDocument] = []
-        for source_type in source_types:
+        scan_limitations: list[str] = []
+        for source_type in sorted(source_types, key=lambda item: item.value):
             source_documents = await self._adapter_for(source_type).find(
                 resident_id=resident_id, from_date=payload.from_date, to_date=payload.to_date, limit=MAX_CITATIONS + 1
             )
+            if isinstance(source_documents, EvidenceRetrievalResult):
+                if source_documents.scan_limit_reached:
+                    scan_limitations.append(
+                        f"{self._source_label({source_type})}: search stopped after scanning "
+                        f"{source_documents.scanned_count} records. Older matching records may exist."
+                    )
+                source_documents = source_documents.documents
             documents.extend(
                 document
                 for document in source_documents
                 if self._usable(document, resident_id, care_home_id, source_type)
             )
 
+        # Domain queries overlap with the general native-observation query.
+        # Only collapse the same physical record, never independently authored notes.
+        documents = list({
+            (document.structured_metadata.get("clinical_source_type", document.source_type.value), document.source_id): document
+            for document in documents
+        }.values())
         citations = [
             EvidenceCitation(
                 evidence_id=document.evidence_id,
@@ -219,11 +244,17 @@ class ResidentSearchService:
         else:
             answer, answer_status = self._answer_for(citations, period), AnswerStatus.SUPPORTED
 
+        if scan_limitations:
+            answer_status = AnswerStatus.PARTIAL
+            if not citations:
+                answer = f"No matching {source_label} records were found within the scanned records."
+
         limitations = [
             f"This result searches {source_label} records only.",
             "Only the selected source types are searched; this is not a complete resident history.",
             "Verify details against the cited source records.",
         ]
+        limitations.extend(scan_limitations)
         if EvidenceSourceType.CARE_PLAN in source_types:
             limitations.append(
                 "Care plans show current active versions and current goals, regardless of the date filter; "
@@ -304,23 +335,12 @@ class ResidentSearchService:
         if citation is None:
             raise NotFoundError(f"history search source {source_id} not found")
 
-        adapter_group = SOURCE_TYPE_TO_ADAPTER_GROUP.get(
-            source_type,
-            source_type,
+        adapter_group = self._resolver.adapter_group_for(source_type)
+        source = await self._resolver.resolve(
+            resident_id=resident_id,
+            source_type=source_type,
+            source_id=source_id,
         )
-        adapter = self._adapter_for(adapter_group)
-
-        if adapter_group == EvidenceSourceType.ASSESSMENT:
-            source = await adapter.get(
-                resident_id=resident_id,
-                source_type=source_type,
-                source_id=source_id,
-            )
-        else:
-            source = await adapter.get(
-                resident_id=resident_id,
-                source_id=source_id,
-            )
 
         scope = await self._repository.get_resident_scope(resident_id)
 

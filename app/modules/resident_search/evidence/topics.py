@@ -26,3 +26,4 @@ class ResidentTopic(str, Enum):
 
     MEDICATION = "medication"
     APPOINTMENT = "appointment"
+    CARE_RECORD = "care_record"

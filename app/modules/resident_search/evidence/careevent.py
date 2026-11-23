@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.resident_search.evidence.models import AuthorityLevel, EvidenceDocument, EvidenceSourceType
 from app.modules.resident_search.evidence.utils import _clean, _measurement_value, _topics_for_event
+from app.modules.resident_search.registry.topics import assign_care_event_topics
 
 _PARENT_EVENT_BASE_SQL = """
 SELECT
@@ -28,6 +29,7 @@ SELECT
     t.name AS template_name,
     c.id AS category_id,
     c.name AS category_name
+    t.code AS template_code,
 FROM care_events e
 JOIN care_templates t
     ON t.id = e.template_id
@@ -236,12 +238,20 @@ class CareEventEvidenceAdapter:
         options: list[dict[str, Any]],
         measurements: list[dict[str, Any]],
     ) -> EvidenceDocument:
+
+        assignment = assign_care_event_topics(
+            template_code=event.get("template_code"),
+            template_name=event["template_name"],
+            category_name=event["category_name"],
+        )
+
+
         category_name = _clean(event["category_name"]) or "Care record"
         template_name = _clean(event["template_name"]) or "Unnamed care event"
         status = str(event["status"])
 
         title = f"{category_name} — {template_name}"
-        topics = _topics_for_event(category_name, template_name)
+        topics = {topic.value for topic in assignment.topics}
 
         option_metadata = [
             {
